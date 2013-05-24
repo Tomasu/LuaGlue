@@ -22,7 +22,7 @@ class LuaGlueStaticMethod : public LuaGlueMethodBase
 		typedef _Ret (*MethodType)( _Args... );
 		
 		LuaGlueStaticMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) :
-			glueClass(luaClass), name_(name), fn(std::forward<MethodType>(fn))
+			glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
 		{ }
 		
 		~LuaGlueStaticMethod() {}
@@ -68,7 +68,7 @@ class LuaGlueStaticMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		typedef void (*MethodType)( _Args... );
 		
 		LuaGlueStaticMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) :
-			glueClass(luaClass), name_(name), fn(std::forward<MethodType>(fn))
+			glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
 		{ }
 		
 		~LuaGlueStaticMethod() {}

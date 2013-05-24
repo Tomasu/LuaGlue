@@ -36,10 +36,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		typedef _Class ClassType;
 		
 		LuaGlueClass(LuaGlue *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
-		{
-			//auto dtor = new LuaGlueMethod<void, LuaGlueClass<_Class>>(this, "__gc", &LuaGlueClass::lua_gc);
-			//static_methods["__gc"] = dtor;
-		}
+		{ }
 		
 		~LuaGlueClass() { }
 		
@@ -65,7 +62,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (_Class::*fn)(_Args...))
 		{
-			auto impl = new LuaGlueMethod<_Ret, _Class, _Args...>(this, name, std::forward<_Ret (_Class::*)(_Args...)>(fn));
+			auto impl = new LuaGlueMethod<_Ret, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
 			methods[name] = impl;
 			
 			return *this;
@@ -74,7 +71,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (_Class::*fn)(_Args...))
 		{
-			auto impl = new LuaGlueMethod<void, _Class, _Args...>(this, name, std::forward<void (_Class::*)(_Args...)>(fn));
+			auto impl = new LuaGlueMethod<void, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
 			methods[name] = impl;
 			
 			return *this;
@@ -83,7 +80,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (*fn)(_Args...))
 		{
-			auto impl = new LuaGlueStaticMethod<_Ret, _Class, _Args...>(this, name, std::forward<_Ret (*)(_Args...)>(fn));
+			auto impl = new LuaGlueStaticMethod<_Ret, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
 			static_methods[name] = impl;
 			
 			return *this;
@@ -92,7 +89,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (*fn)(_Args...))
 		{
-			auto impl = new LuaGlueStaticMethod<void, _Class, _Args...>(this, name, std::forward<void (*)(_Args...)>(fn));
+			auto impl = new LuaGlueStaticMethod<void, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
 			static_methods[name] = impl;
 			
 			return *this;

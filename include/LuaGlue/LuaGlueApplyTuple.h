@@ -73,7 +73,7 @@ struct apply_obj_func
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_obj_func<N-1>::applyTuple(state, pObj, f, std::forward<const std::tuple<ArgsT...>>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_obj_func<N-1>::applyTuple(state, pObj, f, std::forward<decltype(t)>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -112,7 +112,7 @@ R applyTuple(lua_State *state, T* pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
-	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(state, pObj, f, std::forward<const std::tuple<ArgsT...>>(t) );
+	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(state, pObj, f, std::forward<decltype(t)>(t) );
 }
 
 //-----------------------------------------------------------------------------
@@ -139,7 +139,7 @@ struct apply_func
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_func<N-1>::applyTuple( state, f, std::forward<const std::tuple<ArgsT...>>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_func<N-1>::applyTuple( state, f, std::forward<decltype(t)>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -176,7 +176,7 @@ template < typename R, typename... ArgsF, typename... ArgsT >
 R applyTuple( lua_State *state, R (*f)(ArgsF...),
                  const std::tuple<ArgsT...> & t )
 {
-	return apply_func<sizeof...(ArgsT)>::applyTuple( state, f, std::forward<const std::tuple<ArgsT...>>(t) );
+	return apply_func<sizeof...(ArgsT)>::applyTuple( state, f, std::forward<decltype(t)>(t) );
 }
 
 //-----------------------------------------------------------------------------
@@ -204,7 +204,7 @@ struct apply_ctor_func
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_ctor_func<C, N-1>::applyTuple( state, std::forward<const std::tuple<ArgsT...>>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_ctor_func<C, N-1>::applyTuple( state, std::forward<decltype(t)>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -239,7 +239,7 @@ struct apply_ctor_func<C, 0>
 template < typename C, typename... ArgsT >
 C *applyTuple( lua_State *state, const std::tuple<ArgsT...> & t )
 {
-	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( state, std::forward<const std::tuple<ArgsT...>>(t) );
+	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( state, std::forward<decltype(t)>(t) );
 }
 
 #endif /* LUAGLUE_APPLYTUPLE_H_GUARD */

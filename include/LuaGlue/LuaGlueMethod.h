@@ -21,9 +21,9 @@ class LuaGlueMethod : public LuaGlueMethodBase
 	public:
 		typedef _Class ClassType;
 		typedef _Ret ReturnType;
-		//typedef _Ret (_Class::*MethodType)( _Args... );
+		typedef _Ret (_Class::*MethodType)( _Args... );
 		
-		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, _Ret (_Class::*fn)(_Args...)) : glueClass(luaClass), name_(name), fn(std::forward< _Ret (_Class::*)(_Args...)>(fn))
+		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
 		{ }
 		
 		~LuaGlueMethod() {}
@@ -41,7 +41,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 	private:
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
-		_Ret (_Class::*fn)(_Args...);
+		MethodType fn;
 		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 		
@@ -70,8 +70,9 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	
 	public:
 		typedef _Class ClassType;
+		typedef void (_Class::*MethodType)(_Args...);
 		
-		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, void (_Class::*fn)(_Args...)) : glueClass(luaClass), name_(name), fn(std::forward< void (_Class::*)(_Args...)>(fn))
+		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
 		{ }
 		
 		~LuaGlueMethod() {}
@@ -89,7 +90,7 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	private:
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
-		void (_Class::*fn)(_Args...);
+		MethodType fn;
 		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 	
