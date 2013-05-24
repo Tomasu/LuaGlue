@@ -22,7 +22,7 @@ print("THREE: "..Foo.THREE);
 
 C++ Code
 ```cpp
-#include <LuaGlue.h>
+#include <LuaGlue/LuaGlue.h>
 
 class Foo
 {
