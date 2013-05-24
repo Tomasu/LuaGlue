@@ -13,16 +13,16 @@ template<typename _Class>
 class LuaGlueClass;
 
 template<typename _Class, typename... _Args>
-class LuaGlueCtorMethodImpl : public LuaGlueMethodImplBase
+class LuaGlueCtorMethod : public LuaGlueMethodBase
 {
 	public:
 		typedef _Class ClassType;
 		typedef _Class *ReturnType;
 		
-		LuaGlueCtorMethodImpl(LuaGlueClass<_Class> *luaClass, const std::string &name) : glueClass(luaClass), name_(name)
+		LuaGlueCtorMethod(LuaGlueClass<_Class> *luaClass, const std::string &name) : glueClass(luaClass), name_(name)
 		{ }
 		
-		~LuaGlueCtorMethodImpl() {}
+		~LuaGlueCtorMethod() {}
 		
 		std::string name() { return name_; }
 		
@@ -55,7 +55,7 @@ class LuaGlueCtorMethodImpl : public LuaGlueMethodImplBase
 		
 		static int lua_call_func(lua_State *state)
 		{
-			auto mimp = (LuaGlueCtorMethodImpl<_Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto mimp = (LuaGlueCtorMethod<_Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };

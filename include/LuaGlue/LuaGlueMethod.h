@@ -15,7 +15,7 @@ template<typename _Class>
 class LuaGlueClass;
 
 template<typename _Ret, typename _Class, typename... _Args>
-class LuaGlueMethodImpl : public LuaGlueMethodImplBase
+class LuaGlueMethod : public LuaGlueMethodBase
 {
 	
 	public:
@@ -23,10 +23,10 @@ class LuaGlueMethodImpl : public LuaGlueMethodImplBase
 		typedef _Ret ReturnType;
 		//typedef _Ret (_Class::*MethodType)( _Args... );
 		
-		LuaGlueMethodImpl(LuaGlueClass<_Class> *luaClass, const std::string &name, _Ret (_Class::*fn)(_Args...)) : glueClass(luaClass), name_(name), fn(std::forward< _Ret (_Class::*)(_Args...)>(fn))
+		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, _Ret (_Class::*fn)(_Args...)) : glueClass(luaClass), name_(name), fn(std::forward< _Ret (_Class::*)(_Args...)>(fn))
 		{ }
 		
-		~LuaGlueMethodImpl() {}
+		~LuaGlueMethod() {}
 		
 		std::string name() { return name_; }
 		
@@ -59,22 +59,22 @@ class LuaGlueMethodImpl : public LuaGlueMethodImplBase
 	private:
 		static int lua_call_func(lua_State *state)
 		{
-			auto mimp = (LuaGlueMethodImpl<_Ret, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto mimp = (LuaGlueMethod<_Ret, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };
 
 template<typename _Class, typename... _Args>
-class LuaGlueMethodImpl<void, _Class, _Args...> : public LuaGlueMethodImplBase
+class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 {
 	
 	public:
 		typedef _Class ClassType;
 		
-		LuaGlueMethodImpl(LuaGlueClass<_Class> *luaClass, const std::string &name, void (_Class::*fn)(_Args...)) : glueClass(luaClass), name_(name), fn(std::forward< void (_Class::*)(_Args...)>(fn))
+		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, void (_Class::*fn)(_Args...)) : glueClass(luaClass), name_(name), fn(std::forward< void (_Class::*)(_Args...)>(fn))
 		{ }
 		
-		~LuaGlueMethodImpl() {}
+		~LuaGlueMethod() {}
 		
 		std::string name() { return name_; }
 		
@@ -105,7 +105,7 @@ class LuaGlueMethodImpl<void, _Class, _Args...> : public LuaGlueMethodImplBase
 	private:
 		static int lua_call_func(lua_State *state)
 		{
-			auto mimp = (LuaGlueMethodImpl<void, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto mimp = (LuaGlueMethod<void, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };

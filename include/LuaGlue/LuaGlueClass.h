@@ -12,19 +12,19 @@
 class LuaGlue;
 
 template<typename _Class, typename... _Args>
-class LuaGlueCtorMethodImpl;
+class LuaGlueCtorMethod;
 
 template<typename _Ret, typename _Class, typename... _Args>
-class LuaGlueStaticMethodImpl;
+class LuaGlueStaticMethod;
 
 template<typename _Class, typename... _Args>
-class LuaGlueStaticMethodImpl<void, _Class, _Args...>;
+class LuaGlueStaticMethod<void, _Class, _Args...>;
 
 template<typename _Ret, typename _Class, typename... _Args>
-class LuaGlueMethodImpl;
+class LuaGlueMethod;
 
 template<typename _Class, typename... _Args>
-class LuaGlueMethodImpl<void, _Class, _Args...>;
+class LuaGlueMethod<void, _Class, _Args...>;
 
 template<typename _Class>
 class LuaGlueClass : public LuaGlueClassBase
@@ -34,7 +34,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass(LuaGlue *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
 		{
-			//auto dtor = new LuaGlueMethodImpl<void, LuaGlueClass<_Class>>(this, "__gc", &LuaGlueClass::lua_gc);
+			//auto dtor = new LuaGlueMethod<void, LuaGlueClass<_Class>>(this, "__gc", &LuaGlueClass::lua_gc);
 			//static_methods["__gc"] = dtor;
 		}
 		
@@ -45,7 +45,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &ctor(const std::string &name)
 		{
-			auto impl = new LuaGlueCtorMethodImpl<_Class, _Args...>(this, name.c_str());
+			auto impl = new LuaGlueCtorMethod<_Class, _Args...>(this, name.c_str());
 			static_methods[name] = impl;
 			
 			return *this;
@@ -54,7 +54,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (_Class::*fn)(_Args...))
 		{
-			auto impl = new LuaGlueMethodImpl<_Ret, _Class, _Args...>(this, name, std::forward<_Ret (_Class::*)(_Args...)>(fn));
+			auto impl = new LuaGlueMethod<_Ret, _Class, _Args...>(this, name, std::forward<_Ret (_Class::*)(_Args...)>(fn));
 			methods[name] = impl;
 			
 			return *this;
@@ -63,7 +63,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (_Class::*fn)(_Args...))
 		{
-			auto impl = new LuaGlueMethodImpl<void, _Class, _Args...>(this, name, std::forward<void (_Class::*)(_Args...)>(fn));
+			auto impl = new LuaGlueMethod<void, _Class, _Args...>(this, name, std::forward<void (_Class::*)(_Args...)>(fn));
 			methods[name] = impl;
 			
 			return *this;
@@ -72,7 +72,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (*fn)(_Args...))
 		{
-			auto impl = new LuaGlueStaticMethodImpl<_Ret, _Class, _Args...>(this, name, std::forward<_Ret (*)(_Args...)>(fn));
+			auto impl = new LuaGlueStaticMethod<_Ret, _Class, _Args...>(this, name, std::forward<_Ret (*)(_Args...)>(fn));
 			static_methods[name] = impl;
 			
 			return *this;
@@ -81,7 +81,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (*fn)(_Args...))
 		{
-			auto impl = new LuaGlueStaticMethodImpl<void, _Class, _Args...>(this, name, std::forward<void (*)(_Args...)>(fn));
+			auto impl = new LuaGlueStaticMethod<void, _Class, _Args...>(this, name, std::forward<void (*)(_Args...)>(fn));
 			static_methods[name] = impl;
 			
 			return *this;
@@ -153,8 +153,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		std::string name_;
 		
 		std::map<std::string, LuaGlueConstant *> constants_;
-		std::map<std::string, LuaGlueMethodImplBase *> methods;
-		std::map<std::string, LuaGlueMethodImplBase *> static_methods;
+		std::map<std::string, LuaGlueMethodBase *> methods;
+		std::map<std::string, LuaGlueMethodBase *> static_methods;
 		
 		void lua_gc()
 		{

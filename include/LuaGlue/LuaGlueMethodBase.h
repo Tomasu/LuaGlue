@@ -3,11 +3,11 @@
 
 class LuaGlue;
 
-class LuaGlueMethodImplBase
+class LuaGlueMethodBase
 {
 	public:
-		LuaGlueMethodImplBase() { }
-		virtual ~LuaGlueMethodImplBase() { }
+		LuaGlueMethodBase() { }
+		virtual ~LuaGlueMethodBase() { }
 		virtual bool glue(LuaGlue *luaGlue) = 0;
 };
 

@@ -67,13 +67,13 @@ struct apply_obj_func
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
   static R applyTuple(lua_State *state, T* pObj,
                           R (T::*f)( ArgsF... ),
-                          const std::tuple<ArgsT...> t,
+                          const std::tuple<ArgsT...> &t,
                           Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_obj_func<N-1>::applyTuple(state, pObj, f, t, getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_obj_func<N-1>::applyTuple(state, pObj, f, std::forward<const std::tuple<ArgsT...>>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -94,7 +94,7 @@ struct apply_obj_func<0>
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
   static R applyTuple(lua_State *, T* pObj,
                           R (T::*f)( ArgsF... ),
-                          const std::tuple<ArgsT...> /* t */,
+                          const std::tuple<ArgsT...> &/* t */,
                           Args... args )
 	{
 		return (pObj->*f)( args... );
@@ -110,9 +110,9 @@ struct apply_obj_func<0>
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
 R applyTuple(lua_State *state, T* pObj,
                  R (T::*f)( ArgsF... ),
-                 const std::tuple<ArgsT...> t )
+                 const std::tuple<ArgsT...> &t )
 {
-	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(state, pObj, f, t );
+	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(state, pObj, f, std::forward<const std::tuple<ArgsT...>>(t) );
 }
 
 //-----------------------------------------------------------------------------
