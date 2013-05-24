@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 2.6)
+
+project(LuaGlue CXX)
+
+# tell CMake to search first in the cmake subdirectory for FIND_PACKAGE() or INCLUDE()
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
+
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+	add_definitions(-DDEBUG -O0 -ggdb3)
+else()
+	add_definitions(-O2 -s -march=native)
+endif()
+
+add_definitions(-Wextra -Wall -pipe -std=gnu++11)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
+
+function(copy_to_build file_name)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${file_name}
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file_name} ${CMAKE_CURRENT_BINARY_DIR}/${file_name}
+		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${file_name})
+endfunction()
+
+add_subdirectory(examples)
