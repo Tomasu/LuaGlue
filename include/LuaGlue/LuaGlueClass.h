@@ -14,6 +14,9 @@ class LuaGlue;
 template<typename _Class, typename... _Args>
 class LuaGlueCtorMethod;
 
+template<typename _Class>
+class LuaGlueDtorMethod;
+
 template<typename _Ret, typename _Class, typename... _Args>
 class LuaGlueStaticMethod;
 
@@ -47,6 +50,14 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			auto impl = new LuaGlueCtorMethod<_Class, _Args...>(this, name.c_str());
 			static_methods[name] = impl;
+			
+			return *this;
+		}
+		
+		LuaGlueClass<_Class> &dtor(void (_Class::*fn)())
+		{
+			auto impl = new LuaGlueDtorMethod<_Class>(this, "__gc", std::forward<decltype(fn)>(fn));
+			methods["__gc"] = impl;
 			
 			return *this;
 		}

@@ -8,6 +8,8 @@ class Foo
 		
 		int abc(int a, int b, int c) { printf("%i:%i:%i\n", a,b,c); return 143; }
 		static void aaa() { printf("aaa!\n"); }
+		
+		void lua_gc() { printf("__gc!\n"); }
 };
 
 int main(int, char **)
@@ -17,6 +19,7 @@ int main(int, char **)
 	state.
 		Class<Foo>("Foo").
 			ctor<int>("new").
+			dtor(&Foo::lua_gc).
 			method("abc", &Foo::abc).
 			method("aaa", &Foo::aaa).
 			constants( { { "ONE", 1 }, { "TWO", 2.0 }, { "THREE", "three" } } ).

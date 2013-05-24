@@ -52,6 +52,7 @@ class LuaGlue
 #include "LuaGlue/LuaGlueClass.h"
 #include "LuaGlue/LuaGlueConstant.h"
 #include "LuaGlue/LuaGlueCtorMethod.h"
+#include "LuaGlue/LuaGlueDtorMethod.h"
 #include "LuaGlue/LuaGlueMethod.h"
 #include "LuaGlue/LuaGlueStaticMethod.h"
 
