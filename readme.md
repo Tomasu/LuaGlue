@@ -3,7 +3,8 @@ LuaGlue
 
 LuaGlue is a C++11 template based binding library.
 
-example:
+example
+-------
 
 Lua Code:
 ```lua
@@ -49,4 +50,5 @@ int main(int, char **)
 	}
 		
 	return 0;
-}```
+}
+```
