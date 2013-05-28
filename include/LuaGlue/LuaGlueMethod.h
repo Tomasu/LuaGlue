@@ -48,11 +48,11 @@ class LuaGlueMethod : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			ClassType *obj = (ClassType *)luaL_checkudata(state, 1, glueClass->name().c_str());
-			ReturnType ret = applyTuple(state, (_Class *)obj, fn, args);
+			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			ReturnType ret = applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
 			lua_pop(state, Arg_Count_);
 			
-			returnValue(state, ret);
+			returnValue(glueClass->luaGlue(), state, ret);
 			return 1;
 		}
 		
@@ -97,8 +97,8 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			ClassType *obj = (ClassType *)luaL_checkudata(state, 1, glueClass->name().c_str());
-			applyTuple(state, (_Class *)obj, fn, args);
+			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
 			lua_pop(state, Arg_Count_);
 			return 0;
 		}

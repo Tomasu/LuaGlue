@@ -5,5 +5,9 @@ print("ONE: "..Foo.ONE);
 print("TWO: "..Foo.TWO);
 print("THREE: "..Foo.THREE);
 
+local ptrtest = test:ptrTest();
+
+test:ptrArgTest(test);
+
 test = nil;
 collectgarbage();

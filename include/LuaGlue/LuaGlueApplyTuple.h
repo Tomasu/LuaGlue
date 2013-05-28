@@ -4,48 +4,108 @@
 #include <cstdint>
 #include <tuple>
 #include <lua.hpp>
+#include <typeinfo>
+
+class LuaGlue;
 
 template<typename T>
-T getValue(lua_State *state, unsigned int);
+T getValue(LuaGlue &, lua_State *, unsigned int);
 
 template<>
-int getValue<int>(lua_State *state, unsigned int idx)
+int getValue<int>(LuaGlue &, lua_State *state, unsigned int idx)
 {
 	return luaL_checkint(state, idx);
 }
 
 template<>
-double getValue<double>(lua_State *state, unsigned int idx)
+double getValue<double>(LuaGlue &, lua_State *state, unsigned int idx)
 {
 	return luaL_checknumber(state, idx);
 }
 
 template<>
-const char *getValue<const char *>(lua_State *state, unsigned int idx)
+const char *getValue<const char *>(LuaGlue &, lua_State *state, unsigned int idx)
 {
 	return luaL_checkstring(state, idx);
 }
 
+template<class T>
+T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
+{
+	typedef typename std::remove_pointer<T>::type TC;
+	
+	if(lua_islightuserdata(state, idx))
+		return (T)lua_touserdata(state, idx);
+	
+	for(auto &c: g.getClasses())
+	{
+		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.second);
+		if(lgc)
+		{
+			T v = *(T *)luaL_checkudata(state, idx, lgc->name().c_str());
+			if(v)
+			{
+				printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+				return v;
+			}
+			else
+			{
+				printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+				printf("except that the udata was null??\n");
+			}
+		}
+		else
+		{
+			printf("getValue: found the wrong class! c=%s\n", typeid(c.second).name());
+		}
+	}
+	
+	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
+	return 0;
+}
 
 template<typename T>
-void returnValue(lua_State *, T);
+void returnValue(LuaGlue &, lua_State *, T);
 
 template<>
-void returnValue(lua_State *state, int v)
+void returnValue(LuaGlue &, lua_State *state, int v)
 {
 	lua_pushinteger(state, v);
 }
 
 template<>
-void returnValue(lua_State *state, double v)
+void returnValue(LuaGlue &, lua_State *state, double v)
 {
 	lua_pushnumber(state, v);
 }
 
 template<>
-void returnValue(lua_State *state, const char *v)
+void returnValue(LuaGlue &, lua_State *state, const char *v)
 {
 	lua_pushstring(state, v);
+}
+
+template<class T>
+void returnValue(LuaGlue &g, lua_State *state, T *v)
+{
+	// first look for a class we support
+	for(auto &c: g.getClasses())
+	{
+		LuaGlueClass<T> *lgc = dynamic_cast<LuaGlueClass<T> *>(c.second);
+		if(lgc)
+		{
+			printf("returnValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+			lgc->pushInstance(v);
+			return;
+		}
+		else
+		{
+			printf("returnValue: found the wrong class! v=%s c=%s\n", typeid(v).name(), typeid(c.second).name());
+		}
+	}
+	
+	// otherwise push onto stack as light user data
+	lua_pushlightuserdata(state, v);
 }
 
 // original apply tuple code:
@@ -65,7 +125,7 @@ template < uint32_t N >
 struct apply_obj_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(lua_State *state, T* pObj,
+  static R applyTuple(LuaGlue &g, lua_State *state, T* pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &t,
                           Args... args )
@@ -73,7 +133,7 @@ struct apply_obj_func
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_obj_func<N-1>::applyTuple(state, pObj, f, std::forward<decltype(t)>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_obj_func<N-1>::applyTuple(g, state, pObj, f, std::forward<decltype(t)>(t), getValue<ltype>(g, state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -92,7 +152,7 @@ template <>
 struct apply_obj_func<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(lua_State *, T* pObj,
+  static R applyTuple(LuaGlue &, lua_State *, T* pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
@@ -108,11 +168,11 @@ struct apply_obj_func<0>
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(lua_State *state, T* pObj,
+R applyTuple(LuaGlue &g, lua_State *state, T* pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
-	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(state, pObj, f, std::forward<decltype(t)>(t) );
+	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(g, state, pObj, f, std::forward<decltype(t)>(t) );
 }
 
 //-----------------------------------------------------------------------------
@@ -132,14 +192,14 @@ template < uint N >
 struct apply_func
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-	static R applyTuple(	lua_State *state, R (*f)( ArgsF... ),
+	static R applyTuple(	LuaGlue &g, lua_State *state, R (*f)( ArgsF... ),
 									const std::tuple<ArgsT...>& t,
 									Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_func<N-1>::applyTuple( state, f, std::forward<decltype(t)>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_func<N-1>::applyTuple( g, state, f, std::forward<decltype(t)>(t), getValue<ltype>(g, state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -158,7 +218,7 @@ template <>
 struct apply_func<0>
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-	static R applyTuple(	lua_State *, R (*f)( ArgsF... ),
+	static R applyTuple(	LuaGlue &, lua_State *, R (*f)( ArgsF... ),
 									const std::tuple<ArgsT...>& /* t */,
 									Args... args )
 	{
@@ -173,10 +233,10 @@ struct apply_func<0>
  */
 // Actual apply function
 template < typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple( lua_State *state, R (*f)(ArgsF...),
+R applyTuple( LuaGlue &g, lua_State *state, R (*f)(ArgsF...),
                  const std::tuple<ArgsT...> & t )
 {
-	return apply_func<sizeof...(ArgsT)>::applyTuple( state, f, std::forward<decltype(t)>(t) );
+	return apply_func<sizeof...(ArgsT)>::applyTuple( g, state, f, std::forward<decltype(t)>(t) );
 }
 
 //-----------------------------------------------------------------------------
@@ -198,13 +258,13 @@ template <class C, uint N >
 struct apply_ctor_func
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	lua_State *state, const std::tuple<ArgsT...>& t,
+	static C *applyTuple(	LuaGlue &g, lua_State *state, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_ctor_func<C, N-1>::applyTuple( state, std::forward<decltype(t)>(t), getValue<ltype>(state, -(argCount-N+1)), args... );
+		return apply_ctor_func<C, N-1>::applyTuple( g, state, std::forward<decltype(t)>(t), getValue<ltype>(g, state, -(argCount-N+1)), args... );
 	}
 };
 
@@ -223,7 +283,7 @@ template <class C>
 struct apply_ctor_func<C, 0>
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	lua_State *, const std::tuple<ArgsT...>& /* t */,
+	static C *applyTuple(	LuaGlue &, lua_State *, const std::tuple<ArgsT...>& /* t */,
 								Args... args )
 	{
 		return new C( args... );
@@ -237,9 +297,9 @@ struct apply_ctor_func<C, 0>
  */
 // Actual apply function
 template < typename C, typename... ArgsT >
-C *applyTuple( lua_State *state, const std::tuple<ArgsT...> & t )
+C *applyTuple( LuaGlue &g, lua_State *state, const std::tuple<ArgsT...> & t )
 {
-	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( state, std::forward<decltype(t)>(t) );
+	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( g, state, std::forward<decltype(t)>(t) );
 }
 
 #endif /* LUAGLUE_APPLYTUPLE_H_GUARD */

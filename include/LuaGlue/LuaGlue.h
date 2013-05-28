@@ -44,6 +44,8 @@ class LuaGlue
 			return true;
 		}
 		
+		const std::map<std::string, LuaGlueClassBase *> &getClasses() { return classes; }
+		
 	private:
 		lua_State *state_;
 		std::map<std::string, LuaGlueClassBase *> classes;

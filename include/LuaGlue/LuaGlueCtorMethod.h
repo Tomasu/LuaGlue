@@ -42,7 +42,7 @@ class LuaGlueCtorMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			_Class *obj = applyTuple<_Class>(state, args);
+			_Class *obj = applyTuple<_Class>(glueClass->luaGlue(), state, args);
 			lua_pop(state, Arg_Count_);
 			_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
 			*udata = obj;

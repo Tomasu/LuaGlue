@@ -42,6 +42,24 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		const std::string &name() { return name_; }
 		
+		template<typename _Ret, typename... _Args>
+		_Ret invokeLuaMethod(const std::string &name, _Class *obj, _Args... args)
+		{
+			// TODO: maybe add LuaGlueObject wrapper, so we can create a single userdata
+			//  and just pass it around.
+		}
+		
+		LuaGlueClass<_Class> &pushInstance(_Class *)
+		{
+			/*_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
+			*udata = obj;
+			
+			luaL_getmetatable(state, glueClass->name().c_str());
+			lua_setmetatable(state, -2);
+			*/
+			return *this;
+		}
+		
 		template<typename... _Args>
 		LuaGlueClass<_Class> &ctor(const std::string &name)
 		{

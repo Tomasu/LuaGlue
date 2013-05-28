@@ -9,6 +9,9 @@ class Foo
 		int abc(int a, int b, int c) { printf("%i:%i:%i\n", a,b,c); return 143; }
 		static void aaa() { printf("aaa!\n"); }
 		
+		void ptrArgTest(Foo *foo) { printf("ptrArgTest: %p abc:%i\n", foo, foo->abc(4,4,4)); }
+		Foo *ptrTest() { return this; }
+		
 		void lua_gc() { printf("__gc!\n"); }
 };
 
@@ -22,7 +25,9 @@ int main(int, char **)
 			dtor(&Foo::lua_gc).
 			method("abc", &Foo::abc).
 			method("aaa", &Foo::aaa).
-			constants( { { "ONE", 1 }, { "TWO", 2.0 }, { "THREE", "three" } } ).
+			method("ptrTest", &Foo::ptrTest).
+			method("ptrArgTest", &Foo::ptrArgTest).
+			constants( { { "ONE", 1 }, { "TWO", 2.12 }, { "THREE", "three" } } ).
 		end().open().glue();
 	
 	if(luaL_dofile(state.state(), "foo.lua"))

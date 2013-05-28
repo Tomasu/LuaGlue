@@ -46,9 +46,9 @@ class LuaGlueStaticMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			ReturnType ret = applyTuple(state, fn, args);
+			ReturnType ret = applyTuple(glueClass->luaGlue(), state, fn, args);
 			lua_pop(state, Arg_Count_);
-			returnValue(state, ret);
+			returnValue(glueClass->luaGlue(), state, ret);
 			return 1;
 		}
 		
@@ -92,7 +92,7 @@ class LuaGlueStaticMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			applyTuple(state, fn, args);
+			applyTuple(glueClass->luaGlue(), state, fn, args);
 			lua_pop(state, Arg_Count_);
 			return 0;
 		}
