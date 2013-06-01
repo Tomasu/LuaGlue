@@ -11,3 +11,8 @@ test:ptrArgTest(test);
 
 test = nil;
 collectgarbage();
+
+local arr = Array.new();
+arr[0] = 123;
+print("arr[0]: "..arr[0]);
+arr.test();

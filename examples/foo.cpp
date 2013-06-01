@@ -1,5 +1,28 @@
 #include <LuaGlue/LuaGlue.h>
 
+class Array
+{
+	public:
+		Array() { printf("ctor!\n"); }
+		
+		void newindex(int key, int val)
+		{
+			printf("key: %i val: %i\n", key, val);
+			arr[key] = val;
+		}
+		
+		int index(int key)
+		{
+			printf("key: %i len: %lu\n", key, arr.size());
+			return arr[key];
+		}
+		
+		void test() { printf("test!\n"); }
+		
+	private:
+		std::map<int, int> arr;
+};
+
 class Foo
 {
 	public:
@@ -13,6 +36,8 @@ class Foo
 		Foo *ptrTest() { return this; }
 		
 		void lua_gc() { printf("__gc!\n"); }
+		
+	private:
 };
 
 int main(int, char **)
@@ -28,8 +53,14 @@ int main(int, char **)
 			method("ptrTest", &Foo::ptrTest).
 			method("ptrArgTest", &Foo::ptrArgTest).
 			constants( { { "ONE", 1 }, { "TWO", 2.12 }, { "THREE", "three" } } ).
+		end().
+		Class<Array>("Array").
+			ctor("new").
+			index(&Array::index).
+			newindex(&Array::newindex).
+			method("test", &Array::test).
 		end().open().glue();
-	
+		
 	if(luaL_dofile(state.state(), "foo.lua"))
 	{
 		printf("failed to dofile: foo.lua\n");

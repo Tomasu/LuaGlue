@@ -29,6 +29,15 @@ class LuaGlueMethod;
 template<typename _Class, typename... _Args>
 class LuaGlueMethod<void, _Class, _Args...>;
 
+template<typename _Value, typename _Class, typename _Key>
+class LuaGlueIndexMethod;
+
+template<typename _Value, typename _Class, typename _Key>
+class LuaGlueNewIndexMethod;
+
+// TODO: look into associating classes and methods with an index into
+//  a lookup table rather than with a lightuserdata to the class itself..
+// maybe an unordered_map of typeid(TC).hash_code() for classes ?
 template<typename _Class>
 class LuaGlueClass : public LuaGlueClassBase
 {
@@ -72,7 +81,25 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlueClass<_Class> &dtor(void (_Class::*fn)())
 		{
 			auto impl = new LuaGlueDtorMethod<_Class>(this, "__gc", std::forward<decltype(fn)>(fn));
-			methods["__gc"] = impl;
+			meta_methods["__gc"] = impl;
+			
+			return *this;
+		}
+		
+		template<typename _Value, typename _Key>
+		LuaGlueClass<_Class> &index(_Value (_Class::*fn)(_Key))
+		{
+			auto impl = new LuaGlueIndexMethod<_Value, _Class, _Key>(this, "__index", std::forward<decltype(fn)>(fn));
+			meta_methods["__index"] = impl;
+			
+			return *this;
+		}
+		
+		template<typename _Value, typename _Key>
+		LuaGlueClass<_Class> &newindex(void (_Class::*fn)(_Key, _Value))
+		{
+			auto impl = new LuaGlueNewIndexMethod<_Value, _Class, _Key>(this, "__newindex", std::forward<decltype(fn)>(fn));
+			meta_methods["__newindex"] = impl;
 			
 			return *this;
 		}
@@ -138,19 +165,37 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		bool glue(LuaGlue *luaGlue)
 		{
+			lua_createtable(luaGlue->state(), 0, 0);
+			int lib_id = lua_gettop(luaGlue->state());
+			
 			//printf("Glue Class: %s\n", name_.c_str());
 			luaL_newmetatable(luaGlue->state(), name_.c_str());
-			lua_pushvalue(luaGlue->state(), -1);
-			lua_setfield(luaGlue->state(), -2, "__index");
+			int meta_id = lua_gettop(luaGlue->state());
 			
+			lua_pushvalue(luaGlue->state(), -1);
+			lua_setglobal(luaGlue->state(), name_.c_str());
+			
+			
+			
+			lua_pushvalue(luaGlue->state(), lib_id);
+			for(auto &method: meta_methods)
+			{
+				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
+				if(!method.second->glue(luaGlue))
+					return false;
+			}
+			lua_setfield(luaGlue->state(), meta_id, "__metatable");
+			
+			lua_pushvalue(luaGlue->state(), lib_id);
 			for(auto &method: methods)
 			{
 				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
 				if(!method.second->glue(luaGlue))
 					return false;
 			}
+			lua_setfield(luaGlue->state(), meta_id, "__index");
 			
-			lua_createtable(luaGlue->state(), 0, 2);
+			lua_createtable(luaGlue->state(), 0, 0);
 			
 			for(auto &method: static_methods)
 			{
@@ -159,7 +204,6 @@ class LuaGlueClass : public LuaGlueClassBase
 					return false;
 			}
 			
-			
 			for(auto &constant: constants_)
 			{
 				//printf("Glue constant: %s::%s\n", name_.c_str(), constant.first.c_str());
@@ -167,7 +211,8 @@ class LuaGlueClass : public LuaGlueClassBase
 					return false;
 			}
 			
-			lua_setglobal(luaGlue->state(), name_.c_str());
+			lua_setmetatable(luaGlue->state(), lib_id);
+			
 			lua_pop(luaGlue->state(), 1);
 			//lua_stack_dump(luaGlue->state());
 			//printf("done.\n");
@@ -181,6 +226,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		std::map<std::string, LuaGlueConstant *> constants_;
 		std::map<std::string, LuaGlueMethodBase *> methods;
 		std::map<std::string, LuaGlueMethodBase *> static_methods;
+		std::map<std::string, LuaGlueMethodBase *> meta_methods;
 		
 		void lua_gc()
 		{
