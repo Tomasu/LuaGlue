@@ -53,7 +53,8 @@ int main(int, char **)
 			method("ptrTest", &Foo::ptrTest).
 			method("ptrArgTest", &Foo::ptrArgTest).
 			constants( { { "ONE", 1 }, { "TWO", 2.12 }, { "THREE", "three" } } ).
-		end().
+		end();
+	state.
 		Class<Array>("Array").
 			ctor("new").
 			index(&Array::index).

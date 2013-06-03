@@ -58,6 +58,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			//  and just pass it around.
 		}
 		
+		// FIXME: actually implement this
 		LuaGlueClass<_Class> &pushInstance(_Class *)
 		{
 			/*_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
@@ -80,8 +81,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &dtor(void (_Class::*fn)())
 		{
-			auto impl = new LuaGlueDtorMethod<_Class>(this, "__gc", std::forward<decltype(fn)>(fn));
-			meta_methods["__gc"] = impl;
+			auto impl = new LuaGlueDtorMethod<_Class>(this, "m__gc", std::forward<decltype(fn)>(fn));
+			meta_methods["m__gc"] = impl;
 			
 			return *this;
 		}
@@ -89,8 +90,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Value, typename _Key>
 		LuaGlueClass<_Class> &index(_Value (_Class::*fn)(_Key))
 		{
-			auto impl = new LuaGlueIndexMethod<_Value, _Class, _Key>(this, "__index", std::forward<decltype(fn)>(fn));
-			meta_methods["__index"] = impl;
+			auto impl = new LuaGlueIndexMethod<_Value, _Class, _Key>(this, "m__index", std::forward<decltype(fn)>(fn));
+			meta_methods["m__index"] = impl;
 			
 			return *this;
 		}
@@ -98,8 +99,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Value, typename _Key>
 		LuaGlueClass<_Class> &newindex(void (_Class::*fn)(_Key, _Value))
 		{
-			auto impl = new LuaGlueNewIndexMethod<_Value, _Class, _Key>(this, "__newindex", std::forward<decltype(fn)>(fn));
-			meta_methods["__newindex"] = impl;
+			auto impl = new LuaGlueNewIndexMethod<_Value, _Class, _Key>(this, "m__newindex", std::forward<decltype(fn)>(fn));
+			meta_methods["m__newindex"] = impl;
 			
 			return *this;
 		}
@@ -166,36 +167,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		bool glue(LuaGlue *luaGlue)
 		{
 			lua_createtable(luaGlue->state(), 0, 0);
-			int lib_id = lua_gettop(luaGlue->state());
-			
-			//printf("Glue Class: %s\n", name_.c_str());
-			luaL_newmetatable(luaGlue->state(), name_.c_str());
-			int meta_id = lua_gettop(luaGlue->state());
-			
+			//int lib_id = lua_gettop(luaGlue->state());
 			lua_pushvalue(luaGlue->state(), -1);
 			lua_setglobal(luaGlue->state(), name_.c_str());
-			
-			
-			
-			lua_pushvalue(luaGlue->state(), lib_id);
-			for(auto &method: meta_methods)
-			{
-				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.second->glue(luaGlue))
-					return false;
-			}
-			lua_setfield(luaGlue->state(), meta_id, "__metatable");
-			
-			lua_pushvalue(luaGlue->state(), lib_id);
-			for(auto &method: methods)
-			{
-				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.second->glue(luaGlue))
-					return false;
-			}
-			lua_setfield(luaGlue->state(), meta_id, "__index");
-			
-			lua_createtable(luaGlue->state(), 0, 0);
 			
 			for(auto &method: static_methods)
 			{
@@ -211,9 +185,39 @@ class LuaGlueClass : public LuaGlueClassBase
 					return false;
 			}
 			
-			lua_setmetatable(luaGlue->state(), lib_id);
+			//printf("Glue Class: %s\n", name_.c_str());
+			luaL_newmetatable(luaGlue->state(), name_.c_str());
+			int meta_id = lua_gettop(luaGlue->state());
 			
-			lua_pop(luaGlue->state(), 1);
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_index, 1);
+			lua_setfield(luaGlue->state(), meta_id, "__index");
+			
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_newindex, 1);
+			lua_setfield(luaGlue->state(), meta_id, "__newindex");
+			
+			lua_pushvalue(luaGlue->state(), -1);
+			lua_setfield(luaGlue->state(), meta_id, "__metatable");
+			
+			for(auto &method: methods)
+			{
+				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
+				if(!method.second->glue(luaGlue))
+					return false;
+			}
+			
+			for(auto &method: meta_methods)
+			{
+				printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
+				if(!method.second->glue(luaGlue))
+					return false;
+			}
+			
+			lua_pushvalue(luaGlue->state(), -1);
+			lua_setmetatable(luaGlue->state(), -2);
+			
+			lua_pop(luaGlue->state(), 2);
 			//lua_stack_dump(luaGlue->state());
 			//printf("done.\n");
 			return true;
@@ -228,9 +232,91 @@ class LuaGlueClass : public LuaGlueClassBase
 		std::map<std::string, LuaGlueMethodBase *> static_methods;
 		std::map<std::string, LuaGlueMethodBase *> meta_methods;
 		
-		void lua_gc()
+		// symbol lookup metamethod
+		// TODO: handle inheritance/multi-inheritance
+		
+		int index(lua_State *state)
 		{
-			//printf("%s::__gc!\n", name_.c_str());
+			//printf("index!\n");
+			int type = lua_type(state, 2);
+			if(type == LUA_TSTRING)
+			{
+				const char *key = lua_tostring(state, 2);
+				//printf("index: got a string: %s\n", key);
+				luaL_getmetatable(state, this->name().c_str());
+				lua_pushstring(state, key);
+				lua_rawget(state, -2);
+			}
+			else if(type == LUA_TNUMBER)
+			{
+				//int idx = lua_tointeger(state, 2);
+				//printf("index: got a number: %d\n", idx);
+				
+				luaL_getmetatable(state, this->name().c_str());
+				lua_pushstring(state, "m__index");
+				lua_rawget(state, -2);
+				lua_remove(state, -2);
+				lua_pushvalue(state, 1);
+				lua_pushvalue(state, 2);
+				if(lua_isfunction(state, -3))
+					lua_call(state, 2, 1);
+			}
+			else
+			{
+				printf("index: unsupported type: %i\n", type);
+			}
+			
+			return 1;
+		}
+		
+		int newindex(lua_State *state)
+		{
+			//printf("newindex begin!\n");
+			int type = lua_type(state, 2);
+			if(type == LUA_TSTRING)
+			{
+				const char *key = lua_tostring(state, 2);
+				//printf("newindex: got a string: %s\n", key);
+				luaL_getmetatable(state, this->name().c_str());
+				lua_pushstring(state, key);
+				lua_rawget(state, -2);
+			}
+			else if(type == LUA_TNUMBER)
+			{
+				//int idx = lua_tointeger(state, 2);
+				//printf("newindex: got a number: %d == %s\n", idx, lua_tostring(state, 3));
+				
+				luaL_getmetatable(state, this->name().c_str());
+				lua_pushstring(state, "m__newindex");
+				lua_rawget(state, -2);
+				lua_remove(state, -2); // remove metatable
+				
+				lua_pushvalue(state, 1); // push self
+				lua_pushvalue(state, 2); // push key
+				lua_pushvalue(state, 3); // push value
+				if(lua_isfunction(state, -4))
+					lua_call(state, 3, 0);
+			}
+			else
+			{
+				printf("newindex: unsupported type: %i\n", type);
+			}
+			
+			//printf("newindex end!\n");
+			
+			return 0;
+		}
+		
+		static int lua_index(lua_State *state)
+		{
+			auto mimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return mimp->index(state);
+		}
+		
+		static int lua_newindex(lua_State *state)
+		{
+			auto mimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return mimp->newindex(state);
 		}
 };
 
