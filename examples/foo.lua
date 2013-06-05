@@ -16,3 +16,11 @@ local arr = Array.new();
 arr[0] = 123;
 print("arr[0]: "..arr[0]);
 arr:test();
+
+local testb = STestB.new();
+print("set testb.b");
+testb.b = 123;
+print("testb.b: "..testb.b);
+print("set testb.a.a");
+testb.a.a = 456;
+print("testb.a.a: "..testb.a.a);

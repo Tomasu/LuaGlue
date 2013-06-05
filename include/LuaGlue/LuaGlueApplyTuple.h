@@ -14,7 +14,9 @@ T getValue(LuaGlue &, lua_State *, unsigned int);
 template<>
 int getValue<int>(LuaGlue &, lua_State *state, unsigned int idx)
 {
-	return luaL_checkint(state, idx);
+	int v = luaL_checkint(state, idx);
+	//printf("getValue<int>: v=%d\n", v);
+	return v;
 }
 
 template<>
@@ -35,7 +37,10 @@ T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
 	typedef typename std::remove_pointer<T>::type TC;
 	
 	if(lua_islightuserdata(state, idx))
+	{
+		//printf("getValue: lud!\n");
 		return (T)lua_touserdata(state, idx);
+	}
 	
 	for(auto &c: g.getClasses())
 	{
@@ -45,18 +50,18 @@ T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
 			T v = *(T *)luaL_checkudata(state, idx, lgc->name().c_str());
 			if(v)
 			{
-				printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
 				return v;
 			}
 			else
 			{
-				printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-				printf("except that the udata was null??\n");
+				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+				//printf("except that the udata was null??\n");
 			}
 		}
 		else
 		{
-			printf("getValue: found the wrong class! c=%s\n", typeid(c.second).name());
+			//printf("getValue: found the wrong class! c=%s\n", typeid(c.second).name());
 		}
 	}
 	
@@ -70,6 +75,7 @@ void returnValue(LuaGlue &, lua_State *, T);
 template<>
 void returnValue(LuaGlue &, lua_State *state, int v)
 {
+	//printf("returnValue: v=%d\n", v);
 	lua_pushinteger(state, v);
 }
 
@@ -88,23 +94,25 @@ void returnValue(LuaGlue &, lua_State *state, const char *v)
 template<class T>
 void returnValue(LuaGlue &g, lua_State *state, T *v)
 {
+	//printf("returnValue begin!\n");
 	// first look for a class we support
 	for(auto &c: g.getClasses())
 	{
 		LuaGlueClass<T> *lgc = dynamic_cast<LuaGlueClass<T> *>(c.second);
 		if(lgc)
 		{
-			printf("returnValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-			lgc->pushInstance(v);
+			//printf("returnValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+			lgc->pushInstance(state, v);
 			return;
 		}
 		else
 		{
-			printf("returnValue: found the wrong class! v=%s c=%s\n", typeid(v).name(), typeid(c.second).name());
+			//printf("returnValue: found the wrong class! v=%s c=%s\n", typeid(v).name(), typeid(c.second).name());
 		}
 	}
 	
 	// otherwise push onto stack as light user data
+	//printf("returnValue: lud!\n");
 	lua_pushlightuserdata(state, v);
 }
 

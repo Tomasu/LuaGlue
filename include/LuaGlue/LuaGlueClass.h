@@ -8,6 +8,7 @@
 #include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueConstant.h"
 #include "LuaGlue/LuaGlueMethodBase.h"
+#include "LuaGlue/LuaGluePropertyBase.h"
 
 class LuaGlue;
 
@@ -35,6 +36,8 @@ class LuaGlueIndexMethod;
 template<typename _Value, typename _Class, typename _Key>
 class LuaGlueNewIndexMethod;
 
+#include "LuaGlueProperty.h"
+
 // TODO: look into associating classes and methods with an index into
 //  a lookup table rather than with a lightuserdata to the class itself..
 // maybe an unordered_map of typeid(TC).hash_code() for classes ?
@@ -59,14 +62,19 @@ class LuaGlueClass : public LuaGlueClassBase
 		}
 		
 		// FIXME: actually implement this
-		LuaGlueClass<_Class> &pushInstance(_Class *)
+		LuaGlueClass<_Class> &pushInstance(_Class *obj)
 		{
-			/*_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
+			return pushInstance(luaGlue->state(), obj);
+		}
+		
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, _Class *obj)
+		{
+			_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
 			*udata = obj;
 			
-			luaL_getmetatable(state, glueClass->name().c_str());
+			luaL_getmetatable(state, name_.c_str());
 			lua_setmetatable(state, -2);
-			*/
+			
 			return *this;
 		}
 		
@@ -81,8 +89,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &dtor(void (_Class::*fn)())
 		{
-			auto impl = new LuaGlueDtorMethod<_Class>(this, "m__gc", std::forward<decltype(fn)>(fn));
-			meta_methods["m__gc"] = impl;
+			auto impl = new LuaGlueDtorMethod<_Class>(this, "__gc", std::forward<decltype(fn)>(fn));
+			meta_methods["__gc"] = impl;
 			
 			return *this;
 		}
@@ -101,6 +109,27 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			auto impl = new LuaGlueNewIndexMethod<_Value, _Class, _Key>(this, "m__newindex", std::forward<decltype(fn)>(fn));
 			meta_methods["m__newindex"] = impl;
+			
+			return *this;
+		}
+		
+		template<typename _Type>
+		LuaGlueClass<_Class> &property(const std::string &name, _Type _Class::*prop)
+		{
+			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, prop);
+			properties_[name] = impl;
+			
+			return *this;
+		}
+		
+		//template<typename _Type, typename E = void>
+		//LuaGlueClass<_Class> &prop(const std::string &name, _Type _Class::*prop);
+		
+		template<typename _Type>
+		LuaGlueClass<_Class> &prop(const std::string &name, _Type _Class::*prop)
+		{
+			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, prop);
+			properties_[name] = impl;
 			
 			return *this;
 		}
@@ -209,8 +238,14 @@ class LuaGlueClass : public LuaGlueClassBase
 			
 			for(auto &method: meta_methods)
 			{
-				printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
+				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
 				if(!method.second->glue(luaGlue))
+					return false;
+			}
+			
+			for(auto &prop: properties_)
+			{
+				if(!prop.second->glue(luaGlue))
 					return false;
 			}
 			
@@ -231,6 +266,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		std::map<std::string, LuaGlueMethodBase *> methods;
 		std::map<std::string, LuaGlueMethodBase *> static_methods;
 		std::map<std::string, LuaGlueMethodBase *> meta_methods;
+		std::map<std::string, LuaGluePropertyBase *> properties_;
 		
 		// symbol lookup metamethod
 		// TODO: handle inheritance/multi-inheritance
@@ -246,6 +282,16 @@ class LuaGlueClass : public LuaGlueClassBase
 				luaL_getmetatable(state, this->name().c_str());
 				lua_pushstring(state, key);
 				lua_rawget(state, -2);
+				lua_remove(state, -2);
+				
+				if(properties_.count(key))
+				{
+					//printf("prop!\n");
+					lua_pushvalue(state, 1);
+					lua_pushvalue(state, 2);
+					lua_call(state, 2, 1);
+				}
+				
 			}
 			else if(type == LUA_TNUMBER)
 			{
@@ -280,6 +326,16 @@ class LuaGlueClass : public LuaGlueClassBase
 				luaL_getmetatable(state, this->name().c_str());
 				lua_pushstring(state, key);
 				lua_rawget(state, -2);
+				lua_remove(state, -2);
+				
+				if(properties_.count(key))
+				{
+					lua_pushvalue(state, 1); // push self
+					lua_pushvalue(state, 2); // push key
+					lua_pushvalue(state, 3); // push value
+				
+					lua_call(state, 3, 0);
+				}
 			}
 			else if(type == LUA_TNUMBER)
 			{
@@ -309,14 +365,14 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		static int lua_index(lua_State *state)
 		{
-			auto mimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
-			return mimp->index(state);
+			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->index(state);
 		}
 		
 		static int lua_newindex(lua_State *state)
 		{
-			auto mimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
-			return mimp->newindex(state);
+			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->newindex(state);
 		}
 };
 

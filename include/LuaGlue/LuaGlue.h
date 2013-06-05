@@ -59,5 +59,6 @@ class LuaGlue
 #include "LuaGlue/LuaGlueStaticMethod.h"
 #include "LuaGlue/LuaGlueIndexMethod.h"
 #include "LuaGlue/LuaGlueNewIndexMethod.h"
+#include "LuaGlue/LuaGlueProperty.h"
 
 #endif /* LUAGLUE_H_GUARD */

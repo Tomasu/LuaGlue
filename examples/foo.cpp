@@ -17,7 +17,7 @@ class Array
 			return arr[key];
 		}
 		
-		void test() { printf("test!\n"); }
+		void test() { printf("Array.test!\n"); }
 		
 	private:
 		std::map<int, int> arr;
@@ -40,6 +40,18 @@ class Foo
 	private:
 };
 
+struct STestA
+{
+	int a;
+};
+
+struct STestB
+{
+	STestB() {printf("STestB()\n");}
+	STestA a;
+	int b;
+};
+
 int main(int, char **)
 {
 	LuaGlue state;
@@ -60,7 +72,18 @@ int main(int, char **)
 			index(&Array::index).
 			newindex(&Array::newindex).
 			method("test", &Array::test).
-		end().open().glue();
+		end();
+	
+	state.
+		Class<STestA>("STestA").
+			prop("a", &STestA::a).
+		end().
+		Class<STestB>("STestB").
+			ctor("new").
+			prop("a", &STestB::a).
+			prop("b", &STestB::b).
+		end().
+		open().glue();
 		
 	if(luaL_dofile(state.state(), "foo.lua"))
 	{
