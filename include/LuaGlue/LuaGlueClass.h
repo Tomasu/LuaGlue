@@ -61,7 +61,6 @@ class LuaGlueClass : public LuaGlueClassBase
 			//  and just pass it around.
 		}
 		
-		// FIXME: actually implement this
 		LuaGlueClass<_Class> &pushInstance(_Class *obj)
 		{
 			return pushInstance(luaGlue->state(), obj);

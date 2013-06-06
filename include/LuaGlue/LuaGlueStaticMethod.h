@@ -40,7 +40,7 @@ class LuaGlueStaticMethod : public LuaGlueMethodBase
 	private:
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
-		MethodType &&fn;
+		MethodType fn;
 		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 		
@@ -86,14 +86,14 @@ class LuaGlueStaticMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	private:
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
-		MethodType &&fn;
+		MethodType fn;
 		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 		
 		int invoke(lua_State *state)
 		{
 			applyTuple(glueClass->luaGlue(), state, fn, args);
-			lua_pop(state, Arg_Count_);
+			if(Arg_Count_) lua_pop(state, Arg_Count_);
 			return 0;
 		}
 		
