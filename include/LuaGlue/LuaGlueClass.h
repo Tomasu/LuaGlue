@@ -299,12 +299,13 @@ class LuaGlueClass : public LuaGlueClassBase
 				
 				luaL_getmetatable(state, this->name().c_str());
 				lua_pushstring(state, "m__index");
-				lua_rawget(state, -2);
-				lua_remove(state, -2);
-				lua_pushvalue(state, 1);
+				lua_rawget(state, -2); // get m__index method from metatable
+				lua_remove(state, -2); // remove metatable
+				lua_pushvalue(state, 1); // copy 1st and 2nd stack elements
 				lua_pushvalue(state, 2);
-				if(lua_isfunction(state, -3))
-					lua_call(state, 2, 1);
+				if(lua_isfunction(state, -3)) // if m__index is a function, call it
+					lua_call(state, 2, 1); // removes the argument copies
+				// should always be a function.. might want to put some debug/trace messages to make sure
 			}
 			else
 			{
