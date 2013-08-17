@@ -32,7 +32,19 @@ const char *getValue<const char *>(LuaGlue &, lua_State *state, unsigned int idx
 }
 
 template<class T>
-T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
+T getUserData(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
+{
+	return (T)lua_touserdata(state, idx);
+}
+
+template<class T>
+T getUserData(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
+{
+	return *(T*)lua_touserdata(state, idx);
+}
+
+template<class T>
+T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
 {
 	typedef typename std::remove_pointer<T>::type TC;
 	
@@ -67,6 +79,50 @@ T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
 	
 	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
 	return 0;
+}
+
+template<class T>
+T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
+{
+	typedef typename std::remove_pointer<T>::type TC;
+	
+	if(lua_islightuserdata(state, idx))
+	{
+		//printf("getValue: lud!\n");
+		return *(T*)lua_touserdata(state, idx);
+	}
+	
+	for(auto &c: g.getClasses())
+	{
+		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.second);
+		if(lgc)
+		{
+			T **ptr = (T **)luaL_checkudata(state, idx, lgc->name().c_str());
+			if(ptr)
+			{
+				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+				return **ptr;
+			}
+			else
+			{
+				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
+				//printf("except that the udata was null??\n");
+			}
+		}
+		else
+		{
+			//printf("getValue: found the wrong class! c=%s\n", typeid(c.second).name());
+		}
+	}
+	
+	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
+	return T();
+}
+
+template<class T>
+T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
+{
+	return getValue_<T>(g, state, idx, std::is_pointer<T>());
 }
 
 template<typename T>

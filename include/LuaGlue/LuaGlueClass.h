@@ -9,6 +9,7 @@
 #include "LuaGlue/LuaGlueConstant.h"
 #include "LuaGlue/LuaGlueMethodBase.h"
 #include "LuaGlue/LuaGluePropertyBase.h"
+#include "LuaGlue/LuaGlueSymTab.h"
 
 class LuaGlue;
 
@@ -173,7 +174,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlueClass<_Class> &constant(const std::string &name, T v)
 		{
 			auto impl = new LuaGlueConstant(name, v);
-			constants[name] = impl;
+			constants_[name] = impl;
 			
 			return *this;
 		}
@@ -244,7 +245,8 @@ class LuaGlueClass : public LuaGlueClassBase
 			
 			for(auto &prop: properties_)
 			{
-				if(!prop.second->glue(luaGlue))
+				//printf("prop: %s: %p\n", prop.name, prop.ptr); 
+				if(!prop.ptr->glue(luaGlue))
 					return false;
 			}
 			
@@ -265,7 +267,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		std::map<std::string, LuaGlueMethodBase *> methods;
 		std::map<std::string, LuaGlueMethodBase *> static_methods;
 		std::map<std::string, LuaGlueMethodBase *> meta_methods;
-		std::map<std::string, LuaGluePropertyBase *> properties_;
+		//std::map<std::string, LuaGluePropertyBase *> properties_;
+		LuaGlueSymTab<LuaGluePropertyBase *> properties_;
 		
 		// symbol lookup metamethod
 		// TODO: handle inheritance/multi-inheritance
@@ -279,11 +282,12 @@ class LuaGlueClass : public LuaGlueClassBase
 				const char *key = lua_tostring(state, 2);
 				//printf("index: got a string: %s\n", key);
 				luaL_getmetatable(state, this->name().c_str());
-				lua_pushstring(state, key);
+				//lua_pushstring(state, key);
+				lua_pushvalue(state, -2);
 				lua_rawget(state, -2);
 				lua_remove(state, -2);
 				
-				if(properties_.count(key))
+				if(properties_.exists(key))
 				{
 					//printf("prop!\n");
 					lua_pushvalue(state, 1);
@@ -324,11 +328,12 @@ class LuaGlueClass : public LuaGlueClassBase
 				const char *key = lua_tostring(state, 2);
 				//printf("newindex: got a string: %s\n", key);
 				luaL_getmetatable(state, this->name().c_str());
-				lua_pushstring(state, key);
+				//lua_pushstring(state, key);
+				lua_pushvalue(state, 2);
 				lua_rawget(state, -2);
 				lua_remove(state, -2);
 				
-				if(properties_.count(key))
+				if(properties_.exists(key))
 				{
 					lua_pushvalue(state, 1); // push self
 					lua_pushvalue(state, 2); // push key

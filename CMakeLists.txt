@@ -7,6 +7,8 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
 	add_definitions(-DDEBUG -O0 -ggdb3)
+elseif(CMAKE_BUILD_TYPE STREQUAL Prof)
+	add_definitions(-DEBBUG -O2 -ggdb3 -march=native)
 else()
 	add_definitions(-O2 -s -march=native)
 endif()
