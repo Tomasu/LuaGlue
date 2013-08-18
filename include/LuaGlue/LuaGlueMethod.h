@@ -48,6 +48,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
+			//printf("invoker: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
 #ifdef LUAGLUE_TYPECHECK
 			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
@@ -101,11 +102,13 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
+			//printf("invokev: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
 #ifdef LUAGLUE_TYPECHECK
 			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
 			ClassType *obj = *(ClassType **)lua_touserdata(state, 1);
 #endif
+			//printf("obj: %p\n", obj);
 			applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
 			if(Arg_Count_) lua_pop(state, Arg_Count_);
 			return 0;

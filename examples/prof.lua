@@ -1,11 +1,11 @@
 
 function test_obj(obj)
 	local ir = obj:intret()
-	local opret = obj:objptrret()
-	--local objret = obj.objret()
+	local objptrret = obj:objptrret()
+	local objret = obj:objret()
 	obj:argint(123)
-	obj:argobjptr(obj)
-	obj:argobj(obj)
+	obj:argobjptr(objptrret)
+	obj:argobj(objret)
 end
 
 for i=0,ITERATIONS do
@@ -19,5 +19,5 @@ for i=0,ITERATIONS do
 	test_obj(a)
 	test_obj(b)
 	test_obj(c)
-	test_obj(c)
+	test_obj(d)
 end

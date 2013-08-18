@@ -19,7 +19,7 @@ class Base {
 		Base() { }
 		virtual int intret() { return 1; }
 		virtual Base *objptrret() { return this; }
-		//virtual Base objret() { return *this; }
+		Base objret() { return *this; }
 		
 		virtual void argint(int) { }
 		virtual void argobjptr(Base *) { }
@@ -30,7 +30,7 @@ class A : public Base {
 	public:
 		int intret() { return 1; }
 		A *objptrret() { return this; }
-		//A objret() { return *this; }
+		A objret() { return *this; }
 		
 		void argint(int) { }
 		void argobjptr(A *) { }
@@ -41,7 +41,7 @@ class B : public Base {
 	public:
 		int intret() { return 1; }
 		B *objptrret() { return this; }
-		//B objret() { return *this; }
+		B objret() { return *this; }
 		
 		void argint(int) { }
 		void argobjptr(B *) { }
@@ -52,7 +52,7 @@ class C : public Base {
 	public:
 		int intret() { return 1; }
 		C *objptrret() { return this; }
-		//C objret() { return *this; }
+		C objret() { return *this; }
 		
 		void argint(int) { }
 		void argobjptr(C *) { }
@@ -63,7 +63,7 @@ class D : public Base {
 	public:
 		int intret() { return 1; }
 		D *objptrret() { return this; }
-		//D objret() { return *this; }
+		D objret() { return *this; }
 		
 		void argint(int) { }
 		void argobjptr(D *) { }
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 		ctor("new").
 		method("intret", &Base::intret).
 		method("objptrret", &Base::objptrret).
-		//method("objret", &Base::objret).
+		method("objret", &Base::objret).
 		method("argint", &Base::argint).
 		method("argobjptr", &Base::argobjptr).
 		method("argobj", &Base::argobj).
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 		ctor("new").
 		method("intret", &A::intret).
 		method("objptrret", &A::objptrret).
-		//method("objret", &A::objret).
+		method("objret", &A::objret).
 		method("argint", &A::argint).
 		method("argobjptr", &A::argobjptr).
 		method("argobj", &A::argobj).
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 		ctor("new").
 		method("intret", &B::intret).
 		method("objptrret", &B::objptrret).
-		//method("objret", &B::objret).
+		method("objret", &B::objret).
 		method("argint", &B::argint).
 		method("argobjptr", &B::argobjptr).
 		method("argobj", &B::argobj).
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 		ctor("new").
 		method("intret", &C::intret).
 		method("objptrret", &C::objptrret).
-		//method("objret", &C::objret).
+		method("objret", &C::objret).
 		method("argint", &C::argint).
 		method("argobjptr", &C::argobjptr).
 		method("argobj", &C::argobj).
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 		ctor("new").
 		method("intret", &D::intret).
 		method("objptrret", &D::objptrret).
-		//method("objret", &D::objret).
+		method("objret", &D::objret).
 		method("argint", &D::argint).
 		method("argobjptr", &D::argobjptr).
 		method("argobj", &D::argobj).

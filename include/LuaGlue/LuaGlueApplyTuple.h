@@ -32,24 +32,13 @@ const char *getValue<const char *>(LuaGlue &, lua_State *state, unsigned int idx
 }
 
 template<class T>
-T getUserData(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
-{
-	return (T)lua_touserdata(state, idx);
-}
-
-template<class T>
-T getUserData(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
-{
-	return *(T*)lua_touserdata(state, idx);
-}
-
-template<class T>
 LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *state, unsigned int idx)
 {
 	int ret = luaL_getmetafield(state, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
 	{
-		//printf("getGlueClass: failed to get metafield for obj at idx %i", idx);
+		printf("getGlueClassPtr: typeid:%s\n", typeid(LuaGlueClass<T>).name());
+		printf("getGlueClassPtr: failed to get metafield for obj at idx %i\n", idx);
 		return 0;
 	}
 	
@@ -63,6 +52,7 @@ LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *state, unsigned int idx)
 template<class T>
 T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
 {
+	//printf("getValuePtr: idx:%i\n", idx);
 	if(lua_islightuserdata(state, idx))
 	{
 		//printf("getValue: lud!\n");
@@ -147,6 +137,7 @@ void returnValue(LuaGlue &g, lua_State *state, T *v)
 	// first look for a class we support
 	
 	LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+	//printf("returnValuePtr: %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 	if(lgc)
 	{
 		lgc->pushInstance(state, v);
@@ -156,6 +147,23 @@ void returnValue(LuaGlue &g, lua_State *state, T *v)
 	// otherwise push onto stack as light user data
 	//printf("returnValue: lud!\n");
 	lua_pushlightuserdata(state, v);
+}
+
+// this is currently a source of memory leaks :(
+// need to tell the code that lua owns it somehow
+template<class T>
+void returnValue(LuaGlue &g, lua_State *state, T v)
+{
+	LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+	if(lgc)
+	{
+		lgc->pushInstance(state, new T(v));
+		return;
+	}
+	
+	// otherwise push onto stack as light user data
+	//printf("returnValue: lud!\n");
+	lua_pushlightuserdata(state, new T(v));
 }
 
 // original apply tuple code:
