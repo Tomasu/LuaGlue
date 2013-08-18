@@ -2,14 +2,15 @@
 #define LUAGLUE_SYMTAB_H_GUARD
 
 #include <cstring>
+#include <vector>
 
 template<class T>
 class LuaGlueSymTab
 {
 	private:
 		struct Symbol {
-			const char *name; T ptr;
-			Symbol(const char *n = nullptr, T p = nullptr) : name(n), ptr(p) { }
+			const char *name; T ptr; int idx;
+			Symbol(const char *n = nullptr, T p = nullptr) : name(n), ptr(p), idx(-1) { }
 		};
 		
 	public:
@@ -58,6 +59,16 @@ class LuaGlueSymTab
 			return findSym(key).name != nullptr;
 		}
 		
+		T lookup(const char *key)
+		{
+			return findSym(key).ptr;
+		}
+		
+		T lookup(int idx)
+		{
+			return findSym(idx).ptr;
+		}
+		
 	private:
 		
 		Symbol nullSymbol;
@@ -72,6 +83,14 @@ class LuaGlueSymTab
 			}
 			
 			return nullSymbol;
+		}
+		
+		Symbol &findSym(int idx)
+		{
+			if(idx < 0 || idx > items.size())
+				return nullSymbol;
+			
+			return items[idx];
 		}
 };
 

@@ -203,14 +203,14 @@ class LuaGlueClass : public LuaGlueClassBase
 			for(auto &method: static_methods)
 			{
 				//printf("Glue static method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.second->glue(luaGlue))
+				if(!method.ptr->glue(luaGlue))
 					return false;
 			}
 			
 			for(auto &constant: constants_)
 			{
 				//printf("Glue constant: %s::%s\n", name_.c_str(), constant.first.c_str());
-				if(!constant.second->glue(luaGlue))
+				if(!constant.ptr->glue(luaGlue))
 					return false;
 			}
 			
@@ -232,14 +232,14 @@ class LuaGlueClass : public LuaGlueClassBase
 			for(auto &method: methods)
 			{
 				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.second->glue(luaGlue))
+				if(!method.ptr->glue(luaGlue))
 					return false;
 			}
 			
 			for(auto &method: meta_methods)
 			{
 				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.second->glue(luaGlue))
+				if(!method.ptr->glue(luaGlue))
 					return false;
 			}
 			
@@ -263,10 +263,10 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlue *luaGlue_;
 		std::string name_;
 		
-		std::map<std::string, LuaGlueConstant *> constants_;
-		std::map<std::string, LuaGlueMethodBase *> methods;
-		std::map<std::string, LuaGlueMethodBase *> static_methods;
-		std::map<std::string, LuaGlueMethodBase *> meta_methods;
+		LuaGlueSymTab<LuaGlueConstant *> constants_;
+		LuaGlueSymTab<LuaGlueMethodBase *> methods;
+		LuaGlueSymTab<LuaGlueMethodBase *> static_methods;
+		LuaGlueSymTab<LuaGlueMethodBase *> meta_methods;
 		//std::map<std::string, LuaGluePropertyBase *> properties_;
 		LuaGlueSymTab<LuaGluePropertyBase *> properties_;
 		

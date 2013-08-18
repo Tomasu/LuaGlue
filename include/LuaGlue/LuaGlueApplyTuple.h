@@ -56,7 +56,7 @@ T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
 	
 	for(auto &c: g.getClasses())
 	{
-		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.second);
+		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.ptr);
 		if(lgc)
 		{
 			T v = *(T *)luaL_checkudata(state, idx, lgc->name().c_str());
@@ -94,7 +94,7 @@ T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
 	
 	for(auto &c: g.getClasses())
 	{
-		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.second);
+		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.ptr);
 		if(lgc)
 		{
 			T **ptr = (T **)luaL_checkudata(state, idx, lgc->name().c_str());
@@ -154,7 +154,7 @@ void returnValue(LuaGlue &g, lua_State *state, T *v)
 	// first look for a class we support
 	for(auto &c: g.getClasses())
 	{
-		LuaGlueClass<T> *lgc = dynamic_cast<LuaGlueClass<T> *>(c.second);
+		LuaGlueClass<T> *lgc = dynamic_cast<LuaGlueClass<T> *>(c.ptr);
 		if(lgc)
 		{
 			//printf("returnValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());

@@ -6,6 +6,7 @@
 #include <map>
 
 #include "LuaGlue/LuaGlueClassBase.h"
+#include "LuaGlue/LuaGlueSymTab.h"
 
 template<typename _Class> class LuaGlueClass;
 
@@ -37,18 +38,32 @@ class LuaGlue
 		{
 			for(auto &c: classes)
 			{
-				if(!c.second->glue(this))
+				if(!c.ptr->glue(this))
 					return false;
 			}
 			
 			return true;
 		}
 		
-		const std::map<std::string, LuaGlueClassBase *> &getClasses() { return classes; }
+		LuaGlueClassBase *lookupClass(const char *name)
+		{
+			return classes.lookup(name);
+		}
+		
+		//LuaGlueClassBase *lookupClass(const std::string &name);
+		LuaGlueClassBase *lookupClass(int idx)
+		{
+			return classes.lookup(idx);
+		}
+		
+		LuaGlueSymTab<LuaGlueClassBase *> &getClasses()
+		{
+			return classes;
+		}
 		
 	private:
 		lua_State *state_;
-		std::map<std::string, LuaGlueClassBase *> classes;
+		LuaGlueSymTab<LuaGlueClassBase *> classes;
 };
 
 #include "LuaGlue/LuaGlueClass.h"
