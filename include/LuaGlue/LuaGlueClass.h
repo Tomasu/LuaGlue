@@ -11,6 +11,8 @@
 #include "LuaGlue/LuaGluePropertyBase.h"
 #include "LuaGlue/LuaGlueSymTab.h"
 
+#include "LuaGlue/LuaGlueUtils.h"
+
 class LuaGlue;
 
 template<typename _Class, typename... _Args>
@@ -46,6 +48,10 @@ template<typename _Class>
 class LuaGlueClass : public LuaGlueClassBase
 {
 	public:
+		static const char METATABLE_CLASSNAME_FIELD[];
+		static const char METATABLE_INTCLASSNAME_FIELD[];
+		static const char METATABLE_CLASSIDX_FIELD[];
+		
 		typedef _Class ClassType;
 		
 		LuaGlueClass(LuaGlue *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
@@ -81,16 +87,18 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &ctor(const std::string &name)
 		{
+			//printf("ctor(%s)\n", name.c_str());
 			auto impl = new LuaGlueCtorMethod<_Class, _Args...>(this, name.c_str());
-			static_methods[name] = impl;
+			static_methods.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
 		
 		LuaGlueClass<_Class> &dtor(void (_Class::*fn)())
 		{
+			//printf("dtor()\n");
 			auto impl = new LuaGlueDtorMethod<_Class>(this, "__gc", std::forward<decltype(fn)>(fn));
-			meta_methods["__gc"] = impl;
+			meta_methods.addSymbol("__gc", impl);
 			
 			return *this;
 		}
@@ -98,8 +106,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Value, typename _Key>
 		LuaGlueClass<_Class> &index(_Value (_Class::*fn)(_Key))
 		{
+			//printf("index()\n");
 			auto impl = new LuaGlueIndexMethod<_Value, _Class, _Key>(this, "m__index", std::forward<decltype(fn)>(fn));
-			meta_methods["m__index"] = impl;
+			meta_methods.addSymbol("m__index", impl);
 			
 			return *this;
 		}
@@ -107,8 +116,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Value, typename _Key>
 		LuaGlueClass<_Class> &newindex(void (_Class::*fn)(_Key, _Value))
 		{
+			//printf("newindex()\n");
 			auto impl = new LuaGlueNewIndexMethod<_Value, _Class, _Key>(this, "m__newindex", std::forward<decltype(fn)>(fn));
-			meta_methods["m__newindex"] = impl;
+			meta_methods.addSymbol("m__newindex", impl);
 			
 			return *this;
 		}
@@ -116,8 +126,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Type>
 		LuaGlueClass<_Class> &property(const std::string &name, _Type _Class::*prop)
 		{
+			//printf("property(%s)\n", name.c_str());
 			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, prop);
-			properties_[name] = impl;
+			properties_.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -128,8 +139,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Type>
 		LuaGlueClass<_Class> &prop(const std::string &name, _Type _Class::*prop)
 		{
+			//printf("prop(%s)\n", name.c_str());
 			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, prop);
-			properties_[name] = impl;
+			properties_.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -137,8 +149,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (_Class::*fn)(_Args...))
 		{
+			//printf("method(%s)\n", name.c_str());
 			auto impl = new LuaGlueMethod<_Ret, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
-			methods[name] = impl;
+			methods.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -146,8 +159,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (_Class::*fn)(_Args...))
 		{
+			//printf("method(%s)\n", name.c_str());
 			auto impl = new LuaGlueMethod<void, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
-			methods[name] = impl;
+			methods.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -155,8 +169,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (*fn)(_Args...))
 		{
+			//printf("method(%s)\n", name.c_str());
 			auto impl = new LuaGlueStaticMethod<_Ret, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
-			static_methods[name] = impl;
+			static_methods.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -164,8 +179,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (*fn)(_Args...))
 		{
+			//printf("method(%s)\n", name.c_str());
 			auto impl = new LuaGlueStaticMethod<void, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
-			static_methods[name] = impl;
+			static_methods.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -173,8 +189,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename T>
 		LuaGlueClass<_Class> &constant(const std::string &name, T v)
 		{
+			//printf("constant(%s)\n", name.c_str());
 			auto impl = new LuaGlueConstant(name, v);
-			constants_[name] = impl;
+			constants_.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
@@ -183,8 +200,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			for(unsigned int i = 0; i < c.size(); i++)
 			{
+				//printf("constant(%s)\n", c[i].name().c_str());
 				auto impl = new LuaGlueConstant(c[i]);
-				constants_[impl->name()] = impl;
+				constants_.addSymbol(impl->name().c_str(), impl);
 			}
 			
 			return *this;
@@ -217,6 +235,19 @@ class LuaGlueClass : public LuaGlueClassBase
 			//printf("Glue Class: %s\n", name_.c_str());
 			luaL_newmetatable(luaGlue->state(), name_.c_str());
 			int meta_id = lua_gettop(luaGlue->state());
+			
+			int idx = luaGlue->getSymTab().findSym(name_.c_str()).idx;
+			//printf("LuaGlueClass::glue: classidx: %i\n", idx);
+			lua_pushinteger(luaGlue->state(), idx);
+			lua_setfield(luaGlue->state(), meta_id, METATABLE_CLASSIDX_FIELD);
+			
+			//printf("LuaGlueClass::glue: intclassname: %s\n", typeid(_Class).name());
+			lua_pushstring(luaGlue->state(), typeid(_Class).name());
+			lua_setfield(luaGlue->state(), meta_id, METATABLE_INTCLASSNAME_FIELD);
+
+			//printf("LuaGlueClass::glue: classname: %s\n", name_.c_str());
+			lua_pushstring(luaGlue->state(), name_.c_str());
+			lua_setfield(luaGlue->state(), meta_id, METATABLE_CLASSNAME_FIELD);
 			
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_index, 1);
@@ -271,8 +302,10 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlueSymTab<LuaGluePropertyBase *> properties_;
 		
 		// symbol lookup metamethod
-		// TODO: handle inheritance/multi-inheritance
+		// TODO: make sure inheritance works
 		
+		// if we skip the metatable check, we can speed things up a bit,
+		// but that would mean any lua sub classes won't get their props checked.
 		int index(lua_State *state)
 		{
 			//printf("index!\n");
@@ -283,8 +316,9 @@ class LuaGlueClass : public LuaGlueClassBase
 				//printf("index: got a string: %s\n", key);
 				luaL_getmetatable(state, this->name().c_str());
 				//lua_pushstring(state, key);
-				lua_pushvalue(state, -2);
+				lua_pushvalue(state, 2);
 				lua_rawget(state, -2);
+				lua_remove(state, -2);
 				lua_remove(state, -2);
 				
 				if(properties_.exists(key))
@@ -293,6 +327,8 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 1);
 					lua_pushvalue(state, 2);
 					lua_call(state, 2, 1);
+					
+					//lua_dump_stack(state);
 				}
 				
 			}
@@ -303,13 +339,19 @@ class LuaGlueClass : public LuaGlueClassBase
 				
 				luaL_getmetatable(state, this->name().c_str());
 				lua_pushstring(state, "m__index");
+				
 				lua_rawget(state, -2); // get m__index method from metatable
 				lua_remove(state, -2); // remove metatable
-				lua_pushvalue(state, 1); // copy 1st and 2nd stack elements
-				lua_pushvalue(state, 2);
-				if(lua_isfunction(state, -3)) // if m__index is a function, call it
+				
+				if(lua_isfunction(state, -1)) { // if m__index is a function, call it
+					lua_pushvalue(state, 1); // copy 1st and 2nd stack elements
+					lua_pushvalue(state, 2);
+					
 					lua_call(state, 2, 1); // removes the argument copies
 				// should always be a function.. might want to put some debug/trace messages to make sure
+					
+					//lua_dump_stack(state);
+				}
 			}
 			else
 			{
@@ -340,6 +382,8 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 3); // push value
 				
 					lua_call(state, 3, 0);
+					
+					//lua_dump_stack(state);
 				}
 			}
 			else if(type == LUA_TNUMBER)
@@ -352,11 +396,13 @@ class LuaGlueClass : public LuaGlueClassBase
 				lua_rawget(state, -2);
 				lua_remove(state, -2); // remove metatable
 				
-				lua_pushvalue(state, 1); // push self
-				lua_pushvalue(state, 2); // push key
-				lua_pushvalue(state, 3); // push value
-				if(lua_isfunction(state, -4))
+				if(lua_isfunction(state, -1)) {
+					lua_pushvalue(state, 1); // push self
+					lua_pushvalue(state, 2); // push idx
+					lua_pushvalue(state, 3); // push value
 					lua_call(state, 3, 0);
+					//lua_dump_stack(state);
+				}
 			}
 			else
 			{
@@ -381,4 +427,13 @@ class LuaGlueClass : public LuaGlueClassBase
 		}
 };
 
+template<class _Class>
+const char LuaGlueClass<_Class>::METATABLE_CLASSNAME_FIELD[] = "LuaGlueClassName";
+
+template<class _Class>
+const char LuaGlueClass<_Class>::METATABLE_INTCLASSNAME_FIELD[] = "LuaGlueIntClassName";
+
+template<class _Class>
+const char LuaGlueClass<_Class>::METATABLE_CLASSIDX_FIELD[] = "LuaGlueClassIdx";
+		
 #endif /* LUAGLUE_CLASS_H_GUARD */

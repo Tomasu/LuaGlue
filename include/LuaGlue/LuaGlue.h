@@ -27,8 +27,9 @@ class LuaGlue
 		template<typename _Class>
 		LuaGlueClass<_Class> &Class(const std::string &name)
 		{
+			//printf("glue.Class(\"%s\")\n", name.c_str());
 			auto new_class = new LuaGlueClass<_Class>(this, name);
-			classes[name] = new_class;
+			classes.addSymbol(name.c_str(), new_class);
 			return *new_class;
 		}
 		
@@ -36,6 +37,7 @@ class LuaGlue
 		
 		bool glue()
 		{
+			//printf("LuaGlue.glue()\n");
 			for(auto &c: classes)
 			{
 				if(!c.ptr->glue(this))
@@ -45,9 +47,9 @@ class LuaGlue
 			return true;
 		}
 		
-		LuaGlueClassBase *lookupClass(const char *name)
+		LuaGlueClassBase *lookupClass(const char *name, bool internal_name = false)
 		{
-			return classes.lookup(name);
+			return classes.lookup(name, internal_name);
 		}
 		
 		//LuaGlueClassBase *lookupClass(const std::string &name);
@@ -56,10 +58,7 @@ class LuaGlue
 			return classes.lookup(idx);
 		}
 		
-		LuaGlueSymTab<LuaGlueClassBase *> &getClasses()
-		{
-			return classes;
-		}
+		LuaGlueSymTab<LuaGlueClassBase *> &getSymTab() { return classes; }
 		
 	private:
 		lua_State *state_;

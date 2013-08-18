@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 	
 	double elapsed = tv_interval(tv_start, tv_end);
 	
-	log("Iterations: %i, Time Elapsed: %02.2f\n", iterations, elapsed);
+	log("Iterations: %i, Time Elapsed: %02.2fs\n", iterations, elapsed);
 	
 	return 0;
 }

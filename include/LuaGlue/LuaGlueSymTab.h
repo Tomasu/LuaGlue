@@ -3,25 +3,79 @@
 
 #include <cstring>
 #include <vector>
+#include <typeinfo>
+
+// NOTE: hashing algorithm used is FNV-1a
+
+// FNV-1a constants
+class LuaGlueHash {
+	private:
+		static constexpr unsigned long long basis = 14695981039346656037ULL;
+		static constexpr unsigned long long prime = 1099511628211ULL;
+
+		// compile-time hash helper function
+		constexpr static unsigned long long hash_one(char c, const char* remain, unsigned long long value)
+		{
+			return c == 0 ? value : hash_one(remain[0], remain + 1, (value ^ c) * prime);
+		}
+
+	public:
+		// compile-time hash
+		constexpr static unsigned long long hash(const char* str)
+		{
+			return hash_one(str[0], str + 1, basis);
+		}
+
+		// run-time hash
+		static unsigned long long hash_rt(const char* str)
+		{
+			unsigned long long hash = basis;
+			while (*str != 0) {
+				hash ^= str[0];
+				hash *= prime;
+				++str;
+			}
+			return hash;
+		}
+};
 
 template<class T>
 class LuaGlueSymTab
 {
 	private:
+		
 		struct Symbol {
-			const char *name; T ptr; int idx;
-			Symbol(const char *n = nullptr, T p = nullptr) : name(n), ptr(p), idx(-1) { }
+			const char *name;
+			const char *typeid_name;
+			T ptr; int idx;
+			
+			Symbol(const char *n = nullptr, const char *tn = nullptr, T p = nullptr, int idx = -1)
+				: name(n), typeid_name(tn), ptr(p), idx(idx)
+			{
+				//printf("new Symbol(\"%s\", \"%s\", %p, %i)\n", n, tn, p, idx);
+			}
 		};
 		
 	public:
 		LuaGlueSymTab() { }
 		
+		template<class C>
+		void addSymbol(const char *name, C *ptr)
+		{
+			const Symbol &sym = findSym(name);
+			if(sym.name)
+				return;
+			
+			items.push_back(Symbol(name, typeid(C).name(), ptr, items.size()));
+		}
+		
+		/*
 		T &operator[]( const char *key )
 		{
 			Symbol &sym = findSym(key);
 			if(!sym.name)
 			{
-				items.push_back(Symbol(key, nullptr));
+				items.push_back(Symbol(key, nullptr, items.size()));
 				Symbol &new_sym = items.back();
 				new_sym.name = strdup(key);
 				return new_sym.ptr;
@@ -32,17 +86,19 @@ class LuaGlueSymTab
 		
 		T &operator[]( const std::string &key )
 		{
-			Symbol &sym = findSym(key.c_str());
+			const char *ckey = key.c_str();
+			Symbol &sym = findSym(ckey);
 			if(!sym.name)
 			{
-				items.push_back(Symbol(key.c_str(), nullptr));
+				items.push_back(Symbol(ckey, nullptr, items.size()));
 				Symbol &new_sym = items.back();
-				new_sym.name = strdup(key.c_str());
+				new_sym.name = strdup(ckey);
 				return new_sym.ptr;
 			}
 			
 			return sym.ptr;
 		}
+		*/
 		
 		typename std::vector<Symbol>::iterator begin()
 		{
@@ -54,13 +110,19 @@ class LuaGlueSymTab
 			return items.end();
 		}
 		
-		bool exists(const char *key)
+		bool exists(const char *key, bool internal_name = false)
 		{
+			if(internal_name)
+				return findSym_int(key).name != nullptr;
+			
 			return findSym(key).name != nullptr;
 		}
 		
-		T lookup(const char *key)
+		T lookup(const char *key, bool internal_name = false)
 		{
+			if(internal_name)
+				return findSym_int(key).ptr;
+			
 			return findSym(key).ptr;
 		}
 		
@@ -69,15 +131,11 @@ class LuaGlueSymTab
 			return findSym(idx).ptr;
 		}
 		
-	private:
-		
-		Symbol nullSymbol;
-		std::vector<Symbol> items;
-		
-		Symbol &findSym(const char *name)
+		const Symbol &findSym(const char *name)
 		{
 			for(auto &sym: items)
 			{
+				//printf("findSym: %s <=> %s\n", sym.name, name);
 				if(strcmp(sym.name, name) == 0)
 					return sym;
 			}
@@ -85,13 +143,37 @@ class LuaGlueSymTab
 			return nullSymbol;
 		}
 		
-		Symbol &findSym(int idx)
+	private:
+		
+		static const Symbol nullSymbol;
+		std::vector<Symbol> items;
+		
+		const Symbol &findSym_int(const char *name)
+		{
+			for(auto &sym: items)
+			{
+				//printf("findSym_int: %s <=> %s\n", sym.typeid_name, name);
+				if(strcmp(sym.typeid_name, name) == 0)
+					return sym;
+			}
+			
+			return nullSymbol;
+		}
+		
+		const Symbol &findSym(int idx)
 		{
 			if(idx < 0 || idx > items.size())
+			{
+				//printf("findSym(%i): not found\n", idx);
 				return nullSymbol;
+			}
 			
+			//printf("findSym(%i): %s\n", idx, items[idx].name);
 			return items[idx];
 		}
 };
+
+template<typename T>
+const typename LuaGlueSymTab<T>::Symbol LuaGlueSymTab<T>::nullSymbol;
 
 #endif /* LUAGLUE_SYMTAB_H_GUARD */

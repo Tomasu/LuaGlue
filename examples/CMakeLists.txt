@@ -11,3 +11,4 @@ target_link_libraries(foo ${LUA_LIBRARIES})
 copy_to_build(prof.lua)
 add_executable(prof prof.cpp prof.lua)
 target_link_libraries(prof ${LUA_LIBRARIES})
+

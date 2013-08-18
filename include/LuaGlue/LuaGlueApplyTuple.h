@@ -44,7 +44,24 @@ T getUserData(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
 }
 
 template<class T>
-T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
+LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *state, unsigned int idx)
+{
+	int ret = luaL_getmetafield(state, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
+	if(!ret)
+	{
+		//printf("getGlueClass: failed to get metafield for obj at idx %i", idx);
+		return 0;
+	}
+	
+	int id = luaL_checkint(state, -1);
+	lua_pop(state, 1);
+	
+	//printf("getGlueClass: METATABLE_CLASSIDX_FIELD: %i\n", id);
+	return (LuaGlueClass<T> *)g.lookupClass(id);
+}
+
+template<class T>
+T getValue_(LuaGlue &, lua_State *state, unsigned int idx, std::true_type)
 {
 	typedef typename std::remove_pointer<T>::type TC;
 	
@@ -54,66 +71,31 @@ T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
 		return (T)lua_touserdata(state, idx);
 	}
 	
-	for(auto &c: g.getClasses())
-	{
-		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.ptr);
-		if(lgc)
-		{
-			T v = *(T *)luaL_checkudata(state, idx, lgc->name().c_str());
-			if(v)
-			{
-				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-				return v;
-			}
-			else
-			{
-				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-				//printf("except that the udata was null??\n");
-			}
-		}
-		else
-		{
-			//printf("getValue: found the wrong class! c=%s\n", typeid(c.second).name());
-		}
-	}
+	//LuaGlueClass<TC> *lgc = getGlueClass<TC>(g, state, idx);
+	//if(lgc)
+	//{
+		T v = *(T *)lua_touserdata(state, idx);
+		return v;
+	//}
 	
-	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
+	printf("getValuePtr: failed to get a class instance for lua stack value at idx: %i\n", idx);
 	return 0;
 }
 
 template<class T>
-T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
+T getValue_(LuaGlue &, lua_State *state, unsigned int idx, std::false_type)
 {
-	typedef typename std::remove_pointer<T>::type TC;
-	
 	if(lua_islightuserdata(state, idx))
 	{
 		//printf("getValue: lud!\n");
 		return *(T*)lua_touserdata(state, idx);
 	}
 	
-	for(auto &c: g.getClasses())
-	{
-		LuaGlueClass<TC> *lgc = dynamic_cast<LuaGlueClass<TC> *>(c.ptr);
-		if(lgc)
-		{
-			T **ptr = (T **)luaL_checkudata(state, idx, lgc->name().c_str());
-			if(ptr)
-			{
-				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-				return **ptr;
-			}
-			else
-			{
-				//printf("getValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-				//printf("except that the udata was null??\n");
-			}
-		}
-		else
-		{
-			//printf("getValue: found the wrong class! c=%s\n", typeid(c.second).name());
-		}
-	}
+	//LuaGlueClass<T> *lgc = getGlueClass<T>(g, state, idx);
+	//if(lgc)
+	//{
+		return **(T **)lua_touserdata(state, idx);
+	//}
 	
 	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
 	return T();
@@ -152,19 +134,13 @@ void returnValue(LuaGlue &g, lua_State *state, T *v)
 {
 	//printf("returnValue begin!\n");
 	// first look for a class we support
-	for(auto &c: g.getClasses())
+	
+	
+	LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+	if(lgc)
 	{
-		LuaGlueClass<T> *lgc = dynamic_cast<LuaGlueClass<T> *>(c.ptr);
-		if(lgc)
-		{
-			//printf("returnValue: found the right class! v=%s lgc=%s c=%s\n", typeid(v).name(), typeid(lgc).name(), typeid(c.second).name());
-			lgc->pushInstance(state, v);
-			return;
-		}
-		else
-		{
-			//printf("returnValue: found the wrong class! v=%s c=%s\n", typeid(v).name(), typeid(c.second).name());
-		}
+		lgc->pushInstance(state, v);
+		return;
 	}
 	
 	// otherwise push onto stack as light user data
