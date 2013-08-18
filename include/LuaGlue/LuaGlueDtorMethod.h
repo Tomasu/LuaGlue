@@ -41,7 +41,11 @@ class LuaGlueDtorMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			ClassType *obj = (ClassType *)luaL_checkudata(state, 1, glueClass->name().c_str());
+#ifdef LUAGLUE_TYPECHECK
+			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+#else
+			ClassType *obj = *(ClassType **)lua_touserdata(state, 1);
+#endif
 			(obj->*fn)();
 
 			return 0;

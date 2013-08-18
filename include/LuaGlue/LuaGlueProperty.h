@@ -81,7 +81,11 @@ class LuaGlueProperty : public LuaGluePropertyBase
 		{
 			//printf("accessImpl: class\n");
 			int nargs = lua_gettop(state);
+#ifdef LUAGLUE_TYPECHECK
 			_Class *obj = *(_Class **)luaL_checkudata(state, 1, glueClass->name().c_str());
+#else
+			_Class *obj = *(_Class **)lua_touserdata(state, 1);
+#endif
 			
 			if(nargs == 2)
 			{
@@ -103,7 +107,11 @@ class LuaGlueProperty : public LuaGluePropertyBase
 		{
 			int nargs = lua_gettop(state);
 			
+#ifdef LUAGLUE_TYPECHECK
 			_Class *obj = *(_Class **)luaL_checkudata(state, 1, glueClass->name().c_str());
+#else
+			_Class *obj = *(_Class **)lua_touserdata(state, 1);
+#endif
 			
 			//printf("accessImpl: %p pod nargs:%i '%s'\n", obj, nargs, lua_tostring(state, -1));
 			

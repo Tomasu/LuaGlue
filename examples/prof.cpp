@@ -21,9 +21,9 @@ class Base {
 		virtual Base *objptrret() { return this; }
 		//virtual Base objret() { return *this; }
 		
-		virtual void argint(int a) { }
-		virtual void argobjptr(Base *obj) { }
-		virtual void argobj(Base obj) { }
+		virtual void argint(int) { }
+		virtual void argobjptr(Base *) { }
+		virtual void argobj(Base) { }
 };
 
 class A : public Base {
@@ -32,9 +32,9 @@ class A : public Base {
 		A *objptrret() { return this; }
 		//A objret() { return *this; }
 		
-		void argint(int a) { }
-		void argobjptr(A *obj) { }
-		void argobj(A obj) { }
+		void argint(int) { }
+		void argobjptr(A *) { }
+		void argobj(A) { }
 };
 
 class B : public Base {
@@ -43,9 +43,9 @@ class B : public Base {
 		B *objptrret() { return this; }
 		//B objret() { return *this; }
 		
-		void argint(int a) { }
-		void argobjptr(B *obj) { }
-		void argobj(B obj) { }
+		void argint(int) { }
+		void argobjptr(B *) { }
+		void argobj(B) { }
 };
 
 class C : public Base {
@@ -54,9 +54,9 @@ class C : public Base {
 		C *objptrret() { return this; }
 		//C objret() { return *this; }
 		
-		void argint(int a) { }
-		void argobjptr(C *obj) { }
-		void argobj(C obj) { }
+		void argint(int) { }
+		void argobjptr(C *) { }
+		void argobj(C) { }
 };
 
 class D : public Base {
@@ -65,9 +65,9 @@ class D : public Base {
 		D *objptrret() { return this; }
 		//D objret() { return *this; }
 		
-		void argint(int a) { }
-		void argobjptr(D *obj) { }
-		void argobj(D obj) { }
+		void argint(int) { }
+		void argobjptr(D *) { }
+		void argobj(D) { }
 };
 
 void log(const char *format, ...)

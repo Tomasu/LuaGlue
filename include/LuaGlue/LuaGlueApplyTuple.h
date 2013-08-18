@@ -61,42 +61,53 @@ LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *state, unsigned int idx)
 }
 
 template<class T>
-T getValue_(LuaGlue &, lua_State *state, unsigned int idx, std::true_type)
+T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
 {
-	typedef typename std::remove_pointer<T>::type TC;
-	
 	if(lua_islightuserdata(state, idx))
 	{
 		//printf("getValue: lud!\n");
 		return (T)lua_touserdata(state, idx);
 	}
 	
-	//LuaGlueClass<TC> *lgc = getGlueClass<TC>(g, state, idx);
-	//if(lgc)
-	//{
+#ifdef LUAGLUE_TYPECHECK
+	typedef typename std::remove_pointer<T>::type TC;
+	LuaGlueClass<TC> *lgc = getGlueClass<TC>(g, state, idx);
+	if(lgc)
+	{
+#else
+		(void)g;
+#endif
 		T v = *(T *)lua_touserdata(state, idx);
 		return v;
-	//}
+#ifdef LUAGLUE_TYPECHECK
+	}
+#endif
 	
 	printf("getValuePtr: failed to get a class instance for lua stack value at idx: %i\n", idx);
 	return 0;
 }
 
 template<class T>
-T getValue_(LuaGlue &, lua_State *state, unsigned int idx, std::false_type)
+T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
 {
 	if(lua_islightuserdata(state, idx))
 	{
 		//printf("getValue: lud!\n");
 		return *(T*)lua_touserdata(state, idx);
 	}
-	
-	//LuaGlueClass<T> *lgc = getGlueClass<T>(g, state, idx);
-	//if(lgc)
-	//{
+
+#ifdef LUAGLUE_TYPECHECK
+	LuaGlueClass<T> *lgc = getGlueClass<T>(g, state, idx);
+	if(lgc)
+	{
+#else
+		(void)g;
+#endif
 		return **(T **)lua_touserdata(state, idx);
-	//}
-	
+#ifdef LUAGLUE_TYPECHECK
+	}
+#endif
+
 	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
 	return T();
 }
@@ -134,7 +145,6 @@ void returnValue(LuaGlue &g, lua_State *state, T *v)
 {
 	//printf("returnValue begin!\n");
 	// first look for a class we support
-	
 	
 	LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 	if(lgc)

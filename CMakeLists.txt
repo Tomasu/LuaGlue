@@ -2,8 +2,14 @@ cmake_minimum_required(VERSION 2.6)
 
 project(LuaGlue CXX)
 
+option(LUAGLUE_TYPECHECK "enable strict typechecking (slows things down quite a bit)" OFF)
+
 # tell CMake to search first in the cmake subdirectory for FIND_PACKAGE() or INCLUDE()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
+
+if(LUAGLUE_TYPECHECK STREQUAL ON)
+	add_definitions(-DLUAGLUE_TYPECHECK)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
 	add_definitions(-DDEBUG -O0 -ggdb3)

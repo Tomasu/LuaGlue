@@ -42,7 +42,11 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
+#ifdef LUAGLUE_TYPECHECK
 			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+#else
+			ClassType *obj = *(ClassType **)lua_touserdata(state, 1);
+#endif
 			if(lua_istable(state, 1))
 				printf("got table as arg1\n");
 			
