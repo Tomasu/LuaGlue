@@ -4,6 +4,7 @@
 #include <lua.hpp>
 #include <string>
 #include <map>
+#include <typeinfo>
 
 #include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueSymTab.h"

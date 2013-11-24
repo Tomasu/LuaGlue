@@ -12,3 +12,6 @@ copy_to_build(prof.lua)
 add_executable(prof prof.cpp prof.lua)
 target_link_libraries(prof ${LUA_LIBRARIES})
 
+copy_to_build(invoke.lua)
+add_executable(invoke invoke.cpp invoke.lua)
+target_link_libraries(invoke ${LUA_LIBRARIES})

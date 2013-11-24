@@ -168,6 +168,10 @@ void returnValue(LuaGlue &g, lua_State *state, T v)
 
 // original apply tuple code:
 // http://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments
+
+
+//-----------------------------------------------------------------------------
+
 /**
  * Object Function Tuple Argument Unpacking
  *
@@ -359,5 +363,73 @@ C *applyTuple( LuaGlue &g, lua_State *state, const std::tuple<ArgsT...> & t )
 {
 	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( g, state, std::forward<decltype(t)>(t) );
 }
+
+
+// lua function tuple unpack
+
+/**
+ * Lua Function Tuple Argument Unpacking
+ *
+ * This recursive template unpacks the tuple parameters into
+ * variadic template arguments until we reach the count of 0 where the function
+ * is called with the correct parameters
+ *
+ * @tparam N Number of tuple arguments to unroll
+ *
+ * @ingroup g_util_tuple
+ */
+template < uint N >
+struct apply_lua_func
+{
+	template < typename... ArgsT, typename... Args >
+	static void applyTuple(	LuaGlue &g, lua_State *state, const std::tuple<ArgsT...>& t,
+								Args... args )
+	{
+		const static unsigned int argCount = sizeof...(ArgsT);
+		const static unsigned int argIdx = (argCount-N);
+		
+		typedef typename std::remove_reference<decltype(std::get<argIdx>(t))>::type ltype_const;
+		typedef typename std::remove_const<ltype_const>::type ltype;
+		returnValue<ltype>(g, state, std::get<argIdx>(t));
+		
+		apply_lua_func<N-1>::applyTuple( g, state, std::forward<decltype(t)>(t), std::get<argIdx>(t), args... );
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+/**
+ * Lua Function Tuple Argument Unpacking End Point
+ *
+ * This recursive template unpacks the tuple parameters into
+ * variadic template arguments until we reach the count of 0 where the function
+ * is called with the correct parameters
+ *
+ * @ingroup g_util_tuple
+ */
+template <>
+struct apply_lua_func<0>
+{
+	template < typename... ArgsT, typename... Args >
+	static void applyTuple(	LuaGlue &, lua_State *, const std::tuple<ArgsT...>& /* t */,
+								Args... /*args*/ )
+	{
+		// nada
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+/**
+ * Lua Function Call Forwarding Using Tuple Pack Parameters
+ */
+// Actual apply function
+template < typename... Args >
+void applyTuple( LuaGlue &g, lua_State *state, Args... args )
+{
+	std::tuple<Args...> t(args...);
+	apply_lua_func<sizeof...(Args)>::applyTuple( g, state, std::forward<decltype(t)>(t) );
+}
+
 
 #endif /* LUAGLUE_APPLYTUPLE_H_GUARD */
