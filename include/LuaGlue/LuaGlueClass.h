@@ -70,18 +70,23 @@ class LuaGlueClass : public LuaGlueClassBase
 			//  must have a different "name" when registered.
 			
 			pushInstance(luaGlue_->state(), obj);
+			//printf("attempting to get method %s::%s\n", name_.c_str(), name.c_str());
 			lua_getfield(luaGlue_->state(), -1, name.c_str());
+			//lua_dump_stack(luaGlue_->state());
+		
+			lua_pushvalue(luaGlue_->state(), -2);
+			applyTuple(*luaGlue_, luaGlue_->state(), args...);
 			
-			using Alias=char[];
-			Alias{ (returnValue(luaGlue_, luaGlue_->state(), args), void(), '\0')... };
+			//using Alias=char[];
+			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
 			
-			lua_call(luaGlue_->state(), Arg_Count_, 1);
-			
-			return getValue<_Ret>(luaGlue_, luaGlue_->state(), -1);
+			lua_call(luaGlue_->state(), Arg_Count_+1, 1);
+			lua_remove(luaGlue_->state(), -2);
+			return getValue<_Ret>(*luaGlue_, luaGlue_->state(), -1);
 		}
 		
 		template<typename... _Args>
-		void invokeMethod(const std::string &name, _Class *obj, _Args... args)
+		void invokeVoidMethod(const std::string &name, _Class *obj, _Args... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
@@ -420,9 +425,9 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 2); // push key
 					lua_pushvalue(state, 3); // push value
 					
-					lua_dump_stack(state);
+					//lua_dump_stack(state);
 					lua_rawset(state, -3);
-					lua_dump_stack(state);
+					//lua_dump_stack(state);
 				}
 				
 				lua_pop(state, 1);

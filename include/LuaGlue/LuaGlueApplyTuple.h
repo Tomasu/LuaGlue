@@ -136,7 +136,8 @@ void returnValue(LuaGlue &g, lua_State *state, T *v)
 	//printf("returnValue begin!\n");
 	// first look for a class we support
 	
-	LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+	typedef typename std::remove_pointer<T>::type TC;
+	LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
 	//printf("returnValuePtr: %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 	if(lgc)
 	{
@@ -165,6 +166,54 @@ void returnValue(LuaGlue &g, lua_State *state, T v)
 	//printf("returnValue: lud!\n");
 	lua_pushlightuserdata(state, new T(v));
 }
+
+template<typename T>
+void putValue(LuaGlue &, lua_State *, T);
+
+template<class T>
+void putValue(LuaGlue &g, lua_State *state, T v)
+{
+	//printf("returnValue begin!\n");
+	// first look for a class we support
+	
+	typedef typename std::remove_pointer<T>::type TC;
+	LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
+	//printf("returnValuePtr: %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
+	if(lgc)
+	{
+		lgc->pushInstance(state, v);
+		return;
+	}
+	
+	// otherwise push onto stack as light user data
+	//printf("returnValue: lud!\n");
+	lua_pushlightuserdata(state, v);
+}
+
+template<>
+void putValue(LuaGlue &, lua_State *state, int v)
+{
+	//printf("returnValue: v=%d\n", v);
+	lua_pushinteger(state, v);
+}
+
+template<>
+void putValue(LuaGlue &, lua_State *state, double v)
+{
+	lua_pushnumber(state, v);
+}
+
+template<>
+void putValue(LuaGlue &, lua_State *state, const char *v)
+{
+	lua_pushstring(state, v);
+}
+
+//template<class T>
+//void returnValue(LuaGlue &g, lua_State *state, T v)
+//{
+//	return returnValue_<T>(g, state, v, std::is_pointer<T>());
+//}
 
 // original apply tuple code:
 // http://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments
@@ -390,7 +439,7 @@ struct apply_lua_func
 		
 		typedef typename std::remove_reference<decltype(std::get<argIdx>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		returnValue<ltype>(g, state, std::get<argIdx>(t));
+		putValue<ltype>(g, state, std::get<argIdx>(t));
 		
 		apply_lua_func<N-1>::applyTuple( g, state, std::forward<decltype(t)>(t), std::get<argIdx>(t), args... );
 	}
