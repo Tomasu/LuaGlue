@@ -6,6 +6,8 @@
 #include <map>
 #include <typeinfo>
 
+#include "LuaGlue/LuaGlueCompat.h"
+
 #include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueSymTab.h"
 
