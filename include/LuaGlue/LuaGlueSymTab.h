@@ -5,6 +5,8 @@
 #include <vector>
 #include <typeinfo>
 
+#include "LuaGlue/LuaGlueCompat.h"
+
 // NOTE: hashing algorithm used is FNV-1a
 
 // FNV-1a constants
