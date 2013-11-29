@@ -299,7 +299,7 @@ R applyTuple(LuaGlue &g, lua_State *state, T* pObj,
  *
  * @ingroup g_util_tuple
  */
-template < uint N >
+template < uint32_t N >
 struct apply_func
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
@@ -365,7 +365,7 @@ R applyTuple( LuaGlue &g, lua_State *state, R (*f)(ArgsF...),
  *
  * @ingroup g_util_tuple
  */
-template <class C, uint N >
+template <class C, uint32_t N >
 struct apply_ctor_func
 {
 	template < typename... ArgsT, typename... Args >
@@ -427,7 +427,7 @@ C *applyTuple( LuaGlue &g, lua_State *state, const std::tuple<ArgsT...> & t )
  *
  * @ingroup g_util_tuple
  */
-template < uint N >
+template < uint32_t N >
 struct apply_lua_func
 {
 	template < typename... ArgsT, typename... Args >
