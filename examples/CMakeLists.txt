@@ -16,5 +16,5 @@ copy_to_build(invoke.lua)
 add_executable(invoke invoke.cpp invoke.lua)
 target_link_libraries(invoke ${LUA_LIBRARIES})
 
-add_executable(minko minko.cpp)
-target_link_libraries(minko ${LUA_LIBRARIES})
+#add_executable(constobj constobj.cpp)
+#target_link_libraries(constobj ${LUA_LIBRARIES})
