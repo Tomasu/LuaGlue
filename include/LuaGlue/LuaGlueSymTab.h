@@ -162,7 +162,7 @@ class LuaGlueSymTab
 			return nullSymbol;
 		}
 		
-		const Symbol &findSym(int idx)
+		const Symbol &findSym(uint32_t idx)
 		{
 			if(idx < 0 || idx > items.size())
 			{
