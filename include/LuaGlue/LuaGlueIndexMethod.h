@@ -55,7 +55,7 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 			_Value ret = applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
 			lua_pop(state, 2);
 			
-			returnValue(glueClass->luaGlue(), state, ret);
+			stack<_Value>::put(glueClass->luaGlue(), state, ret);
 			
 			return 1;
 		}

@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <typeinfo>
+#include <memory>
 
 #include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueSymTab.h"
@@ -14,6 +15,7 @@ template<typename _Class> class LuaGlueClass;
 class LuaGlue
 {
 	public:
+		
 		LuaGlue(lua_State *state = 0) : state_(state) { }
 		~LuaGlue() { }
 		

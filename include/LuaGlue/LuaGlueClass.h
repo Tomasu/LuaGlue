@@ -82,7 +82,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			
 			lua_call(luaGlue_->state(), Arg_Count_+1, 1);
 			lua_remove(luaGlue_->state(), -2);
-			return getValue<_Ret>(*luaGlue_, luaGlue_->state(), -1);
+			return stack<_Ret>::get(*luaGlue_, luaGlue_->state(), -1);
 		}
 		
 		template<typename... _Args>
@@ -117,6 +117,18 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
 			*udata = obj;
+			
+			luaL_getmetatable(state, name_.c_str());
+			lua_setmetatable(state, -2);
+			
+			return *this;
+		}
+		
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> obj)
+		{
+			std::shared_ptr<_Class> *ptr_ptr = new std::shared_ptr<_Class>(obj);
+			std::shared_ptr<_Class> **udata = (std::shared_ptr<_Class> **)lua_newuserdata(state, sizeof(std::shared_ptr<_Class> *));
+			*udata = ptr_ptr;
 			
 			luaL_getmetatable(state, name_.c_str());
 			lua_setmetatable(state, -2);

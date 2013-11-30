@@ -24,7 +24,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 		typedef _Ret (_Class::*MethodType)( _Args... );
 		
 		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
-		{ }
+		{ /*printf("new class %s method %s\n", typeid(_Class).name(), typeid(MethodType).name());*/ }
 		
 		~LuaGlueMethod() {}
 		
@@ -57,7 +57,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 			ReturnType ret = applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			
-			returnValue(glueClass->luaGlue(), state, ret);
+			stack<_Ret>::put(glueClass->luaGlue(), state, ret);
 			return 1;
 		}
 		
@@ -78,7 +78,7 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		typedef void (_Class::*MethodType)(_Args...);
 		
 		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
-		{ }
+		{ /*printf("new class %s method %s\n", typeid(_Class).name(), typeid(MethodType).name());*/ }
 		
 		~LuaGlueMethod() {}
 		

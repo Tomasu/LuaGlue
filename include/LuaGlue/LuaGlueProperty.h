@@ -45,31 +45,30 @@ class LuaGlueProperty : public LuaGluePropertyBase
 		{
 			//printf("getReturnVal:pointer\n");
 			_Type val = (obj->*prop_);
-			returnValue<_Type>(glueClass->luaGlue(), state, val);
+			stack<_Type>::put(glueClass->luaGlue(), state, val);
 		}
 		
 		void getReturnVal(lua_State *state, _Class *obj, std::false_type)
 		{
 			//printf("getReturnVal:!pointer\n");
 			_Type *val = &(obj->*prop_);
-			returnValue<_Type>(glueClass->luaGlue(), state, val);
+			stack<_Type>::put(glueClass->luaGlue(), state, val);
 		}
 		
 		void getReturnVal(lua_State *state, _Class *obj)
 		{
 			//printf("getProp: %s::%s\n", glueClass->name().c_str(), name_.c_str());
 			getReturnVal(state, obj, std::is_pointer<_Type>());
-			//returnValue<_Type>(glueClass->luaGlue(), state, obj->*prop_);
 		}
 		
 		void setProp(lua_State *state, _Class *obj, std::true_type)
 		{
-			(obj->*prop_) = getValue<_Type>(glueClass->luaGlue(), state, 2);
+			(obj->*prop_) = stack<_Type>::get(glueClass->luaGlue(), state, 2);
 		}
 		
 		void setProp(lua_State *state, _Class *obj, std::false_type)
 		{
-			(obj->*prop_) = *getValue<_Type *>(glueClass->luaGlue(), state, 2);
+			(obj->*prop_) = *stack<_Type *>::get(glueClass->luaGlue(), state, 2);
 		}
 		
 		void setProp(lua_State *state, _Class *obj)
@@ -121,13 +120,13 @@ class LuaGlueProperty : public LuaGluePropertyBase
 				// get
 				//printf("type: %s\n", typeid(decltype((obj->*prop_))).name());
 				_Type val = (obj->*prop_);
-				returnValue<_Type>(glueClass->luaGlue(), state, val);
+				stack<_Type>::put(glueClass->luaGlue(), state, val);
 				return 1;
 			}
 			else if(nargs == 3)
 			{
 				// set
-				_Type val = getValue<_Type>(glueClass->luaGlue(), state, 3);
+				_Type val = stack<_Type>::get(glueClass->luaGlue(), state, 3);
 				(obj->*prop_) = val;
 				//printf("set prop to %d\n", (obj->*prop_));
 				return 0;

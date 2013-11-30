@@ -8,33 +8,10 @@
 
 class LuaGlue;
 
-template<typename T>
-T getValue(LuaGlue &, lua_State *, unsigned int);
-
-template<>
-int getValue<int>(LuaGlue &, lua_State *state, unsigned int idx)
-{
-	int v = luaL_checkint(state, idx);
-	//printf("getValue<int>: v=%d\n", v);
-	return v;
-}
-
-template<>
-double getValue<double>(LuaGlue &, lua_State *state, unsigned int idx)
-{
-	return luaL_checknumber(state, idx);
-}
-
-template<>
-const char *getValue<const char *>(LuaGlue &, lua_State *state, unsigned int idx)
-{
-	return luaL_checkstring(state, idx);
-}
-
 template<class T>
-LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *state, unsigned int idx)
+LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *s, unsigned int idx)
 {
-	int ret = luaL_getmetafield(state, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
+	int ret = luaL_getmetafield(s, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
 	{
 		printf("getGlueClassPtr: typeid:%s\n", typeid(LuaGlueClass<T>).name());
@@ -42,199 +19,221 @@ LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *state, unsigned int idx)
 		return 0;
 	}
 	
-	int id = luaL_checkint(state, -1);
-	lua_pop(state, 1);
+	int id = luaL_checkint(s, -1);
+	lua_pop(s, 1);
 	
 	//printf("getGlueClass: METATABLE_CLASSIDX_FIELD: %i\n", id);
 	return (LuaGlueClass<T> *)g.lookupClass(id);
 }
 
+
 template<class T>
-T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::true_type)
-{
-	//printf("getValuePtr: idx:%i\n", idx);
-	if(lua_islightuserdata(state, idx))
+struct stack {
+	static T get(LuaGlue &g, lua_State *s, unsigned int idx)
 	{
-		//printf("getValue: lud!\n");
-		return (T)lua_touserdata(state, idx);
-	}
-	
+		if(lua_islightuserdata(s, idx))
+		{
+			printf("stack<T>::get: lud!\n");
+			return *(T*)lua_touserdata(s, idx);
+		}
+		
 #ifdef LUAGLUE_TYPECHECK
-	typedef typename std::remove_pointer<T>::type TC;
-	LuaGlueClass<TC> *lgc = getGlueClass<TC>(g, state, idx);
-	if(lgc)
-	{
+		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
+		if(lgc)
+		{
 #else
-		(void)g;
+			(void)g;
 #endif
-		T v = *(T *)lua_touserdata(state, idx);
-		return v;
+			return **(T **)lua_touserdata(s, idx);
 #ifdef LUAGLUE_TYPECHECK
-	}
+		}
 #endif
+
+		printf("stack::get<T>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		return T();
+	}
 	
-	printf("getValuePtr: failed to get a class instance for lua stack value at idx: %i\n", idx);
-	return 0;
-}
+	static void put(LuaGlue &g, lua_State *s, T v)
+	{
+		//printf("stack<T>::put(T)\n");
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
+			lgc->pushInstance(s, new T(v));
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		//printf("stack::put<T>: lud!\n");
+		lua_pushlightuserdata(s, new T(v));
+	}
+	
+	// for putting static types
+	static void put(LuaGlue &g, lua_State *s, T *v)
+	{
+		//printf("stack<T>::put(T*)\n");
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		//printf("stack::put<T>: lud!\n");
+		lua_pushlightuserdata(s, v);
+	}
+};
 
 template<class T>
-T getValue_(LuaGlue &g, lua_State *state, unsigned int idx, std::false_type)
-{
-	if(lua_islightuserdata(state, idx))
+struct stack<std::shared_ptr<T>> {
+	static std::shared_ptr<T> get(LuaGlue &g, lua_State *s, unsigned int idx)
 	{
-		//printf("getValue: lud!\n");
-		return *(T*)lua_touserdata(state, idx);
-	}
-
+		if(lua_islightuserdata(s, idx))
+		{
+			printf("stack<shared_ptr<T>>::get: lud!\n");
+			std::shared_ptr<T> **ptr_ptr = (std::shared_ptr<T> **)lua_touserdata(s, idx);
+			std::shared_ptr<T> ptr = **ptr_ptr;
+			return ptr;
+		}
+		
+		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
 #ifdef LUAGLUE_TYPECHECK
-	LuaGlueClass<T> *lgc = getGlueClass<T>(g, state, idx);
-	if(lgc)
-	{
+		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
+		if(lgc)
+		{
 #else
-		(void)g;
+			(void)g;
 #endif
-		return **(T **)lua_touserdata(state, idx);
+			std::shared_ptr<T> **ptr_ptr = (std::shared_ptr<T> **)lua_touserdata(s, idx);
+			std::shared_ptr<T> ptr = **ptr_ptr;
+			return ptr;
+
 #ifdef LUAGLUE_TYPECHECK
-	}
+		}
 #endif
 
-	printf("getValue: failed to get a class instance for lua stack value at idx: %i\n", idx);
-	return T();
-}
-
-template<class T>
-T getValue(LuaGlue &g, lua_State *state, unsigned int idx)
-{
-	return getValue_<T>(g, state, idx, std::is_pointer<T>());
-}
-
-template<typename T>
-void returnValue(LuaGlue &, lua_State *, T);
-
-template<>
-void returnValue(LuaGlue &, lua_State *state, bool v)
-{
-	//printf("returnValue: v=%d\n", v);
-	lua_pushboolean(state, v);
-}
-
-template<>
-void returnValue(LuaGlue &, lua_State *state, int v)
-{
-	//printf("returnValue: v=%d\n", v);
-	lua_pushinteger(state, v);
-}
-
-template<>
-void returnValue(LuaGlue &, lua_State *state, unsigned int v)
-{
-	//printf("returnValue: v=%d\n", v);
-	lua_pushinteger(state, v);
-}
-
-template<>
-void returnValue(LuaGlue &, lua_State *state, float v)
-{
-	//printf("returnValue: v=%d\n", v);
-	lua_pushnumber(state, v);
-}
-
-template<>
-void returnValue(LuaGlue &, lua_State *state, double v)
-{
-	lua_pushnumber(state, v);
-}
-
-template<>
-void returnValue(LuaGlue &, lua_State *state, const char *v)
-{
-	lua_pushstring(state, v);
-}
-
-template<class T>
-void returnValue(LuaGlue &g, lua_State *state, T *v)
-{
-	//printf("returnValue begin!\n");
-	// first look for a class we support
-	
-	typedef typename std::remove_pointer<T>::type TC;
-	LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
-	//printf("returnValuePtr: %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
-	if(lgc)
-	{
-		lgc->pushInstance(state, v);
-		return;
+		printf("stack::get<T>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		return 0; // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
-	// otherwise push onto stack as light user data
-	//printf("returnValue: lud!\n");
-	lua_pushlightuserdata(state, v);
-}
-
-// this is currently a source of memory leaks :(
-// need to tell the code that lua owns it somehow
-template<class T>
-void returnValue(LuaGlue &g, lua_State *state, T v)
-{
-	LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
-	if(lgc)
+	static void put(LuaGlue &g, lua_State *s, std::shared_ptr<T> v)
 	{
-		lgc->pushInstance(state, new T(v));
-		return;
+		//printf("stack<T>::put(T)\n");
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		//printf("stack::put<T>: lud!\n");
+		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
+		lua_pushlightuserdata(s, ptr);
+	}
+};
+
+template<>
+struct stack<int> {
+	static int get(LuaGlue &, lua_State *s, unsigned int idx)
+	{
+		return luaL_checkint(s, idx);
 	}
 	
-	// otherwise push onto stack as light user data
-	//printf("returnValue: lud!\n");
-	lua_pushlightuserdata(state, new T(v));
-}
-
-template<typename T>
-void putValue(LuaGlue &, lua_State *, T);
-
-template<class T>
-void putValue(LuaGlue &g, lua_State *state, T v)
-{
-	//printf("returnValue begin!\n");
-	// first look for a class we support
-	
-	typedef typename std::remove_pointer<T>::type TC;
-	LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
-	//printf("returnValuePtr: %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
-	if(lgc)
+	static void put(LuaGlue &, lua_State *s, int v)
 	{
-		lgc->pushInstance(state, v);
-		return;
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<float> {
+	static float get(LuaGlue &, lua_State *s, unsigned int idx)
+	{
+		return luaL_checknumber(s, idx);
 	}
 	
-	// otherwise push onto stack as light user data
-	//printf("returnValue: lud!\n");
-	lua_pushlightuserdata(state, v);
-}
+	static void put(LuaGlue &, lua_State *s, float v)
+	{
+		lua_pushnumber(s, v);
+	}
+};
 
 template<>
-void putValue(LuaGlue &, lua_State *state, int v)
-{
-	//printf("returnValue: v=%d\n", v);
-	lua_pushinteger(state, v);
-}
+struct stack<double> {
+	static double get(LuaGlue &, lua_State *s, unsigned int idx)
+	{
+		return luaL_checknumber(s, idx);
+	}
+	
+	static void put(LuaGlue &, lua_State *s, double v)
+	{
+		lua_pushnumber(s, v);
+	}
+};
 
 template<>
-void putValue(LuaGlue &, lua_State *state, double v)
-{
-	lua_pushnumber(state, v);
-}
+struct stack<const char *> {
+	static const char *get(LuaGlue &, lua_State *s, unsigned int idx)
+	{
+		return luaL_checkstring(s, (int)idx);
+	}
+	
+	static void put(LuaGlue &, lua_State *s, const char *v)
+	{
+		lua_pushstring(s, v);
+	}
+};
 
-template<>
-void putValue(LuaGlue &, lua_State *state, const char *v)
-{
-	lua_pushstring(state, v);
-}
-
-//template<class T>
-//void returnValue(LuaGlue &g, lua_State *state, T v)
-//{
-//	return returnValue_<T>(g, state, v, std::is_pointer<T>());
-//}
+template<class T>
+struct stack<T *> {
+	static T *get(LuaGlue &g, lua_State *s, unsigned int idx)
+	{
+		//printf("stack<T*>::get: idx:%i\n", idx);
+		if(lua_islightuserdata(s, idx))
+		{
+			//printf("stack<T*>::get: lud!\n");
+			return (T*)lua_touserdata(s, idx);
+		}
+		
+#ifdef LUAGLUE_TYPECHECK
+		typedef typename std::remove_pointer<T>::type TC;
+		LuaGlueClass<TC> *lgc = getGlueClass<TC>(g, s, idx);
+		if(lgc)
+		{
+#else
+			(void)g;
+#endif
+			T *v = (T *)lua_touserdata(s, idx);
+			return v;
+#ifdef LUAGLUE_TYPECHECK
+		}
+#endif
+		
+		printf("stack::get<T*>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		return 0;
+	}
+	
+	static void put(LuaGlue &g, lua_State *s, T *v)
+	{
+		//printf("stack<T>::put(T*) begin!\n");
+		// first look for a class we support
+		
+		typedef typename std::remove_pointer<T>::type TC;
+		LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
+		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
+		if(lgc)
+		{
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		//printf("stack::put<T*>: lud!\n");
+		lua_pushlightuserdata(s, v);
+	}
+};
 
 // original apply tuple code:
 // http://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments
@@ -257,7 +256,7 @@ template < uint32_t N >
 struct apply_obj_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &g, lua_State *state, T* pObj,
+  static R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &t,
                           Args... args )
@@ -265,7 +264,7 @@ struct apply_obj_func
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_obj_func<N-1>::applyTuple(g, state, pObj, f, std::forward<decltype(t)>(t), getValue<ltype>(g, state, -(argCount-N+1)), args... );
+		return apply_obj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
 	}
 };
 
@@ -300,11 +299,11 @@ struct apply_obj_func<0>
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlue &g, lua_State *state, T* pObj,
+R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
-	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(g, state, pObj, f, std::forward<decltype(t)>(t) );
+	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t) );
 }
 
 //-----------------------------------------------------------------------------
@@ -324,14 +323,14 @@ template < uint32_t N >
 struct apply_func
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-	static R applyTuple(	LuaGlue &g, lua_State *state, R (*f)( ArgsF... ),
+	static R applyTuple(	LuaGlue &g, lua_State *s, R (*f)( ArgsF... ),
 									const std::tuple<ArgsT...>& t,
 									Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_func<N-1>::applyTuple( g, state, f, std::forward<decltype(t)>(t), getValue<ltype>(g, state, -(argCount-N+1)), args... );
+		return apply_func<N-1>::applyTuple( g, s, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
 	}
 };
 
@@ -365,10 +364,10 @@ struct apply_func<0>
  */
 // Actual apply function
 template < typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple( LuaGlue &g, lua_State *state, R (*f)(ArgsF...),
+R applyTuple( LuaGlue &g, lua_State *s, R (*f)(ArgsF...),
                  const std::tuple<ArgsT...> & t )
 {
-	return apply_func<sizeof...(ArgsT)>::applyTuple( g, state, f, std::forward<decltype(t)>(t) );
+	return apply_func<sizeof...(ArgsT)>::applyTuple( g, s, f, std::forward<decltype(t)>(t) );
 }
 
 //-----------------------------------------------------------------------------
@@ -390,13 +389,13 @@ template <class C, uint32_t N >
 struct apply_ctor_func
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	LuaGlue &g, lua_State *state, const std::tuple<ArgsT...>& t,
+	static C *applyTuple(	LuaGlue &g, lua_State *s, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		return apply_ctor_func<C, N-1>::applyTuple( g, state, std::forward<decltype(t)>(t), getValue<ltype>(g, state, -(argCount-N+1)), args... );
+		return apply_ctor_func<C, N-1>::applyTuple( g, s, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
 	}
 };
 
@@ -429,9 +428,9 @@ struct apply_ctor_func<C, 0>
  */
 // Actual apply function
 template < typename C, typename... ArgsT >
-C *applyTuple( LuaGlue &g, lua_State *state, const std::tuple<ArgsT...> & t )
+C *applyTuple( LuaGlue &g, lua_State *s, const std::tuple<ArgsT...> & t )
 {
-	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( g, state, std::forward<decltype(t)>(t) );
+	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }
 
 
@@ -452,7 +451,7 @@ template < uint32_t N >
 struct apply_lua_func
 {
 	template < typename... ArgsT, typename... Args >
-	static void applyTuple(	LuaGlue &g, lua_State *state, const std::tuple<ArgsT...>& t,
+	static void applyTuple(	LuaGlue &g, lua_State *s, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
@@ -460,9 +459,9 @@ struct apply_lua_func
 		
 		typedef typename std::remove_reference<decltype(std::get<argIdx>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
-		putValue<ltype>(g, state, std::get<argIdx>(t));
+		stack<ltype>::put(g, s, std::get<argIdx>(t));
 		
-		apply_lua_func<N-1>::applyTuple( g, state, std::forward<decltype(t)>(t), std::get<argIdx>(t), args... );
+		apply_lua_func<N-1>::applyTuple( g, s, std::forward<decltype(t)>(t), std::get<argIdx>(t), args... );
 	}
 };
 
@@ -495,10 +494,10 @@ struct apply_lua_func<0>
  */
 // Actual apply function
 template < typename... Args >
-void applyTuple( LuaGlue &g, lua_State *state, Args... args )
+void applyTuple( LuaGlue &g, lua_State *s, Args... args )
 {
 	std::tuple<Args...> t(args...);
-	apply_lua_func<sizeof...(Args)>::applyTuple( g, state, std::forward<decltype(t)>(t) );
+	apply_lua_func<sizeof...(Args)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }
 
 
