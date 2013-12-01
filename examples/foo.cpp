@@ -39,7 +39,12 @@ class Foo
 		
 		void constmethod() const { printf("constmethod!\n"); }
 		int constretmethod() const { return 123; }
+		
+		int testProp() { return testProp_; }
+		void setTestProp(int v) { testProp_ = v; }
 	private:
+		
+		int testProp_;
 };
 
 struct STestA
@@ -68,6 +73,7 @@ int main(int, char **)
 			method("ptrArgTest", &Foo::ptrArgTest).
 			method("constmethod", &Foo::constmethod).
 			method("constretmethod", &Foo::constretmethod).
+			property("testProp", &Foo::testProp, &Foo::setTestProp).
 			constants( { { "ONE", 1 }, { "TWO", 2.12 }, { "THREE", "three" } } ).
 		end();
 	state.

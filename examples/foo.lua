@@ -5,6 +5,10 @@ test:abc(1,2,3);
 test:constmethod();
 ret = test:constretmethod();
 print("constretmethod: "..ret);
+
+test:testProp = 123;
+print("testProp: "..test.testProp);
+
 print("ONE: "..Foo.ONE);
 print("TWO: "..Foo.TWO);
 print("THREE: "..Foo.THREE);

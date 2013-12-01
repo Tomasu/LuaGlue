@@ -201,20 +201,37 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlueClass<_Class> &property(const std::string &name, _Type _Class::*prop)
 		{
 			//printf("property(%s)\n", name.c_str());
-			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, prop);
+			auto impl = new LuaGlueDirectProperty<_Type, _Class>(this, name, prop);
 			properties_.addSymbol(name.c_str(), impl);
 			
 			return *this;
 		}
 		
-		//template<typename _Type, typename E = void>
-		//LuaGlueClass<_Class> &prop(const std::string &name, _Type _Class::*prop);
-		
 		template<typename _Type>
 		LuaGlueClass<_Class> &prop(const std::string &name, _Type _Class::*prop)
 		{
 			//printf("prop(%s)\n", name.c_str());
-			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, prop);
+			auto impl = new LuaGlueDirectProperty<_Type, _Class>(this, name, prop);
+			properties_.addSymbol(name.c_str(), impl);
+			
+			return *this;
+		}
+		
+		template<typename _Type>
+		LuaGlueClass<_Class> &property(const std::string &name, _Type (_Class::*getter)(), void (_Class::*setter)(_Type))
+		{
+			//printf("property(%s)\n", name.c_str());
+			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, getter, setter);
+			properties_.addSymbol(name.c_str(), impl);
+			
+			return *this;
+		}
+		
+		template<typename _Type>
+		LuaGlueClass<_Class> &prop(const std::string &name, _Type (_Class::*getter)(), void (_Class::*setter)(_Type))
+		{
+			//printf("property(%s)\n", name.c_str());
+			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, getter, setter);
 			properties_.addSymbol(name.c_str(), impl);
 			
 			return *this;
