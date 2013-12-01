@@ -91,7 +91,7 @@ class LuaGlue : public LuaGlueBase
 		
 		bool doFile(const std::string &path)
 		{
-			bool success = luaL_dofile(state_, path.c_str());
+			bool success = !luaL_dofile(state_, path.c_str());
 			if(!success)
 			{
 				const char *err = luaL_checkstring(state_, -1);
@@ -107,7 +107,7 @@ class LuaGlue : public LuaGlueBase
 		
 		bool doString(const std::string &script)
 		{
-			bool success = luaL_dostring(state_, script.c_str());
+			bool success = !luaL_dostring(state_, script.c_str());
 			if(!success)
 			{
 				const char *err = luaL_checkstring(state_, -1);

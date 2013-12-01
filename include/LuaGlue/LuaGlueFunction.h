@@ -30,7 +30,7 @@ class LuaGlueFunction : public LuaGlueFunctionBase
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
-			printf("add function: %s\n", name_.c_str());
+			//printf("add function: %s\n", name_.c_str());
 			lua_setglobal(luaGlue->state(), name_.c_str());
 			return true;
 		}
@@ -74,7 +74,7 @@ class LuaGlueFunction<void, _Args...> : public LuaGlueFunctionBase
 		
 		bool glue(LuaGlueBase *luaGlue)
 		{
-			printf("add vfunction: %s\n", name_.c_str());
+			//printf("add vfunction: %s\n", name_.c_str());
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
 			lua_setglobal(luaGlue->state(), name_.c_str());

@@ -28,7 +28,7 @@ int main(int, char **)
 	state.open().glue();
 	
 	printf("running lua script!\n");
-	if(luaL_dofile(state.state(), "invoke.lua"))
+	if(!state.doFile("invoke.lua"))
 	{
 		printf("failed to dofile: invoke.lua\n");
 		const char *err = luaL_checkstring(state.state(), -1);

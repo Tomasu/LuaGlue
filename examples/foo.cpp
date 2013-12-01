@@ -101,7 +101,7 @@ int main(int, char **)
 		func("func", &func).
 		open().glue();
 		
-	if(luaL_dofile(state.state(), "foo.lua"))
+	if(!state.doFile("foo.lua"))
 	{
 		printf("failed to dofile: foo.lua\n");
 		const char *err = luaL_checkstring(state.state(), -1);

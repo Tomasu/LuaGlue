@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 	lua_pushinteger(state.state(), iterations);
 	lua_setglobal(state.state(), "ITERATIONS");
 	
-	if(luaL_dofile(state.state(), "prof.lua"))
+	if(!state.doFile("prof.lua"))
 	{
 		log("failed to dofile: prof.lua\n");
 		const char *err = luaL_checkstring(state.state(), -1);
