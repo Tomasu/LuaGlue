@@ -20,7 +20,16 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 	vsnprintf(msg, msg_len+1, format, ap);
 	va_end(ap);
 	
-	printf("%s:%s:%i: %s: %s\n", FILE, FUNCTION, LINE, t, msg);
+	const char *fptr = strrchr(FILE, '/');
+	if(!fptr)
+		fptr = strrchr(FILE, '\\');
+	
+	if(!fptr)
+		fptr = FILE;
+	else
+		fptr++;
+	
+	printf("%s:%s:%i: %s: %s\n", fptr, FUNCTION, LINE, t, msg);
 	
 	delete[] msg;
 }

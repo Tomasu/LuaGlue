@@ -14,6 +14,7 @@
 #include "LuaGlue/LuaGlueSymTab.h"
 
 #include "LuaGlue/LuaGlueUtils.h"
+#include "LuaGlue/LuaGlueDebug.h"
 
 class LuaGlue;
 
@@ -59,7 +60,8 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlueClass(LuaGlue *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
 		{ }
 		
-		~LuaGlueClass() { }
+		~LuaGlueClass()
+		{ 	}
 		
 		const std::string &name() { return name_; }
 		
@@ -139,6 +141,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> obj)
 		{
+			LG_Debug("pushInstance");
 			std::shared_ptr<_Class> *ptr_ptr = new std::shared_ptr<_Class>(obj);
 			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
 			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
@@ -360,6 +363,11 @@ class LuaGlueClass : public LuaGlueClassBase
 			return true;
 		}
 		
+		void _impl_dtor(std::shared_ptr<_Class> *)
+		{
+			
+		}
+		
 		// LuaGlueObjectImpl dtor?
 		void _impl_dtor(_Class *)
 		{
@@ -499,7 +507,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			if(lua_isuserdata(state, -1))
 			{
-				LuaGlueObject<_Class> *obj = (LuaGlueObject<_Class> *)lua_touserdata(state, -1);
+				LuaGlueObjectBase *obj = (LuaGlueObjectBase *)lua_touserdata(state, -1);
 				obj->put();
 			}
 			return 0;

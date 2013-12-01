@@ -109,14 +109,14 @@ struct stack<std::shared_ptr<T>> {
 #else
 			(void)g;
 #endif
-			printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
+			LG_Debug("stack<shared_ptr<T>>::get: name:%s", typeid(T).name());
 			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
 
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
-		printf("stack::get<T>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		printf("stack::get<shared_ptr<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
 		return 0; // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
@@ -145,7 +145,7 @@ struct stack<LuaGlueObject<T>> {
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			printf("stack<shared_ptr<T>>::get: lud!\n");
+			printf("stack<LuaGlueObject<T>>::get: lud!\n");
 			return *(LuaGlueObject<T> *)lua_touserdata(s, idx);
 		}
 		
@@ -163,7 +163,7 @@ struct stack<LuaGlueObject<T>> {
 		}
 #endif
 
-		printf("stack::get<T>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		printf("stack::get<LuaGlueObject<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
 		return LuaGlueObject<T>(); // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
@@ -178,7 +178,7 @@ struct stack<LuaGlueObject<T>> {
 		}
 		
 		// otherwise push onto stack as light user data
-		//printf("stack::put<T>: lud!\n");
+		//printf("stack::put<LuaGlueObject<T>>: lud!\n");
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v, nullptr, true);
 		lua_pushlightuserdata(s, obj);
 	}

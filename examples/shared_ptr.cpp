@@ -4,11 +4,11 @@ class Shared {
 	public:
 		typedef std::shared_ptr<Shared> Ptr;
 		
-		Shared() { printf("ctor!\n"); }
-		~Shared() { printf("dtor!\n"); }
+		Shared() { printf("in ctor!\n"); }
+		~Shared() { printf("in dtor!\n"); }
 		
-		Ptr getRef() { printf("getRef!\n"); return Ptr(this); }
-		void putRef(Ptr) { printf("putRef!\n"); }
+		Ptr getRef() { printf("in getRef!\n"); return Ptr(new Shared()); }
+		void putRef(Ptr) { printf("in putRef!\n"); }
 	
 };
 

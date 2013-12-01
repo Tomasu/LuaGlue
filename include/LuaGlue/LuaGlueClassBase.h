@@ -7,6 +7,7 @@ class LuaGlueClassBase
 {
 	public:
 		virtual bool glue(LuaGlue *) = 0;
+		virtual ~LuaGlueClassBase() { }
 };
 
 #endif /* LUAGLUE_CLASS_BASE_H */
