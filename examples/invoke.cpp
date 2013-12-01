@@ -2,13 +2,14 @@
 
 class Invoke {
 	public:
-		Invoke() { printf("ctor!\n"); }
+		int abc;
+		Invoke() { printf("%p ctor!\n", this); }
 		~Invoke() { printf("dtor!\n"); }
 		void invoke(int a, double b, const char *c)
 		{
 			printf("a: %d, b: %f, c: %s\n", a, b, c);
 		}
-		void invokeObj(Invoke *obj) { printf("obj: %p\n", obj); }
+		void invokeObj(Invoke *obj) { printf("%p invokeObj: %p\n", this, obj); }
 		Invoke *objInvoke(void) { printf("return this\n"); return this; }
 		void fromlua() { printf("from lua!\n"); }
 };
@@ -17,7 +18,7 @@ int main(int, char **)
 {
 	LuaGlue state;
 	
-	auto Class = state.Class<Invoke>("Invoke").
+	auto &Class = state.Class<Invoke>("Invoke").
 		ctor("new").
 		method("invoke", &Invoke::invoke).
 		method("invokeObj", &Invoke::invokeObj).
@@ -36,6 +37,8 @@ int main(int, char **)
 	
 	printf("testing invoking methods from C++\n");
 	Invoke *test_obj = new Invoke();
+	test_obj->abc = 123;
+	
 	Class.invokeVoidMethod("invoke", test_obj, 1, 2.0, "three");
 	Class.invokeVoidMethod("invoke_lua", test_obj, 2, 3.0, "four");
 	Class.invokeVoidMethod("invokeObj", test_obj, test_obj);
@@ -43,9 +46,10 @@ int main(int, char **)
 	
 	if(ret_obj != test_obj)
 	{
-		printf("ret_obj != test_obj ! :o\n");
+		printf("ret_obj(%p) != test_obj(%p) ! :o\n", ret_obj, test_obj);
 	}
-	
+
+	printf("test_obj.abc: %i, ret_obj.abc: %i\n", test_obj->abc, ret_obj->abc);
 	//state.invokeVoidMethod("invoke_lua", test_obj);
 	
 	return 0;

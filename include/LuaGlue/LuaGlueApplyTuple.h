@@ -32,6 +32,7 @@ template<class T>
 struct stack {
 	static T get(LuaGlue &g, lua_State *s, unsigned int idx)
 	{
+		LG_Debug("get");
 		if(lua_islightuserdata(s, idx))
 		{
 			printf("stack<T>::get: lud!\n");
@@ -57,7 +58,7 @@ struct stack {
 	
 	static void put(LuaGlue &g, lua_State *s, T v)
 	{
-		//printf("stack<T>::put(T)\n");
+		LG_Debug("put");
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
@@ -68,7 +69,6 @@ struct stack {
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
 		
-		// FIXME: leak!
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(v), 0, true);
 		lua_pushlightuserdata(s, obj);
 	}
@@ -76,6 +76,7 @@ struct stack {
 	// for putting static types
 	static void put(LuaGlue &g, lua_State *s, T *v)
 	{
+		LG_Debug("put ptr");
 		//printf("stack<T>::put(T*)\n");
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
@@ -123,6 +124,7 @@ struct stack<std::shared_ptr<T>> {
 	static void put(LuaGlue &g, lua_State *s, std::shared_ptr<T> v)
 	{
 		//printf("stack<T>::put(T)\n");
+		
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
@@ -141,8 +143,9 @@ struct stack<std::shared_ptr<T>> {
 
 template<class T>
 struct stack<LuaGlueObject<T>> {
-	static LuaGlueObject<T> get(LuaGlue &g, lua_State *s, unsigned int idx)
+	static T get(LuaGlue &g, lua_State *s, unsigned int idx)
 	{
+		LG_Debug("get");
 		if(lua_islightuserdata(s, idx))
 		{
 			printf("stack<LuaGlueObject<T>>::get: lud!\n");
@@ -157,19 +160,20 @@ struct stack<LuaGlueObject<T>> {
 #else
 			(void)g;
 #endif
-			return *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+			return **(LuaGlueObject<T> *)lua_touserdata(s, idx);
 
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
 		printf("stack::get<LuaGlueObject<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
-		return LuaGlueObject<T>(); // TODO: is this a valid thing? I can't imagine this is a good thing.
+		return T(); // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
 	static void put(LuaGlue &g, lua_State *s, const LuaGlueObject<T> &v)
 	{
 		//printf("stack<T>::put(T)\n");
+		LG_Debug("put");
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
@@ -240,6 +244,7 @@ template<class T>
 struct stack<T *> {
 	static T *get(LuaGlue &g, lua_State *s, unsigned int idx)
 	{
+		LG_Debug("get");
 		//printf("stack<T*>::get: idx:%i\n", idx);
 		if(lua_islightuserdata(s, idx))
 		{
@@ -255,8 +260,8 @@ struct stack<T *> {
 #else
 			(void)g;
 #endif
-			T *v = (T *)lua_touserdata(s, idx);
-			return v;
+			LuaGlueObject<T> obj = *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+			return obj.ptr();
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
@@ -269,7 +274,7 @@ struct stack<T *> {
 	{
 		//printf("stack<T>::put(T*) begin!\n");
 		// first look for a class we support
-		
+		LG_Debug("put");
 		typedef typename std::remove_pointer<T>::type TC;
 		LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);

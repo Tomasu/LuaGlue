@@ -6,7 +6,7 @@ test:constmethod();
 ret = test:constretmethod();
 print("constretmethod: "..ret);
 
-test:testProp = 123;
+test.testProp = 123;
 print("testProp: "..test.testProp);
 
 print("ONE: "..Foo.ONE);
