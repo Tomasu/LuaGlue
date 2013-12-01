@@ -16,7 +16,7 @@
 #include "LuaGlue/LuaGlueUtils.h"
 #include "LuaGlue/LuaGlueDebug.h"
 
-class LuaGlue;
+#include "LuaGlue/LuaGlueBase.h"
 
 template<typename _Class, typename... _Args>
 class LuaGlueCtorMethod;
@@ -63,7 +63,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		typedef _Class ClassType;
 		
-		LuaGlueClass(LuaGlue *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
+		LuaGlueClass(LuaGlueBase *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
 		{ }
 		
 		~LuaGlueClass()
@@ -85,14 +85,14 @@ class LuaGlueClass : public LuaGlueClassBase
 			//lua_dump_stack(luaGlue_->state());
 		
 			lua_pushvalue(luaGlue_->state(), -2);
-			applyTuple(*luaGlue_, luaGlue_->state(), args...);
+			applyTuple(luaGlue_, luaGlue_->state(), args...);
 			
 			//using Alias=char[];
 			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
 			
 			lua_call(luaGlue_->state(), Arg_Count_+1, 1);
 			lua_remove(luaGlue_->state(), -2);
-			return stack<_Ret>::get(*luaGlue_, luaGlue_->state(), -1);
+			return stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
 		}
 		
 		template<typename... _Args>
@@ -109,7 +109,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			//lua_dump_stack(luaGlue_->state());
 		
 			lua_pushvalue(luaGlue_->state(), -2);
-			applyTuple(*luaGlue_, luaGlue_->state(), args...);
+			applyTuple(luaGlue_, luaGlue_->state(), args...);
 			
 			//using Alias=char[];
 			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
@@ -319,10 +319,10 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
-		LuaGlue &end() { return *luaGlue_; }
-		LuaGlue &luaGlue() { return *luaGlue_; }
+		LuaGlue &end() { return *(LuaGlue*)luaGlue_; }
+		LuaGlueBase *luaGlue() { return luaGlue_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_createtable(luaGlue->state(), 0, 0);
 			//int lib_id = lua_gettop(luaGlue->state());
@@ -420,7 +420,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		}
 		
 	private:
-		LuaGlue *luaGlue_;
+		LuaGlueBase *luaGlue_;
 		std::string name_;
 		
 		LuaGlueSymTab<LuaGlueConstant *> constants_;

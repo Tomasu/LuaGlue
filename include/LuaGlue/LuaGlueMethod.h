@@ -11,7 +11,7 @@
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGlueDebug.h"
 
-class LuaGlue;
+#include "LuaGlue/LuaGlueBase.h"
 
 template<typename _Class>
 class LuaGlueClass;
@@ -32,7 +32,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
@@ -86,7 +86,7 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
@@ -140,7 +140,7 @@ class LuaGlueConstMethod : public LuaGlueMethodBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
@@ -194,7 +194,7 @@ class LuaGlueConstMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
@@ -251,7 +251,7 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
@@ -306,7 +306,7 @@ class LuaGlueMethod<void, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);

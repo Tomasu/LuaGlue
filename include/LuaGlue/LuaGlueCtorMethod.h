@@ -9,8 +9,8 @@
 
 #include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
+#include "LuaGlue/LuaGlueBase.h"
 
-class LuaGlue;
 template<typename _Class>
 class LuaGlueClass;
 
@@ -28,7 +28,7 @@ class LuaGlueCtorMethod : public LuaGlueMethodBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);

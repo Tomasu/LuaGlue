@@ -9,6 +9,8 @@ print("constretmethod: "..ret);
 test.testProp = 123;
 print("testProp: "..test.testProp);
 
+func()
+
 print("ONE: "..Foo.ONE);
 print("TWO: "..Foo.TWO);
 print("THREE: "..Foo.THREE);

@@ -1,5 +1,10 @@
 #include <LuaGlue/LuaGlue.h>
 
+void func()
+{
+	printf("in func!\n");
+}
+
 class Array
 {
 	public:
@@ -93,6 +98,7 @@ int main(int, char **)
 			prop("a", &STestB::a).
 			prop("b", &STestB::b).
 		end().
+		func("func", &func).
 		open().glue();
 		
 	if(luaL_dofile(state.state(), "foo.lua"))

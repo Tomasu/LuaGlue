@@ -6,10 +6,10 @@
 #include <lua.hpp>
 #include <typeinfo>
 
-class LuaGlue;
+class LuaGlueBase;
 
 template<class T>
-LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *s, unsigned int idx)
+LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, unsigned int idx)
 {
 	int ret = luaL_getmetafield(s, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
@@ -23,14 +23,14 @@ LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *s, unsigned int idx)
 	lua_pop(s, 1);
 	
 	//printf("getGlueClass: METATABLE_CLASSIDX_FIELD: %i\n", id);
-	return (LuaGlueClass<T> *)g.lookupClass(id);
+	return (LuaGlueClass<T> *)g->lookupClass(id);
 }
 
 // FIXME: static objects need fixed again.
 // new LuaGlueObject stuff needs a way to "own" a pointer, and know how to delete it.
 template<class T>
 struct stack {
-	static T get(LuaGlue &g, lua_State *s, unsigned int idx)
+	static T get(LuaGlueBase *g, lua_State *s, unsigned int idx)
 	{
 		LG_Debug("get");
 		if(lua_islightuserdata(s, idx))
@@ -56,10 +56,10 @@ struct stack {
 		return T();
 	}
 	
-	static void put(LuaGlue &g, lua_State *s, T v)
+	static void put(LuaGlueBase *g, lua_State *s, T v)
 	{
 		LG_Debug("put");
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
 			lgc->pushInstance(s, new T(v), true);
@@ -74,11 +74,11 @@ struct stack {
 	}
 	
 	// for putting static types
-	static void put(LuaGlue &g, lua_State *s, T *v)
+	static void put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		LG_Debug("put ptr");
 		//printf("stack<T>::put(T*)\n");
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
 			lgc->pushInstance(s, v);
@@ -94,11 +94,11 @@ struct stack {
 
 template<class T>
 struct stack<std::shared_ptr<T>> {
-	static std::shared_ptr<T> get(LuaGlue &g, lua_State *s, unsigned int idx)
+	static std::shared_ptr<T> get(LuaGlueBase *g, lua_State *s, unsigned int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			printf("stack<shared_ptr<T>>::get: lud!\n");
+			//printf("stack<shared_ptr<T>>::get: lud!\n");
 			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
 		}
 		
@@ -117,24 +117,24 @@ struct stack<std::shared_ptr<T>> {
 		}
 #endif
 
-		printf("stack::get<shared_ptr<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		//printf("stack::get<shared_ptr<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
 		return 0; // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
-	static void put(LuaGlue &g, lua_State *s, std::shared_ptr<T> v)
+	static void put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
 	{
 		//printf("stack<T>::put(T)\n");
 		
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
+			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
-		printf("stack::put<T>: lud!\n");
+		//printf("stack::put<T>: lud!\n");
 		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
 		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
 		lua_pushlightuserdata(s, obj);
@@ -143,7 +143,7 @@ struct stack<std::shared_ptr<T>> {
 
 template<class T>
 struct stack<LuaGlueObject<T>> {
-	static T get(LuaGlue &g, lua_State *s, unsigned int idx)
+	static T get(LuaGlueBase *g, lua_State *s, unsigned int idx)
 	{
 		LG_Debug("get");
 		if(lua_islightuserdata(s, idx))
@@ -170,11 +170,11 @@ struct stack<LuaGlueObject<T>> {
 		return T(); // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
-	static void put(LuaGlue &g, lua_State *s, const LuaGlueObject<T> &v)
+	static void put(LuaGlueBase *g, lua_State *s, const LuaGlueObject<T> &v)
 	{
 		//printf("stack<T>::put(T)\n");
 		LG_Debug("put");
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
 			lgc->pushInstance(s, v);
@@ -190,12 +190,12 @@ struct stack<LuaGlueObject<T>> {
 
 template<>
 struct stack<int> {
-	static int get(LuaGlue &, lua_State *s, unsigned int idx)
+	static int get(LuaGlueBase *, lua_State *s, unsigned int idx)
 	{
 		return luaL_checkint(s, idx);
 	}
 	
-	static void put(LuaGlue &, lua_State *s, int v)
+	static void put(LuaGlueBase *, lua_State *s, int v)
 	{
 		lua_pushinteger(s, v);
 	}
@@ -203,12 +203,12 @@ struct stack<int> {
 
 template<>
 struct stack<float> {
-	static float get(LuaGlue &, lua_State *s, unsigned int idx)
+	static float get(LuaGlueBase *, lua_State *s, unsigned int idx)
 	{
 		return luaL_checknumber(s, idx);
 	}
 	
-	static void put(LuaGlue &, lua_State *s, float v)
+	static void put(LuaGlueBase *, lua_State *s, float v)
 	{
 		lua_pushnumber(s, v);
 	}
@@ -216,12 +216,12 @@ struct stack<float> {
 
 template<>
 struct stack<double> {
-	static double get(LuaGlue &, lua_State *s, unsigned int idx)
+	static double get(LuaGlueBase *, lua_State *s, unsigned int idx)
 	{
 		return luaL_checknumber(s, idx);
 	}
 	
-	static void put(LuaGlue &, lua_State *s, double v)
+	static void put(LuaGlueBase *, lua_State *s, double v)
 	{
 		lua_pushnumber(s, v);
 	}
@@ -229,12 +229,12 @@ struct stack<double> {
 
 template<>
 struct stack<const char *> {
-	static const char *get(LuaGlue &, lua_State *s, unsigned int idx)
+	static const char *get(LuaGlueBase *, lua_State *s, unsigned int idx)
 	{
 		return luaL_checkstring(s, (int)idx);
 	}
 	
-	static void put(LuaGlue &, lua_State *s, const char *v)
+	static void put(LuaGlueBase *, lua_State *s, const char *v)
 	{
 		lua_pushstring(s, v);
 	}
@@ -242,7 +242,7 @@ struct stack<const char *> {
 
 template<class T>
 struct stack<T *> {
-	static T *get(LuaGlue &g, lua_State *s, unsigned int idx)
+	static T *get(LuaGlueBase *g, lua_State *s, unsigned int idx)
 	{
 		LG_Debug("get");
 		//printf("stack<T*>::get: idx:%i\n", idx);
@@ -270,13 +270,13 @@ struct stack<T *> {
 		return 0;
 	}
 	
-	static void put(LuaGlue &g, lua_State *s, T *v)
+	static void put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		//printf("stack<T>::put(T*) begin!\n");
 		// first look for a class we support
 		LG_Debug("put");
 		typedef typename std::remove_pointer<T>::type TC;
-		LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g.lookupClass(typeid(LuaGlueClass<TC>).name(), true);
+		LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g->lookupClass(typeid(LuaGlueClass<TC>).name(), true);
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
@@ -311,7 +311,7 @@ template < uint32_t N >
 struct apply_obj_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
+  static R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &t,
                           Args... args )
@@ -338,7 +338,7 @@ template <>
 struct apply_obj_func<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &, lua_State *, T* pObj,
+  static R applyTuple(LuaGlueBase *, lua_State *, T* pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
@@ -354,7 +354,7 @@ struct apply_obj_func<0>
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
+R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
@@ -379,7 +379,7 @@ template < uint32_t N >
 struct apply_obj_constfunc
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
+  static R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
                           R (T::*f)( ArgsF... ) const,
                           const std::tuple<ArgsT...> &t,
                           Args... args )
@@ -406,7 +406,7 @@ template <>
 struct apply_obj_constfunc<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &, lua_State *, T* pObj,
+  static R applyTuple(LuaGlueBase *, lua_State *, T* pObj,
                           R (T::*f)( ArgsF... ) const,
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
@@ -422,7 +422,7 @@ struct apply_obj_constfunc<0>
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
+R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
                  R (T::*f)( ArgsF... ) const,
                  const std::tuple<ArgsT...> &t )
 {
@@ -448,7 +448,7 @@ template < uint32_t N >
 struct apply_glueobj_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &g, lua_State *s, LuaGlueObject<T> pObj,
+  static R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &t,
                           Args... args )
@@ -475,7 +475,7 @@ template <>
 struct apply_glueobj_func<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &, lua_State *, LuaGlueObject<T> pObj,
+  static R applyTuple(LuaGlueBase *, lua_State *, LuaGlueObject<T> pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
@@ -491,7 +491,7 @@ struct apply_glueobj_func<0>
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlue &g, lua_State *s, LuaGlueObject<T> pObj,
+R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
@@ -516,7 +516,7 @@ template < uint32_t N >
 struct apply_glueobj_constfunc
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &g, lua_State *s, LuaGlueObject<T> pObj,
+  static R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> pObj,
                           R (T::*f)( ArgsF... ) const,
                           const std::tuple<ArgsT...> &t,
                           Args... args )
@@ -543,7 +543,7 @@ template <>
 struct apply_glueobj_constfunc<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlue &, lua_State *, LuaGlueObject<T> pObj,
+  static R applyTuple(LuaGlueBase *, lua_State *, LuaGlueObject<T> pObj,
                           R (T::*f)( ArgsF... ) const,
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
@@ -559,7 +559,7 @@ struct apply_glueobj_constfunc<0>
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlue &g, lua_State *s, LuaGlueObject<T> pObj,
+R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> pObj,
                  R (T::*f)( ArgsF... ) const,
                  const std::tuple<ArgsT...> &t )
 {
@@ -585,7 +585,7 @@ template < uint32_t N >
 struct apply_func
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-	static R applyTuple(	LuaGlue &g, lua_State *s, R (*f)( ArgsF... ),
+	static R applyTuple(	LuaGlueBase *g, lua_State *s, R (*f)( ArgsF... ),
 									const std::tuple<ArgsT...>& t,
 									Args... args )
 	{
@@ -611,7 +611,7 @@ template <>
 struct apply_func<0>
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-	static R applyTuple(	LuaGlue &, lua_State *, R (*f)( ArgsF... ),
+	static R applyTuple(	LuaGlueBase *, lua_State *, R (*f)( ArgsF... ),
 									const std::tuple<ArgsT...>& /* t */,
 									Args... args )
 	{
@@ -626,7 +626,7 @@ struct apply_func<0>
  */
 // Actual apply function
 template < typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple( LuaGlue &g, lua_State *s, R (*f)(ArgsF...),
+R applyTuple( LuaGlueBase *g, lua_State *s, R (*f)(ArgsF...),
                  const std::tuple<ArgsT...> & t )
 {
 	return apply_func<sizeof...(ArgsT)>::applyTuple( g, s, f, std::forward<decltype(t)>(t) );
@@ -651,7 +651,7 @@ template <class C, uint32_t N >
 struct apply_ctor_func
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	LuaGlue &g, lua_State *s, const std::tuple<ArgsT...>& t,
+	static C *applyTuple(	LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
@@ -676,7 +676,7 @@ template <class C>
 struct apply_ctor_func<C, 0>
 {
 	template < typename... ArgsT, typename... Args >
-	static C *applyTuple(	LuaGlue &, lua_State *, const std::tuple<ArgsT...>& /* t */,
+	static C *applyTuple(	LuaGlueBase *, lua_State *, const std::tuple<ArgsT...>& /* t */,
 								Args... args )
 	{
 		return new C( args... );
@@ -690,7 +690,7 @@ struct apply_ctor_func<C, 0>
  */
 // Actual apply function
 template < typename C, typename... ArgsT >
-C *applyTuple( LuaGlue &g, lua_State *s, const std::tuple<ArgsT...> & t )
+C *applyTuple( LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...> & t )
 {
 	return apply_ctor_func<C, sizeof...(ArgsT)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }
@@ -713,7 +713,7 @@ template < uint32_t N >
 struct apply_lua_func
 {
 	template < typename... ArgsT, typename... Args >
-	static void applyTuple(	LuaGlue &g, lua_State *s, const std::tuple<ArgsT...>& t,
+	static void applyTuple(	LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
 		const static unsigned int argCount = sizeof...(ArgsT);
@@ -742,7 +742,7 @@ template <>
 struct apply_lua_func<0>
 {
 	template < typename... ArgsT, typename... Args >
-	static void applyTuple(	LuaGlue &, lua_State *, const std::tuple<ArgsT...>& /* t */,
+	static void applyTuple(	LuaGlueBase *, lua_State *, const std::tuple<ArgsT...>& /* t */,
 								Args... /*args*/ )
 	{
 		// nada
@@ -756,7 +756,7 @@ struct apply_lua_func<0>
  */
 // Actual apply function
 template < typename... Args >
-void applyTuple( LuaGlue &g, lua_State *s, Args... args )
+void applyTuple( LuaGlueBase *g, lua_State *s, Args... args )
 {
 	std::tuple<Args...> t(args...);
 	apply_lua_func<sizeof...(Args)>::applyTuple( g, s, std::forward<decltype(t)>(t) );

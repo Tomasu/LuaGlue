@@ -1,12 +1,12 @@
 #ifndef LUAGLUE_CLASS_BASE_H
 #define LUAGLUE_CLASS_BASE_H
 
-class LuaGlue;
+class LuaGlueBase;
 
 class LuaGlueClassBase
 {
 	public:
-		virtual bool glue(LuaGlue *) = 0;
+		virtual bool glue(LuaGlueBase *) = 0;
 		virtual ~LuaGlueClassBase() { }
 };
 

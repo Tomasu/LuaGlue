@@ -7,6 +7,7 @@
 #include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGluePropertyBase.h"
+#include "LuaGlue/LuaGlueBase.h"
 
 template<typename _Type, typename _Class>
 class LuaGlueDirectProperty : public LuaGluePropertyBase
@@ -23,7 +24,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_access, 1);
@@ -159,7 +160,7 @@ class LuaGlueProperty : public LuaGluePropertyBase
 		
 		std::string name() { return name_; }
 		
-		bool glue(LuaGlue *luaGlue)
+		bool glue(LuaGlueBase *luaGlue)
 		{
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_access, 1);
