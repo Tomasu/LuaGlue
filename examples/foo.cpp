@@ -37,6 +37,8 @@ class Foo
 		
 		void lua_gc() { printf("__gc!\n"); }
 		
+		void constmethod() const { printf("constmethod!\n"); }
+		int constretmethod() const { return 123; }
 	private:
 };
 
@@ -64,6 +66,8 @@ int main(int, char **)
 			method("aaa", &Foo::aaa).
 			method("ptrTest", &Foo::ptrTest).
 			method("ptrArgTest", &Foo::ptrArgTest).
+			method("constmethod", &Foo::constmethod).
+			method("constretmethod", &Foo::constretmethod).
 			constants( { { "ONE", 1 }, { "TWO", 2.12 }, { "THREE", "three" } } ).
 		end();
 	state.

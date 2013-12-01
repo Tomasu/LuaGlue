@@ -31,6 +31,12 @@ template<typename _Class, typename... _Args>
 class LuaGlueStaticMethod<void, _Class, _Args...>;
 
 template<typename _Ret, typename _Class, typename... _Args>
+class LuaGlueConstMethod;
+
+template<typename _Class, typename... _Args>
+class LuaGlueConstMethod<void, _Class, _Args...>;
+
+template<typename _Ret, typename _Class, typename... _Args>
 class LuaGlueMethod;
 
 template<typename _Class, typename... _Args>
@@ -128,7 +134,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
-		LuaGlueClass<_Class> &pushInstance(lua_State *state, LuaGlueObject<_Class> *obj)
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueObject<_Class> &obj)
 		{
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj); // placement new to initialize object
@@ -224,11 +230,31 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
+		template<typename _Ret, typename... _Args>
+		LuaGlueClass<_Class> &method(const std::string &name, _Ret (_Class::*fn)(_Args...) const)
+		{
+			//printf("method(%s)\n", name.c_str());
+			auto impl = new LuaGlueConstMethod<_Ret, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
+			methods.addSymbol(name.c_str(), impl);
+			
+			return *this;
+		}
+		
 		template<typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, void (_Class::*fn)(_Args...))
 		{
 			//printf("method(%s)\n", name.c_str());
 			auto impl = new LuaGlueMethod<void, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
+			methods.addSymbol(name.c_str(), impl);
+			
+			return *this;
+		}
+		
+		template<typename... _Args>
+		LuaGlueClass<_Class> &method(const std::string &name, void (_Class::*fn)(_Args...) const)
+		{
+			//printf("method(%s)\n", name.c_str());
+			auto impl = new LuaGlueConstMethod<void, _Class, _Args...>(this, name, std::forward<decltype(fn)>(fn));
 			methods.addSymbol(name.c_str(), impl);
 			
 			return *this;

@@ -81,7 +81,7 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		
 		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
 		{ /*printf("new class %s method %s\n", typeid(_Class).name(), typeid(MethodType).name());*/ }
-		
+
 		~LuaGlueMethod() {}
 		
 		std::string name() { return name_; }
@@ -120,6 +120,114 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		static int lua_call_func(lua_State *state)
 		{
 			auto mimp = (LuaGlueMethod<void, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
+			return mimp->invoke(state);
+		}
+};
+
+template<typename _Ret, typename _Class, typename... _Args>
+class LuaGlueConstMethod : public LuaGlueMethodBase
+{
+	
+	public:
+		typedef _Class ClassType;
+		typedef _Ret ReturnType;
+		typedef _Ret (_Class::*MethodType)( _Args... ) const;
+		
+		LuaGlueConstMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
+		{ /*printf("new class %s method %s\n", typeid(_Class).name(), typeid(MethodType).name());*/ }
+		
+		~LuaGlueConstMethod() {}
+		
+		std::string name() { return name_; }
+		
+		bool glue(LuaGlue *luaGlue)
+		{
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
+			lua_setfield(luaGlue->state(), -2, name_.c_str());
+			return true;
+		}
+		
+	private:
+		LuaGlueClass<_Class> *glueClass;
+		std::string name_;
+		MethodType fn;
+		std::tuple<_Args...> args;
+		static const unsigned int Arg_Count_ = sizeof...(_Args);
+		
+	public:
+		int invoke(lua_State *state)
+		{
+			//printf("invoker: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+#ifdef LUAGLUE_TYPECHECK
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)luaL_checkudata(state, 1, glueClass->name().c_str());
+#else
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)lua_touserdata(state, 1);
+#endif
+			ReturnType ret = applyTuple(glueClass->luaGlue(), state, obj, fn, args);
+			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			
+			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
+			return 1;
+		}
+		
+	private:
+		static int lua_call_func(lua_State *state)
+		{
+			auto mimp = (LuaGlueConstMethod<_Ret, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
+			return mimp->invoke(state);
+		}
+};
+
+template<typename _Class, typename... _Args>
+class LuaGlueConstMethod<void, _Class, _Args...> : public LuaGlueMethodBase
+{
+	
+	public:
+		typedef _Class ClassType;
+		typedef void (_Class::*MethodType)(_Args...) const;
+		
+		LuaGlueConstMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
+		{ /*printf("new class %s method %s\n", typeid(_Class).name(), typeid(MethodType).name());*/ }
+
+		~LuaGlueConstMethod() {}
+		
+		std::string name() { return name_; }
+		
+		bool glue(LuaGlue *luaGlue)
+		{
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
+			lua_setfield(luaGlue->state(), -2, name_.c_str());
+			return true;
+		}
+		
+	private:
+		LuaGlueClass<_Class> *glueClass;
+		std::string name_;
+		MethodType fn;
+		std::tuple<_Args...> args;
+		static const unsigned int Arg_Count_ = sizeof...(_Args);
+	
+	public:
+		int invoke(lua_State *state)
+		{
+			//printf("invokev: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+#ifdef LUAGLUE_TYPECHECK
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)luaL_checkudata(state, 1, glueClass->name().c_str());
+#else
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)lua_touserdata(state, 1);
+#endif
+			//printf("obj: %p\n", obj);
+			applyTuple(glueClass->luaGlue(), state, obj, fn, args);
+			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			return 0;
+		}
+		
+	private:
+		static int lua_call_func(lua_State *state)
+		{
+			auto mimp = (LuaGlueConstMethod<void, _Class, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };
