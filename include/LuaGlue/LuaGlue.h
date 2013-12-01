@@ -17,7 +17,7 @@ class LuaGlue
 	public:
 		
 		LuaGlue(lua_State *state = 0) : state_(state) { }
-		~LuaGlue() { }
+		~LuaGlue() { if(state_) lua_close(state_); }
 		
 		LuaGlue &open(lua_State *state) { state_ = state; return *this; }
 		LuaGlue &open()

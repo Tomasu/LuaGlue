@@ -6,6 +6,7 @@
 #include <tuple>
 #include <utility>
 
+#include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 
 class LuaGlue;

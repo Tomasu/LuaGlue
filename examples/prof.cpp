@@ -17,6 +17,7 @@ static double tv_interval(const struct timeval &tv1, const struct timeval &tv2)
 class Base {
 	public:
 		Base() { }
+		virtual ~Base() { }
 		virtual int intret() { return 1; }
 		virtual Base *objptrret() { return this; }
 		Base objret() { return *this; }

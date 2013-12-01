@@ -26,7 +26,8 @@ LuaGlueClass<T> *getGlueClass(LuaGlue &g, lua_State *s, unsigned int idx)
 	return (LuaGlueClass<T> *)g.lookupClass(id);
 }
 
-
+// FIXME: static objects need fixed again.
+// new LuaGlueObject stuff needs a way to "own" a pointer, and know how to delete it.
 template<class T>
 struct stack {
 	static T get(LuaGlue &g, lua_State *s, unsigned int idx)
@@ -44,7 +45,8 @@ struct stack {
 #else
 			(void)g;
 #endif
-			return **(T **)lua_touserdata(s, idx);
+			LuaGlueObject<T> obj = *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+			return *obj;
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
@@ -59,13 +61,16 @@ struct stack {
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			lgc->pushInstance(s, new T(v));
+			lgc->pushInstance(s, new T(v), true);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
-		lua_pushlightuserdata(s, new T(v));
+		
+		// FIXME: leak!
+		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(v), 0, true);
+		lua_pushlightuserdata(s, obj);
 	}
 	
 	// for putting static types
@@ -81,7 +86,8 @@ struct stack {
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
-		lua_pushlightuserdata(s, v);
+		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(*v), 0, true);
+		lua_pushlightuserdata(s, obj);
 	}
 };
 
@@ -92,9 +98,7 @@ struct stack<std::shared_ptr<T>> {
 		if(lua_islightuserdata(s, idx))
 		{
 			printf("stack<shared_ptr<T>>::get: lud!\n");
-			std::shared_ptr<T> **ptr_ptr = (std::shared_ptr<T> **)lua_touserdata(s, idx);
-			std::shared_ptr<T> ptr = **ptr_ptr;
-			return ptr;
+			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
 		}
 		
 		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
@@ -105,9 +109,8 @@ struct stack<std::shared_ptr<T>> {
 #else
 			(void)g;
 #endif
-			std::shared_ptr<T> **ptr_ptr = (std::shared_ptr<T> **)lua_touserdata(s, idx);
-			std::shared_ptr<T> ptr = **ptr_ptr;
-			return ptr;
+			printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
+			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
 
 #ifdef LUAGLUE_TYPECHECK
 		}
@@ -123,14 +126,61 @@ struct stack<std::shared_ptr<T>> {
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
+			printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		printf("stack::put<T>: lud!\n");
+		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
+		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
+		lua_pushlightuserdata(s, obj);
+	}
+};
+
+template<class T>
+struct stack<LuaGlueObject<T>> {
+	static LuaGlueObject<T> get(LuaGlue &g, lua_State *s, unsigned int idx)
+	{
+		if(lua_islightuserdata(s, idx))
+		{
+			printf("stack<shared_ptr<T>>::get: lud!\n");
+			return *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+		}
+		
+		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
+#ifdef LUAGLUE_TYPECHECK
+		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
+		if(lgc)
+		{
+#else
+			(void)g;
+#endif
+			return *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+
+#ifdef LUAGLUE_TYPECHECK
+		}
+#endif
+
+		printf("stack::get<T>: failed to get a class instance for lua stack value at idx: %i\n", idx);
+		return LuaGlueObject<T>(); // TODO: is this a valid thing? I can't imagine this is a good thing.
+	}
+	
+	static void put(LuaGlue &g, lua_State *s, const LuaGlueObject<T> &v)
+	{
+		//printf("stack<T>::put(T)\n");
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g.lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
-		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
-		lua_pushlightuserdata(s, ptr);
+		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v, nullptr, true);
+		lua_pushlightuserdata(s, obj);
 	}
 };
 
@@ -305,6 +355,80 @@ R applyTuple(LuaGlue &g, lua_State *s, T* pObj,
 {
 	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t) );
 }
+
+
+
+
+
+//-----------------------------------------------------------------------------
+
+/**
+ * LuaGlueObject Function Tuple Argument Unpacking
+ *
+ * This recursive template unpacks the tuple parameters into
+ * variadic template arguments until we reach the count of 0 where the function
+ * is called with the correct parameters
+ *
+ * @tparam N Number of tuple arguments to unroll
+ *
+ * @ingroup g_util_tuple
+ */
+template < uint32_t N >
+struct apply_glueobj_func
+{
+  template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
+  static R applyTuple(LuaGlue &g, lua_State *s, LuaGlueObject<T> pObj,
+                          R (T::*f)( ArgsF... ),
+                          const std::tuple<ArgsT...> &t,
+                          Args... args )
+	{
+		const static unsigned int argCount = sizeof...(ArgsT);
+		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
+		typedef typename std::remove_const<ltype_const>::type ltype;
+		return apply_glueobj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+/**
+ * LuaGlueObject Function Tuple Argument Unpacking End Point
+ *
+ * This recursive template unpacks the tuple parameters into
+ * variadic template arguments until we reach the count of 0 where the function
+ * is called with the correct parameters
+ *
+ * @ingroup g_util_tuple
+ */
+template <>
+struct apply_glueobj_func<0>
+{
+  template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
+  static R applyTuple(LuaGlue &, lua_State *, LuaGlueObject<T> pObj,
+                          R (T::*f)( ArgsF... ),
+                          const std::tuple<ArgsT...> &/* t */,
+                          Args... args )
+	{
+		return (pObj.ptr()->*f)( args... );
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+/**
+ * LuaGlueObject Function Call Forwarding Using Tuple Pack Parameters
+ */
+// Actual apply function
+template < typename T, typename R, typename... ArgsF, typename... ArgsT >
+R applyTuple(LuaGlue &g, lua_State *s, LuaGlueObject<T> pObj,
+                 R (T::*f)( ArgsF... ),
+                 const std::tuple<ArgsT...> &t )
+{
+	return apply_glueobj_func<sizeof...(ArgsT)>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t) );
+}
+
+
+
 
 //-----------------------------------------------------------------------------
 

@@ -31,6 +31,10 @@ int main(int, char **)
 		const char *err = luaL_checkstring(state.state(), -1);
 		printf("err: %s\n", err);
 	}
-		
+	
+	printf("done!\n");
+	
+	lua_gc(state.state(), LUA_GCCOLLECT, 0);
+
 	return 0;
 }

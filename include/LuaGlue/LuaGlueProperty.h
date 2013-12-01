@@ -4,6 +4,7 @@
 #include <lua.hpp>
 #include <string>
 
+#include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGluePropertyBase.h"
 
@@ -82,21 +83,21 @@ class LuaGlueProperty : public LuaGluePropertyBase
 			//printf("accessImpl: class\n");
 			int nargs = lua_gettop(state);
 #ifdef LUAGLUE_TYPECHECK
-			_Class *obj = *(_Class **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			LuaGlueObject<_Class> obj = *(LuaGlueObject<_Class> *)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
-			_Class *obj = *(_Class **)lua_touserdata(state, 1);
+			LuaGlueObject<_Class> obj = *(LuaGlueObject<_Class> *)lua_touserdata(state, 1);
 #endif
 			
 			if(nargs == 2)
 			{
 				// get
-				getReturnVal(state, obj);
+				getReturnVal(state, obj.ptr());
 				return 1;
 			}
 			else if(nargs == 3)
 			{
 				// set
-				setProp(state, obj);
+				setProp(state, obj.ptr());
 				return 0;
 			}
 			
@@ -108,9 +109,9 @@ class LuaGlueProperty : public LuaGluePropertyBase
 			int nargs = lua_gettop(state);
 			
 #ifdef LUAGLUE_TYPECHECK
-			_Class *obj = *(_Class **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			LuaGlueObject<_Class> obj = *(LuaGlueObject<_Class> *)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
-			_Class *obj = *(_Class **)lua_touserdata(state, 1);
+			LuaGlueObject<_Class> obj = *(LuaGlueObject<_Class> *)lua_touserdata(state, 1);
 #endif
 			
 			//printf("accessImpl: %p pod nargs:%i '%s'\n", obj, nargs, lua_tostring(state, -1));
@@ -119,7 +120,7 @@ class LuaGlueProperty : public LuaGluePropertyBase
 			{
 				// get
 				//printf("type: %s\n", typeid(decltype((obj->*prop_))).name());
-				_Type val = (obj->*prop_);
+				_Type val = (obj.ptr()->*prop_);
 				stack<_Type>::put(glueClass->luaGlue(), state, val);
 				return 1;
 			}
@@ -127,7 +128,7 @@ class LuaGlueProperty : public LuaGluePropertyBase
 			{
 				// set
 				_Type val = stack<_Type>::get(glueClass->luaGlue(), state, 3);
-				(obj->*prop_) = val;
+				(obj.ptr()->*prop_) = val;
 				//printf("set prop to %d\n", (obj->*prop_));
 				return 0;
 			}

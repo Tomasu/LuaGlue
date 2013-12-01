@@ -6,6 +6,7 @@
 #include <tuple>
 #include <utility>
 
+#include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 
 class LuaGlue;
@@ -43,16 +44,16 @@ class LuaGlueNewIndexMethod : public LuaGlueMethodBase
 		int invoke(lua_State *state)
 		{
 #ifdef LUAGLUE_TYPECHECK
-			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
-			ClassType *obj = *(ClassType **)lua_touserdata(state, 1);
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)lua_touserdata(state, 1);
 #endif
 			if(lua_istable(state, 1))
 				printf("got table as arg1\n");
 			
 			lua_remove(state, 1);
 			
-			applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
+			applyTuple(glueClass->luaGlue(), state, obj, fn, args);
 			lua_pop(state, 2);
 			
 			return 0;

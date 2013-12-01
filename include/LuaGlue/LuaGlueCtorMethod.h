@@ -1,11 +1,13 @@
 #ifndef LUAGLUE_CTOR_METHOD_H_GUARD
 #define LUAGLUE_CTOR_METHOD_H_GUARD
 
+#include <new>
 #include <lua.hpp>
 #include <string>
 #include <tuple>
 #include <utility>
 
+#include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 
 class LuaGlue;
@@ -42,11 +44,11 @@ class LuaGlueCtorMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			
 			_Class *obj = applyTuple<_Class>(glueClass->luaGlue(), state, args);
 			lua_pop(state, Arg_Count_);
-			_Class **udata = (_Class **)lua_newuserdata(state, sizeof(_Class *));
-			*udata = obj;
+			
+			LuaGlueObject<ClassType> *udata = (LuaGlueObject<ClassType> *)lua_newuserdata(state, sizeof(LuaGlueObject<ClassType>));
+			new (udata) LuaGlueObject<ClassType>(obj, glueClass, true); // TODO: mark this as owned by LuaGlue? maybe have an option to do so?
 			
 			//lua_getmetatable(state, 1);
 			luaL_getmetatable(state, glueClass->name().c_str());

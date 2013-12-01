@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "LuaGlue/LuaGlueMethodBase.h"
+#include "LuaGlue/LuaGlueObject.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 
 class LuaGlue;
@@ -50,14 +51,14 @@ class LuaGlueMethod : public LuaGlueMethodBase
 		{
 			//printf("invoker: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
 #ifdef LUAGLUE_TYPECHECK
-			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
-			ClassType *obj = *(ClassType **)lua_touserdata(state, 1);
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)lua_touserdata(state, 1);
 #endif
-			ReturnType ret = applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
+			ReturnType ret = applyTuple(glueClass->luaGlue(), state, obj, fn, args);
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			
-			stack<_Ret>::put(glueClass->luaGlue(), state, ret);
+			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
 			return 1;
 		}
 		
@@ -104,12 +105,12 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		{
 			//printf("invokev: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
 #ifdef LUAGLUE_TYPECHECK
-			ClassType *obj = *(ClassType **)luaL_checkudata(state, 1, glueClass->name().c_str());
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)luaL_checkudata(state, 1, glueClass->name().c_str());
 #else
-			ClassType *obj = *(ClassType **)lua_touserdata(state, 1);
+			LuaGlueObject<ClassType> obj = *(LuaGlueObject<ClassType> *)lua_touserdata(state, 1);
 #endif
 			//printf("obj: %p\n", obj);
-			applyTuple(glueClass->luaGlue(), state, (_Class *)obj, fn, args);
+			applyTuple(glueClass->luaGlue(), state, obj, fn, args);
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			return 0;
 		}
