@@ -46,11 +46,10 @@ int main(int, char **)
 			constants( { { "ONE", 1 }, { "TWO", 2.0 }, { "THREE", "three" } } ).
 		end().open().glue();
 	
-	if(luaL_dofile(state.state(), "foo.lua"))
+	if(!state.doFile("foo.lua"))
 	{
 		printf("failed to dofile: foo.lua\n");
-		const char *err = luaL_checkstring(state.state(), -1);
-		printf("err: %s\n", err);
+		printf("err: %s\n", state.lastError().c_str());
 	}
 		
 	return 0;
