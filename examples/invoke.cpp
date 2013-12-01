@@ -50,7 +50,13 @@ int main(int, char **)
 	}
 
 	printf("test_obj.abc: %i, ret_obj.abc: %i\n", test_obj->abc, ret_obj->abc);
-	//state.invokeVoidMethod("invoke_lua", test_obj);
+	
+	state.invokeVoidFunction("from_c");
+	int ret = state.invokeFunction<int>("from_c_ret");
+	printf("from_c_ret ret: %i\n", ret);
+	
+	int ret2 = state.invokeFunction<int>("from_c_args", 1, 2.0, "three");
+	printf("from_c_args ret: %i\n", ret2);
 	
 	return 0;
 }

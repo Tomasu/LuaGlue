@@ -47,21 +47,27 @@ class LuaGlue : public LuaGlueBase
 			return *this;
 		}
 		
-		/*template<typename... _Args>
-		LuaGlue &func(const std::string &name, void (*fn)(_Args...))
+		template<typename _Ret, typename... _Args>
+		_Ret invokeFunction(const std::string &name, _Args... args)
 		{
-			auto new_func = new LuaGlueFunction<void, _Args...>(name, fn);
-			functions.addSymbol(name.c_str(), new_func);
-			return *this;
-		}*/
+			const unsigned int Arg_Count_ = sizeof...(_Args);
+			
+			lua_getglobal(state_, name.c_str());
+			applyTuple(this, state_, args...);
+			lua_call(state_, Arg_Count_, 1);
+			return stack<_Ret>::get(this, state_, -1);
+		}
 		
-		/*template<typename _Ret>
-		LuaGlue &func(const std::string &name, _Ret (*fn)())
+		template<typename... _Args>
+		void invokeVoidFunction(const std::string &name, _Args... args)
 		{
-			auto new_func = new LuaGlueNoArgFunction<_Ret>(name, fn);
-			functions.addSymbol(name.c_str(), new_func);
-			return *this;
-		}*/
+			const unsigned int Arg_Count_ = sizeof...(_Args);
+			
+			lua_getglobal(state_, name.c_str());
+			applyTuple(this, state_, args...);
+			lua_call(state_, Arg_Count_, 0);
+			lua_pop(state_, 1);
+		}
 		
 		lua_State *state() { return state_; }
 		
