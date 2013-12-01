@@ -48,7 +48,7 @@ class LuaGlueStaticMethod : public LuaGlueMethodBase
 		{
 			ReturnType ret = applyTuple(glueClass->luaGlue(), state, fn, args);
 			lua_pop(state, Arg_Count_);
-			returnValue(glueClass->luaGlue(), state, ret);
+			stack<_Ret>::put(glueClass->luaGlue(), state, ret);
 			return 1;
 		}
 		

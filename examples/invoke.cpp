@@ -46,5 +46,7 @@ int main(int, char **)
 		printf("ret_obj != test_obj ! :o\n");
 	}
 	
+	//state.invokeVoidMethod("invoke_lua", test_obj);
+	
 	return 0;
 }

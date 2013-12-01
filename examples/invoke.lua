@@ -1,7 +1,10 @@
 
 function Invoke:invoke_lua (a, b, c)
 	io.write(string.format("lua: a: %d, b: %f, c: %s\n", a, b, c))
-	self:fromlua();
+end
+
+function invoke_lua(obj)
+	obj:fromlua();
 end
 
 invoke = Invoke.new();
