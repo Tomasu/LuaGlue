@@ -17,6 +17,7 @@ static double tv_interval(const struct timeval &tv1, const struct timeval &tv2)
 class Base {
 	public:
 		Base() { }
+		virtual ~Base() { }
 		virtual int intret() { return 1; }
 		virtual Base *objptrret() { return this; }
 		Base objret() { return *this; }
@@ -181,11 +182,10 @@ int main(int argc, char **argv)
 	lua_pushinteger(state.state(), iterations);
 	lua_setglobal(state.state(), "ITERATIONS");
 	
-	if(luaL_dofile(state.state(), "prof.lua"))
+	if(!state.doFile("prof.lua"))
 	{
 		log("failed to dofile: prof.lua\n");
-		const char *err = luaL_checkstring(state.state(), -1);
-		log("err: %s\n", err);
+		printf("err: %s\n", state.lastError().c_str());
 	}
 	
 	struct timeval tv_end;

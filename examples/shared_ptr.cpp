@@ -4,11 +4,11 @@ class Shared {
 	public:
 		typedef std::shared_ptr<Shared> Ptr;
 		
-		Shared() { printf("ctor!\n"); }
-		~Shared() { printf("dtor!\n"); }
+		Shared() { printf("in ctor!\n"); }
+		~Shared() { printf("in dtor!\n"); }
 		
-		Ptr getRef() { printf("getRef!\n"); return Ptr(this); }
-		void putRef(Ptr) { printf("putRef!\n"); }
+		Ptr getRef() { printf("in getRef!\n"); return Ptr(new Shared()); }
+		void putRef(Ptr) { printf("in putRef!\n"); }
 	
 };
 
@@ -25,12 +25,15 @@ int main(int, char **)
 		open().glue();
 	
 	printf("running lua script!\n");
-	if(luaL_dofile(state.state(), "shared_ptr.lua"))
+	if(!state.doFile("shared_ptr.lua"))
 	{
 		printf("failed to dofile: shared_ptr.lua\n");
-		const char *err = luaL_checkstring(state.state(), -1);
-		printf("err: %s\n", err);
+		printf("err: %s\n", state.lastError().c_str());
 	}
-		
+	
+	printf("done!\n");
+	
+	lua_gc(state.state(), LUA_GCCOLLECT, 0);
+
 	return 0;
 }

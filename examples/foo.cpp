@@ -1,5 +1,10 @@
 #include <LuaGlue/LuaGlue.h>
 
+void func()
+{
+	printf("in func!\n");
+}
+
 class Array
 {
 	public:
@@ -27,7 +32,7 @@ class Foo
 {
 	public:
 		Foo(int i) { printf("ctor! %i\n", i); }
-		~Foo();
+		~Foo() { };
 		
 		int abc(int a, int b, int c) { printf("%i:%i:%i\n", a,b,c); return 143; }
 		static void aaa() { printf("aaa!\n"); }
@@ -37,7 +42,14 @@ class Foo
 		
 		void lua_gc() { printf("__gc!\n"); }
 		
+		void constmethod() const { printf("constmethod!\n"); }
+		int constretmethod() const { return 123; }
+		
+		int testProp() { return testProp_; }
+		void setTestProp(int v) { testProp_ = v; }
 	private:
+		
+		int testProp_;
 };
 
 struct STestA
@@ -64,6 +76,9 @@ int main(int, char **)
 			method("aaa", &Foo::aaa).
 			method("ptrTest", &Foo::ptrTest).
 			method("ptrArgTest", &Foo::ptrArgTest).
+			method("constmethod", &Foo::constmethod).
+			method("constretmethod", &Foo::constretmethod).
+			property("testProp", &Foo::testProp, &Foo::setTestProp).
 			constants( { { "ONE", 1 }, { "TWO", 2.12 }, { "THREE", "three" } } ).
 		end();
 	state.
@@ -83,13 +98,13 @@ int main(int, char **)
 			prop("a", &STestB::a).
 			prop("b", &STestB::b).
 		end().
+		func("func", &func).
 		open().glue();
 		
-	if(luaL_dofile(state.state(), "foo.lua"))
+	if(!state.doFile("foo.lua"))
 	{
 		printf("failed to dofile: foo.lua\n");
-		const char *err = luaL_checkstring(state.state(), -1);
-		printf("err: %s\n", err);
+		printf("err: %s\n", state.lastError().c_str());
 	}
 		
 	return 0;

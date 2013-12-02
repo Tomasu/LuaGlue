@@ -2,6 +2,14 @@ Foo.aaa();
 local test = Foo.new(333);
 test:abc(1,2,3);
 --test:aaa();
+test:constmethod();
+ret = test:constretmethod();
+print("constretmethod: "..ret);
+
+test.testProp = 123;
+print("testProp: "..test.testProp);
+
+func()
 
 print("ONE: "..Foo.ONE);
 print("TWO: "..Foo.TWO);

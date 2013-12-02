@@ -60,6 +60,11 @@ class LuaGlueSymTab
 		
 	public:
 		LuaGlueSymTab() { }
+		~LuaGlueSymTab()
+		{
+			for(auto &i: items)
+				delete i.ptr;
+		}
 		
 		template<class C>
 		void addSymbol(const char *name, C *ptr)
