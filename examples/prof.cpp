@@ -27,7 +27,7 @@ class Base {
 		virtual void argobj(Base) { }
 };
 
-class A : public Base {
+class A {
 	public:
 		int intret() { return 1; }
 		A *objptrret() { return this; }
@@ -38,7 +38,7 @@ class A : public Base {
 		void argobj(A) { }
 };
 
-class B : public Base {
+class B {
 	public:
 		int intret() { return 1; }
 		B *objptrret() { return this; }
@@ -49,7 +49,7 @@ class B : public Base {
 		void argobj(B) { }
 };
 
-class C : public Base {
+class C {
 	public:
 		int intret() { return 1; }
 		C *objptrret() { return this; }
@@ -60,7 +60,7 @@ class C : public Base {
 		void argobj(C) { }
 };
 
-class D : public Base {
+class D {
 	public:
 		int intret() { return 1; }
 		D *objptrret() { return this; }
