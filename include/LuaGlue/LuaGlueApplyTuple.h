@@ -202,6 +202,19 @@ struct stack<int> {
 };
 
 template<>
+struct stack<unsigned int> {
+	static unsigned int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, unsigned int v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
 struct stack<float> {
 	static float get(LuaGlueBase *, lua_State *s, int idx)
 	{
@@ -224,6 +237,19 @@ struct stack<double> {
 	static void put(LuaGlueBase *, lua_State *s, double v)
 	{
 		lua_pushnumber(s, v);
+	}
+};
+
+template<>
+struct stack<bool> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return lua_toboolean(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, bool v)
+	{
+		lua_pushboolean(s, v);
 	}
 };
 
