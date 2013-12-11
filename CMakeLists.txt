@@ -14,7 +14,7 @@ if(LUAGLUE_TYPECHECK STREQUAL ON)
 	add_definitions(-DLUAGLUE_TYPECHECK)
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
+if(CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
 	add_definitions(-DDEBUG -O0 -ggdb3)
 elseif(CMAKE_BUILD_TYPE STREQUAL Prof)
 	add_definitions(-DEBBUG -O2 -ggdb3 -march=native)

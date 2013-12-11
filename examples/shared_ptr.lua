@@ -6,6 +6,12 @@ function printf (fmt, ...)
 	end
 end
 
+-- shared_ptr.lua
+function test_ptr(ptr)
+    print("test_ptr")
+    print(ptr)
+end
+
 --for i=0,10000 do
 
 shared = Shared.new();

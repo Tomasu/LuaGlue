@@ -31,9 +31,16 @@ int main(int, char **)
 		printf("err: %s\n", state.lastError().c_str());
 	}
 	
+	Shared *shared = new Shared;
+	std::shared_ptr<Shared> ptr(shared);
+
+	state.invokeVoidFunction("test_ptr", ptr);
+	state.invokeVoidFunction("test_ptr", ptr);
+	state.invokeVoidFunction("test_ptr", ptr);
+	
 	printf("done!\n");
 	
-	lua_gc(state.state(), LUA_GCCOLLECT, 0);
+	//lua_gc(state.state(), LUA_GCCOLLECT, 0);
 
 	return 0;
 }
