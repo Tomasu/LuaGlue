@@ -271,6 +271,19 @@ struct stack<const char *> {
 	}
 };
 
+template<>
+struct stack<std::string> {
+	static std::string get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkstring(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, std::string v)
+	{
+		lua_pushstring(s, v.c_str());
+	}
+};
+
 template<class T>
 struct stack<T *> {
 	static T *get(LuaGlueBase *g, lua_State *s, int idx)
