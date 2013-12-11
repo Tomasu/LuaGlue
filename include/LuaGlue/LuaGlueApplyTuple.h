@@ -9,7 +9,7 @@
 class LuaGlueBase;
 
 template<class T>
-LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, unsigned int idx)
+LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
 {
 	int ret = luaL_getmetafield(s, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
@@ -30,7 +30,7 @@ LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, unsigned int idx)
 // new LuaGlueObject stuff needs a way to "own" a pointer, and know how to delete it.
 template<class T>
 struct stack {
-	static T get(LuaGlueBase *g, lua_State *s, unsigned int idx)
+	static T get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		LG_Debug("get");
 		if(lua_islightuserdata(s, idx))
@@ -94,7 +94,7 @@ struct stack {
 
 template<class T>
 struct stack<std::shared_ptr<T>> {
-	static std::shared_ptr<T> get(LuaGlueBase *g, lua_State *s, unsigned int idx)
+	static std::shared_ptr<T> get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -143,7 +143,7 @@ struct stack<std::shared_ptr<T>> {
 
 template<class T>
 struct stack<LuaGlueObject<T>> {
-	static T get(LuaGlueBase *g, lua_State *s, unsigned int idx)
+	static T get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		LG_Debug("get");
 		if(lua_islightuserdata(s, idx))
@@ -190,7 +190,7 @@ struct stack<LuaGlueObject<T>> {
 
 template<>
 struct stack<int> {
-	static int get(LuaGlueBase *, lua_State *s, unsigned int idx)
+	static int get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checkint(s, idx);
 	}
@@ -202,8 +202,21 @@ struct stack<int> {
 };
 
 template<>
+struct stack<unsigned int> {
+	static unsigned int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, unsigned int v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
 struct stack<float> {
-	static float get(LuaGlueBase *, lua_State *s, unsigned int idx)
+	static float get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checknumber(s, idx);
 	}
@@ -216,7 +229,7 @@ struct stack<float> {
 
 template<>
 struct stack<double> {
-	static double get(LuaGlueBase *, lua_State *s, unsigned int idx)
+	static double get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checknumber(s, idx);
 	}
@@ -228,10 +241,23 @@ struct stack<double> {
 };
 
 template<>
-struct stack<const char *> {
-	static const char *get(LuaGlueBase *, lua_State *s, unsigned int idx)
+struct stack<bool> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx)
 	{
-		return luaL_checkstring(s, (int)idx);
+		return lua_toboolean(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, bool v)
+	{
+		lua_pushboolean(s, v);
+	}
+};
+
+template<>
+struct stack<const char *> {
+	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkstring(s, idx);
 	}
 	
 	static void put(LuaGlueBase *, lua_State *s, const char *v)
@@ -242,7 +268,7 @@ struct stack<const char *> {
 
 template<class T>
 struct stack<T *> {
-	static T *get(LuaGlueBase *g, lua_State *s, unsigned int idx)
+	static T *get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		LG_Debug("get");
 		//printf("stack<T*>::get: idx:%i\n", idx);
@@ -307,7 +333,7 @@ struct stack<T *> {
  *
  * @ingroup g_util_tuple
  */
-template < uint32_t N >
+template < int N >
 struct apply_obj_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
@@ -316,7 +342,7 @@ struct apply_obj_func
                           const std::tuple<ArgsT...> &t,
                           Args... args )
 	{
-		const static unsigned int argCount = sizeof...(ArgsT);
+		const static int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
 		return apply_obj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
@@ -375,7 +401,7 @@ R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
  *
  * @ingroup g_util_tuple
  */
-template < uint32_t N >
+template < int N >
 struct apply_obj_constfunc
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
@@ -384,7 +410,7 @@ struct apply_obj_constfunc
                           const std::tuple<ArgsT...> &t,
                           Args... args )
 	{
-		const static unsigned int argCount = sizeof...(ArgsT);
+		const static int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
 		return apply_obj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
@@ -444,7 +470,7 @@ R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
  *
  * @ingroup g_util_tuple
  */
-template < uint32_t N >
+template < int N >
 struct apply_glueobj_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
@@ -453,7 +479,7 @@ struct apply_glueobj_func
                           const std::tuple<ArgsT...> &t,
                           Args... args )
 	{
-		const static unsigned int argCount = sizeof...(ArgsT);
+		const static int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
 		return apply_glueobj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
@@ -512,7 +538,7 @@ R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> pObj,
  *
  * @ingroup g_util_tuple
  */
-template < uint32_t N >
+template < int N >
 struct apply_glueobj_constfunc
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
@@ -521,7 +547,7 @@ struct apply_glueobj_constfunc
                           const std::tuple<ArgsT...> &t,
                           Args... args )
 	{
-		const static unsigned int argCount = sizeof...(ArgsT);
+		const static int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
 		return apply_glueobj_constfunc<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
@@ -581,7 +607,7 @@ R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> pObj,
  *
  * @ingroup g_util_tuple
  */
-template < uint32_t N >
+template < int N >
 struct apply_func
 {
 	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
@@ -589,7 +615,7 @@ struct apply_func
 									const std::tuple<ArgsT...>& t,
 									Args... args )
 	{
-		const static unsigned int argCount = sizeof...(ArgsT);
+		const static int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
 		return apply_func<N-1>::applyTuple( g, s, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
@@ -647,14 +673,14 @@ R applyTuple( LuaGlueBase *g, lua_State *s, R (*f)(ArgsF...),
  *
  * @ingroup g_util_tuple
  */
-template <class C, uint32_t N >
+template <class C, int N >
 struct apply_ctor_func
 {
 	template < typename... ArgsT, typename... Args >
 	static C *applyTuple(	LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...>& t,
 								Args... args )
 	{
-		const static unsigned int argCount = sizeof...(ArgsT);
+		const static int argCount = sizeof...(ArgsT);
 		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		typedef typename std::remove_const<ltype_const>::type ltype;
 		return apply_ctor_func<C, N-1>::applyTuple( g, s, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
@@ -709,7 +735,7 @@ C *applyTuple( LuaGlueBase *g, lua_State *s, const std::tuple<ArgsT...> & t )
  *
  * @ingroup g_util_tuple
  */
-template < uint32_t N >
+template < int N >
 struct apply_lua_func
 {
 	template < typename... ArgsT, typename... Args >

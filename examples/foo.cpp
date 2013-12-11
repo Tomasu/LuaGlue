@@ -1,6 +1,6 @@
 #include <LuaGlue/LuaGlue.h>
 
-void func()
+static void func()
 {
 	printf("in func!\n");
 }
