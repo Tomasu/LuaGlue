@@ -4,12 +4,15 @@ class Shared {
 	public:
 		typedef std::shared_ptr<Shared> Ptr;
 		
-		Shared() { printf("in ctor!\n"); }
+		Shared(int v = 0) : value(v) { printf("in ctor!\n"); }
 		~Shared() { printf("in dtor!\n"); }
 		
 		Ptr getRef() { printf("in getRef!\n"); return Ptr(new Shared()); }
 		void putRef(Ptr) { printf("in putRef!\n"); }
 	
+		int getValue() { printf("in getValue()\n"); return value; }
+	private:
+		int value;
 };
 
 int main(int, char **)
@@ -21,6 +24,7 @@ int main(int, char **)
 			ctor("new").
 			method("getRef", &Shared::getRef).
 			method("putRef", &Shared::putRef).
+			method("getValue", &Shared::getValue).
 			end().
 		open().glue();
 	
@@ -31,9 +35,10 @@ int main(int, char **)
 		printf("err: %s\n", state.lastError().c_str());
 	}
 	
-	Shared *shared = new Shared;
+	Shared *shared = new Shared(123);
 	std::shared_ptr<Shared> ptr(shared);
 
+	printf("shared == %p\n", shared);
 	state.invokeVoidFunction("test_ptr", ptr);
 	state.invokeVoidFunction("test_ptr", ptr);
 	state.invokeVoidFunction("test_ptr", ptr);
