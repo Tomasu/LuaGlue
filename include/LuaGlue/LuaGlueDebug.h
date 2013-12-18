@@ -1,7 +1,7 @@
 #ifndef LUAGLUE_DEBUG_H_GUARD
 #define LUAGLUE_DEBUG_H_GUARD
 
-#ifdef LUA_DEBUG
+#ifdef LG_DEBUG
 
 #include <cstring>
 static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, const char *t, const char *format, ...)
@@ -45,6 +45,6 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 #define LG_Warn(a, b...) ((void)a)
 #define LG_Error(a, b...) ((void)a)
 
-#endif /* !defined LUA_DEBUG */
+#endif /* !defined LG_DEBUG */
 
 #endif /* LUAGLUE_DEBUG_H_GUARD */
