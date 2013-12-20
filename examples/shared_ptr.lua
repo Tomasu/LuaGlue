@@ -6,12 +6,18 @@ function printf (fmt, ...)
 	end
 end
 
+-- shared_ptr.lua
+function test_ptr(ptr)
+	print("test_ptr")
+	print(ptr:getValue())
+end
+
 --for i=0,10000 do
 
-shared = Shared.new();
-ref = shared:getRef();
-shared:putRef(ref);
-ref:putRef(ref);
-shared:getRef();
-ref = 0;
+--shared = Shared.new();
+--ref = shared:getRef();
+--shared:putRef(ref);
+--ref:putRef(ref);
+--shared:getRef();
+--ref = 0;
 --end

@@ -66,7 +66,6 @@ class LuaGlue : public LuaGlueBase
 			lua_getglobal(state_, name.c_str());
 			applyTuple(this, state_, args...);
 			lua_call(state_, Arg_Count_, 0);
-			lua_pop(state_, 1);
 		}
 		
 		lua_State *state() { return state_; }
