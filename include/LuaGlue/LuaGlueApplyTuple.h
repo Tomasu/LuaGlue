@@ -14,8 +14,6 @@ LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
 	int ret = luaL_getmetafield(s, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
 	{
-		LG_Error("typeid:%s", typeid(LuaGlueClass<T>).name());
-		LG_Error("failed to get metafield for obj at idx %i", idx);
 		return 0;
 	}
 	
@@ -34,7 +32,6 @@ struct stack {
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<static %s>: lud", typeid(T).name());
 			return *(T*)lua_touserdata(s, idx);
 		}
 		
@@ -45,14 +42,12 @@ struct stack {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<static %s>: mapped", typeid(T).name());
 			LuaGlueObject<T> obj = *(LuaGlueObject<T> *)lua_touserdata(s, idx);
 			return *obj;
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
-		LG_Debug("stack::get<static %s>: failed to get a class instance for lua stack value at idx: %i", typeid(T).name(), idx);
 		return T();
 	}
 	
@@ -61,7 +56,6 @@ struct stack {
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			LG_Debug("stack::put<static1 %s>: mapped", typeid(T).name());
 			lgc->pushInstance(s, new T(v), true);
 			return;
 		}
@@ -69,7 +63,6 @@ struct stack {
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
 		
-		LG_Debug("stack::put<static1 %s>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(v), 0, true);
 		lua_pushlightuserdata(s, obj);
 	}
@@ -81,14 +74,12 @@ struct stack {
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			LG_Debug("stack::put<static2 %s>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
-		LG_Debug("stack::put<static2 %s>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(*v), 0, true);
 		lua_pushlightuserdata(s, obj);
 	}
@@ -101,7 +92,6 @@ struct stack<std::shared_ptr<T>> {
 		if(lua_islightuserdata(s, idx))
 		{
 			//printf("stack<shared_ptr<T>>::get: lud!\n");
-			LG_Debug("stack::get<shared_ptr<%s>>: lud", typeid(T).name());
 			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
 		}
 		
@@ -113,14 +103,12 @@ struct stack<std::shared_ptr<T>> {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<shared_ptr<%s>>: mapped", typeid(T).name());
 			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
 
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
-		LG_Debug("stack::get<%s>: unk", typeid(T).name());
 		//printf("stack::get<shared_ptr<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
 		return 0; // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
@@ -133,14 +121,12 @@ struct stack<std::shared_ptr<T>> {
 		if(lgc)
 		{
 			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
-			LG_Debug("stack::put<shared_ptr<%s>>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T>: lud!\n");
-		LG_Debug("stack::put<shared_ptr<%s>>: lud", typeid(T).name());
 		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
 		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
 		lua_pushlightuserdata(s, obj);
@@ -153,7 +139,6 @@ struct stack<LuaGlueObject<T>> {
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<LuaGlueObject<%s>>: lud", typeid(T).name());
 			return *(LuaGlueObject<T> *)lua_touserdata(s, idx);
 		}
 		
@@ -165,14 +150,12 @@ struct stack<LuaGlueObject<T>> {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<LuaGlueObject<%s>>: mapped", typeid(T).name());
 			return **(LuaGlueObject<T> *)lua_touserdata(s, idx);
 
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
-		LG_Debug("stack::get<LuaGlueObject<%s>>: unk", typeid(T).name());
 		return T(); // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
@@ -181,13 +164,11 @@ struct stack<LuaGlueObject<T>> {
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			LG_Debug("stack::put<LuaGlueObject<%s>>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
-		LG_Debug("stack::put<LuaGlueObject<%s>>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v);
 		lua_pushlightuserdata(s, obj);
 	}
@@ -290,7 +271,6 @@ struct stack<T *> {
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<%s *>: lud", typeid(T).name());
 			return (T*)lua_touserdata(s, idx);
 		}
 		
@@ -302,14 +282,12 @@ struct stack<T *> {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<%s *>: mapped", typeid(T).name());
 			LuaGlueObject<T> obj = *(LuaGlueObject<T> *)lua_touserdata(s, idx);
 			return obj.ptr();
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 		
-		LG_Debug("stack::get<%s *>: unk", typeid(T).name());
 		return 0;
 	}
 	
@@ -322,14 +300,12 @@ struct stack<T *> {
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
-			LG_Debug("stack::put<%s *>: mapped", typeid(T).name());
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T*>: lud!\n");
-		LG_Debug("stack::put<%s *>: lud", typeid(T).name());
 		lua_pushlightuserdata(s, v);
 	}
 };
@@ -387,7 +363,6 @@ struct apply_obj_func<0>
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
 	{
-		LG_Debug("applyTuple callon: %s", typeid(T).name()); 
 		return (pObj->*f)( args... );
 	}
 };
@@ -525,7 +500,6 @@ struct apply_glueobj_func<0>
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
 	{
-		LG_Debug("glueobj call!");
 		return (pObj.ptr()->*f)( args... );
 	}
 };
@@ -592,7 +566,6 @@ struct apply_glueobj_sptr_func<0>
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
 	{
-		LG_Debug("glueobj<shared_ptr> call!");
 		return (pObj.ptr()->*f)( args... );
 	}
 };
@@ -661,7 +634,6 @@ struct apply_glueobj_sptr_constfunc<0>
                           const std::tuple<ArgsT...> &/* t */,
                           Args... args )
 	{
-		LG_Debug("glueobj<shared_ptr> call!");
 		return (pObj.ptr()->*f)( args... );
 	}
 };

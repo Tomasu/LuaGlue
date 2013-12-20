@@ -47,14 +47,12 @@ class LuaGlueMethod : public LuaGlueMethodBase
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
 		MethodType fn;
-		tuple<_Args...> args;
+		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 		
 	public:
 		int invoke(lua_State *state)
 		{
-			LG_Debug("invoke: %s::%s", typeid(*glueClass).name(), name_.c_str());
-
 			ReturnType ret;
 			
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
@@ -113,7 +111,7 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
 		MethodType fn;
-		tuple<_Args...> args;
+		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 	
 	public:
@@ -241,7 +239,7 @@ class LuaGlueConstMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
 		MethodType fn;
-		tuple<_Args...> args;
+		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 	
 	public:
@@ -289,7 +287,7 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 		typedef _Ret (_Class::*MethodType)( _Args... );
 		
 		LuaGlueMethod(LuaGlueClass<ClassType> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
-		{ LG_Debug("new shared class %s method %s", typeid(_Class).name(), typeid(MethodType).name()); }
+		{}
 		
 		~LuaGlueMethod() {}
 		
@@ -313,7 +311,6 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 	public:
 		int invoke(lua_State *state)
 		{
-			LG_Debug("invoke shared class method");
 			//printf("invoker: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
 
 			ReturnType ret;
@@ -356,7 +353,7 @@ class LuaGlueMethod<void, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 		typedef void (_Class::*MethodType)(_Args...);
 		
 		LuaGlueMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<decltype(fn)>(fn))
-		{ LG_Debug("new void shared class %s method %s", typeid(_Class).name(), typeid(MethodType).name()); }
+		{}
 		
 		~LuaGlueMethod() {}
 		
@@ -374,7 +371,7 @@ class LuaGlueMethod<void, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
 		MethodType fn;
-		tuple<_Args...> args;
+		std::tuple<_Args...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 	
 	public:

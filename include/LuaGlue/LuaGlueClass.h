@@ -147,7 +147,6 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> obj)
 		{
-			LG_Debug("pushInstance");
 			std::shared_ptr<_Class> *ptr_ptr = new std::shared_ptr<_Class>(obj);
 			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
 			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
@@ -415,7 +414,6 @@ class LuaGlueClass : public LuaGlueClassBase
 		void _impl_dtor(_Class *)
 		{
 			// ???
-			LG_Debug("impl dtor!");
 			//printf("LuaGlueClass<%s>::_impl_dtor\n", name_.c_str());
 			//delete p;
 		}
@@ -551,7 +549,6 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			if(lua_isuserdata(state, -1))
 			{
-				LG_Debug("about to gc!");
 				LuaGlueObjectBase *obj = (LuaGlueObjectBase *)lua_touserdata(state, -1);
 				obj->put();
 			}

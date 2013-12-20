@@ -41,10 +41,6 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 
 #else
 
-#define LG_Debug(a, b...) ((void)a)
-#define LG_Warn(a, b...) ((void)a)
-#define LG_Error(a, b...) ((void)a)
-
 #endif /* !defined LG_DEBUG */
 
 #endif /* LUAGLUE_DEBUG_H_GUARD */

@@ -33,7 +33,6 @@ class LuaGlueConstant
 					break;
 					
 				default:
-					LG_Error("unknown constant type");
 					break;
 			}
 		}
@@ -70,7 +69,6 @@ class LuaGlueConstant
 					break;
 					
 				default:
-					LG_Error("unknown constant type");
 					return false;
 			}
 			

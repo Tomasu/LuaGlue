@@ -56,7 +56,6 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 		typedef _Class Type;
 		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _ref_cnt(1), _clss(clss), _ptr(p), _owner(owner)
 		{
-			//LG_Debug("ctor");
 		}
 		
 		~LuaGlueObjectImpl()
@@ -64,7 +63,6 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 			if(_clss) _clss->_impl_dtor(_ptr); 
 			if(_owner)
 			{
-				//LG_Debug("we're owner, delete");
 				delete _ptr;
 			}
 			
@@ -77,14 +75,12 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 		void *vget()
 		{
 			_ref_cnt++;
-			//LG_Debug("inc: %i", _ref_cnt.load());
 			return _ptr;
 		}
 		
 		int put()
 		{
 			_ref_cnt--;
-			//LG_Debug("dec: %i", _ref_cnt.load());
 			return _ref_cnt;
 		}
 		
@@ -105,7 +101,6 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 		typedef _Class ClassType;
 		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _ref_cnt(1), _clss(clss), _ptr(p), _owner(owner)
 		{
-			//LG_Debug("ctor");
 		}
 		
 		~LuaGlueObjectImpl()
@@ -113,7 +108,6 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 			if(_clss) _clss->_impl_dtor(_ptr); 
 			if(_owner)
 			{
-				//LG_Debug("we're owner, delete");
 				delete _ptr;
 			}
 			
@@ -152,29 +146,24 @@ class LuaGlueObject : public LuaGlueObjectBase
 		
 		LuaGlueObject() : LuaGlueObjectBase(false), p(0)
 		{
-			//LG_Debug("ctor()");
 		}
 		
 		LuaGlueObject(Type *optr, LuaGlueClass<Type> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(false), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
 		{
-			//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
 		}
 		
 		LuaGlueObject(const LuaGlueObjectBase *rhs) : LuaGlueObjectBase(false), p(rhs->impl())
 		{
-			//LG_Debug("ctor(LuaGlueObjectBase(%p))", p->vptr());
 			(void)p->vget();
 		}
 		
 		LuaGlueObject(const LuaGlueObject &rhs) : LuaGlueObjectBase(false), p(rhs.p)
 		{
-			//LG_Debug("copy ctor(%p)", p->vptr());
 			(void)p->vget();
 		}
 		
 		LuaGlueObject &operator=( const LuaGlueObject &rhs )
 		{
-			//LG_Debug("assign(%p)", rhs.p->vptr());
 			p = rhs.p;
 			(void)p->vget();
 		}
@@ -182,11 +171,9 @@ class LuaGlueObject : public LuaGlueObjectBase
 		~LuaGlueObject()
 		{
 			//if(!p)
-			//	LG_Debug("p == 0");
 			
 			if(p && !p->put())
 			{
-				//LG_Debug("dtor ref count hit 0, delete impl");
 				delete p;
 			}
 		}
@@ -198,7 +185,6 @@ class LuaGlueObject : public LuaGlueObjectBase
 			
 			if(!p->put())
 			{
-				//LG_Debug("put ref count hit 0, delete impl");
 				delete p;
 			}
 		}
@@ -222,41 +208,32 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 		
 		LuaGlueObject() : LuaGlueObjectBase(true), p(0)
 		{
-			//LG_Debug("ctor()");
 		}
 		
 		LuaGlueObject(Type *optr, LuaGlueClass<ClassType> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(true), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
 		{
-			//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
 		}
 		
 		LuaGlueObject(const LuaGlueObjectBase *rhs) : LuaGlueObjectBase(true), p(rhs->impl())
 		{
-			//LG_Debug("ctor(LuaGlueObjectBase(%p))", p->vptr());
 			(void)p->vget();
 		}
 		
 		LuaGlueObject(const LuaGlueObject &rhs) : LuaGlueObjectBase(true), p(rhs.p)
 		{
-			//LG_Debug("copy ctor(%p)", p->vptr());
 			(void)p->vget();
 		}
 		
 		LuaGlueObject &operator=( const LuaGlueObject &rhs )
 		{
-			//LG_Debug("assign(%p)", rhs.p->vptr());
 			p = rhs.p;
 			(void)p->vget();
 		}
 		
 		~LuaGlueObject()
 		{
-			//if(!p)
-			//	LG_Debug("p == 0");
-			
 			if(p && !p->put())
 			{
-				//LG_Debug("dtor ref count hit 0, delete impl");
 				delete p;
 				p = nullptr;
 			}
@@ -271,13 +248,12 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 			
 			if(!p->put())
 			{
-				//LG_Debug("put ref count hit 0, delete impl");
 				delete p;
 				p = nullptr;
 			}
 		}
 		
-		Type operator*() { LG_Debug("operator*"); return *p->ptr<Type>(); }
+		Type operator*() { return *p->ptr<Type>(); }
 		Type *operator->() { return p->ptr<Type>(); }
 		
 		ClassType *ptr() { return (*(p->ptr<Type>())).get(); }
