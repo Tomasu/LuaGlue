@@ -181,7 +181,7 @@ class LuaGlueObject : public LuaGlueObjectBase
 		void put()
 		{
 			if(!p)
-				throw new std::runtime_error("blah");
+				throw std::runtime_error("blah");
 			
 			if(!p->put())
 			{
@@ -244,7 +244,7 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 		void put()
 		{
 			if(!p)
-				throw new std::runtime_error("blah");
+				throw std::runtime_error("blah");
 			
 			if(!p->put())
 			{
