@@ -56,7 +56,7 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 		typedef _Class Type;
 		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _clss(clss), _ptr(p), _owner(owner)
 		{
-            std::atomic_init(&_ref_cnt, 1);
+			_ref_cnt = 1;
 		}
 		
 		~LuaGlueObjectImpl()
@@ -102,7 +102,7 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 		typedef _Class ClassType;
 		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _clss(clss), _ptr(p), _owner(owner)
 		{
-            std::atomic_init(&_ref_cnt, 1);
+			_ref_cnt = 1;
 		}
 		
 		~LuaGlueObjectImpl()
