@@ -90,7 +90,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			//using Alias=char[];
 			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
 			
-			lua_call(luaGlue_->state(), Arg_Count_+1, 1);
+			lua_pcall(luaGlue_->state(), Arg_Count_+1, 1, 0);
 			lua_remove(luaGlue_->state(), -2);
 			return stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
 		}
@@ -114,7 +114,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			//using Alias=char[];
 			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
 			
-			lua_call(luaGlue_->state(), Arg_Count_+1, 0);
+			lua_pcall(luaGlue_->state(), Arg_Count_+1, 0, 0);
 			//lua_pop(luaGlue_->state(), 1);
 		}
 		
@@ -454,7 +454,7 @@ class LuaGlueClass : public LuaGlueClassBase
 					//printf("prop!\n");
 					lua_pushvalue(state, 1); // push args
 					lua_pushvalue(state, 2);
-					lua_call(state, 2, 1); // call function
+					lua_pcall(state, 2, 1, 0); // call function
 				}
 				
 			}
@@ -470,7 +470,7 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 1); // copy 1st and 2nd stack elements
 					lua_pushvalue(state, 2);
 					
-					lua_call(state, 2, 1); // removes the argument copies
+					lua_pcall(state, 2, 1, 0); // removes the argument copies
 				// should always be a function.. might want to put some debug/trace messages to make sure
 					
 					//lua_dump_stack(state);
@@ -503,7 +503,7 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 2); // push key
 					lua_pushvalue(state, 3); // push value
 				
-					lua_call(state, 3, 0); // call function from field above
+					lua_pcall(state, 3, 0, 0); // call function from field above
 					
 					//lua_dump_stack(state);
 				}
@@ -531,7 +531,7 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 1); // push self
 					lua_pushvalue(state, 2); // push idx
 					lua_pushvalue(state, 3); // push value
-					lua_call(state, 3, 0);
+					lua_pcall(state, 3, 0, 0);
 					//lua_dump_stack(state);
 				}
 			}
