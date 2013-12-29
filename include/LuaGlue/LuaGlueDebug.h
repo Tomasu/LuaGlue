@@ -47,4 +47,26 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 
 #endif /* !defined LG_DEBUG */
 
+#ifdef LUAGLUE_TYPECHECK
+
+void LG_TypeCheck_(LuaGlue *g, const char *module, int type, int what = -1)
+{
+	int what_type = lua_type(g->state(), what);
+	if(what_type != type)
+	{
+		char tmp[4096];
+		snprintf(tmp, sizeof(tmp), "%s expected a function, got a %s", module, lua_typename(g->state(), lua_type(g->state(), -1));
+		lua_pushstring(g->state(), tmp);
+		lua_error(g->state());
+	}
+}
+
+#define LG_TypeCheck(g, module, type, what) LG_TypeCheck_(g, module, what, type)
+
+#else /* !LUAGLUE_TYPECHECK */
+
+#define LG_TypeCheck(g, module, type, what) (void)((g), (module), (type), (what))
+
+#endif /* LUAGLUE_TYPECHECK */
+
 #endif /* LUAGLUE_DEBUG_H_GUARD */
