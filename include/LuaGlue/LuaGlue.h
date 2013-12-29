@@ -54,7 +54,7 @@ class LuaGlue : public LuaGlueBase
 			
 			lua_getglobal(state_, name.c_str());
 			applyTuple(this, state_, args...);
-			lua_call(state_, Arg_Count_, 1);
+			lua_pcall(state_, Arg_Count_, 1, 0);
 			return stack<_Ret>::get(this, state_, -1);
 		}
 		
@@ -65,7 +65,7 @@ class LuaGlue : public LuaGlueBase
 			
 			lua_getglobal(state_, name.c_str());
 			applyTuple(this, state_, args...);
-			lua_call(state_, Arg_Count_, 0);
+			lua_pcall(state_, Arg_Count_, 0, 0);
 		}
 		
 		lua_State *state() { return state_; }
