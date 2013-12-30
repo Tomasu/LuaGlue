@@ -54,9 +54,12 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 {
 	public:
 		typedef _Class Type;
-		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _clss(clss), _ptr(p), _owner(owner)
+		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _ref_cnt(1), _clss(clss), _ptr(p), _owner(owner)
 		{
-            std::atomic_init(&_ref_cnt, 1);
+			// NOTE: std::atomic_init does not compile in GCC
+			// something else will be needed for MSVC
+			// std::atomic_init(&_ref_cnt, 1);
+			
 			//LG_Debug("ctor");
 		}
 		
@@ -65,7 +68,7 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 			if(_clss) _clss->_impl_dtor(_ptr); 
 			if(_owner)
 			{
-				//LG_Debug("we're owner, delete");
+				LG_Debug("we're owner, delete");
 				delete _ptr;
 			}
 			
@@ -104,9 +107,12 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 	public:
 		typedef std::shared_ptr<_Class> Type;
 		typedef _Class ClassType;
-		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _clss(clss), _ptr(p), _owner(owner)
+		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _ref_cnt(1), _clss(clss), _ptr(p), _owner(owner)
 		{
-            std::atomic_init(&_ref_cnt, 1);
+         // NOTE: std::atomic_init does not compile in GCC
+			// something else will be needed for MSVC
+			// std::atomic_init(&_ref_cnt, 1);
+			
 			//LG_Debug("ctor");
 		}
 		
@@ -115,7 +121,7 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 			if(_clss) _clss->_impl_dtor(_ptr); 
 			if(_owner)
 			{
-				//LG_Debug("we're owner, delete");
+				LG_Debug("we're owner, delete");
 				delete _ptr;
 			}
 			

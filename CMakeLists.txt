@@ -19,7 +19,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
 elseif(CMAKE_BUILD_TYPE STREQUAL Prof)
 	add_definitions(-DLG_DEBBUG -O2 -ggdb3 -march=native)
 else()
-	add_definitions(-O2 -s -march=native)
+	add_definitions(-O2 -s -march=native -DNDEBUG)
 endif()
 
 add_definitions(-Wextra -Wall -pipe -std=gnu++11)

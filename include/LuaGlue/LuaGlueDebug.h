@@ -49,13 +49,14 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 
 #ifdef LUAGLUE_TYPECHECK
 
-void LG_TypeCheck_(LuaGlue *g, const char *module, int type, int what = -1)
+#include <LuaGlue/LuaGlueBase.h>
+static inline void LG_TypeCheck_(LuaGlueBase *g, const char *module, int type, int what = -1)
 {
 	int what_type = lua_type(g->state(), what);
 	if(what_type != type)
 	{
 		char tmp[4096];
-		snprintf(tmp, sizeof(tmp), "%s expected a function, got a %s", module, lua_typename(g->state(), lua_type(g->state(), -1));
+		snprintf(tmp, sizeof(tmp), "%s expected a %s, got a %s", module, lua_typename(g->state(), type), lua_typename(g->state(), lua_type(g->state(), -1)));
 		lua_pushstring(g->state(), tmp);
 		lua_error(g->state());
 	}

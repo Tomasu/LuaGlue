@@ -2,6 +2,7 @@
 #define LUAGLUE_H_GUARD
 
 #include <lua.hpp>
+#include <lauxlib.h>
 #include <string>
 #include <map>
 #include <typeinfo>
@@ -68,6 +69,9 @@ class LuaGlue : public LuaGlueBase
 			lua_pcall(state_, Arg_Count_, 0, 0);
 		}
 		
+		template<typename _Type>
+		_Type getGlobal(const char *name);
+		
 		lua_State *state() { return state_; }
 		
 		bool glue()
@@ -131,6 +135,12 @@ class LuaGlue : public LuaGlueBase
 			return classes.lookup(idx);
 		}
 		
+		template<class _Class>
+		LuaGlueClass<_Class> *getClass(const char *name)
+		{
+			return (LuaGlueClass<_Class> *)classes.lookup(name, false);
+		}
+		
 		LuaGlueSymTab<LuaGlueClassBase *> &getSymTab() { return classes; }
 		
 		const std::string &lastError() { return last_error; }
@@ -141,6 +151,56 @@ class LuaGlue : public LuaGlueBase
 		
 		std::string last_error;
 };
+
+template<>
+int LuaGlue::getGlobal<int>(const char *name)
+{
+	lua_getglobal(state_, name);
+	return luaL_checkint(state_, -1);
+}
+
+template<>
+float LuaGlue::getGlobal<float>(const char *name)
+{
+	lua_getglobal(state_, name);
+	return luaL_checknumber(state_, -1);
+}
+
+template<>
+double LuaGlue::getGlobal<double>(const char *name)
+{
+	lua_getglobal(state_, name);
+	return luaL_checknumber(state_, -1);
+}
+
+template<>
+char LuaGlue::getGlobal<char>(const char *name)
+{
+	lua_getglobal(state_, name);
+	return luaL_checkint(state_, -1);
+}
+
+template<>
+const char *LuaGlue::getGlobal<const char *>(const char *name)
+{
+	lua_getglobal(state_, name);
+	return luaL_checkstring(state_, -1);
+}
+
+template<>
+const std::string LuaGlue::getGlobal<const std::string>(const char *name)
+{
+	lua_getglobal(state_, name);
+	return luaL_checkstring(state_, -1);
+}
+
+template<class _Class>
+_Class LuaGlue::getGlobal(const char *name)
+{
+	lua_getglobal(state_, name);
+	
+	return stack<_Class>::get(this, state_, -1);
+}
 
 #include "LuaGlue/LuaGlueClass.h"
 #include "LuaGlue/LuaGlueConstant.h"

@@ -54,12 +54,15 @@ class Foo
 
 struct STestA
 {
+	STestA() : a(-1) { }
+	STestA(const STestA &o) : a(o.a) { }
 	int a;
 };
 
 struct STestB
 {
-	STestB() {printf("STestB()\n");}
+	STestB() : a(), b(-1) {printf("STestB()\n");}
+	STestB(const STestB &b) : a(b.a), b(b.b) { }
 	STestA a;
 	int b;
 };

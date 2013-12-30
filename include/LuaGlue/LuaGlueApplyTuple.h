@@ -14,16 +14,17 @@ LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
 	int ret = luaL_getmetafield(s, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
 	{
-		LG_Error("typeid:%s", typeid(LuaGlueClass<T>).name());
-		LG_Error("failed to get metafield for obj at idx %i", idx);
+		LG_Warn("typeid:%s", typeid(LuaGlueClass<T>).name());
+		LG_Warn("failed to get metafield for obj at idx %i", idx);
 		return 0;
 	}
 	
 	int id = luaL_checkint(s, -1);
 	lua_pop(s, 1);
 	
-	//printf("getGlueClass: METATABLE_CLASSIDX_FIELD: %i\n", id);
-	return (LuaGlueClass<T> *)g->lookupClass((uint32_t)id);
+	auto c = (LuaGlueClass<T> *)g->lookupClass((uint32_t)id);
+	LG_Debug("getGlueClass: METATABLE_CLASSIDX_FIELD: %i name: %s", id, c->name().c_str());
+	return c;
 }
 
 // FIXME: static objects need fixed again.
@@ -145,6 +146,27 @@ struct stack<std::shared_ptr<T>> {
 		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
 		lua_pushlightuserdata(s, obj);
 	}
+	
+	static void put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> *v)
+	{
+		//printf("stack<T>::put(T)\n");
+		
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
+			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
+			LG_Debug("stack::put<shared_ptr<%s>>: mapped", typeid(T).name());
+			lgc->pushInstance(s, *v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		//printf("stack::put<T>: lud!\n");
+		LG_Debug("stack::put<shared_ptr<%s>>: lud", typeid(T).name());
+		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(*v);
+		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
+		lua_pushlightuserdata(s, obj);
+	}
 };
 
 template<class T>
@@ -259,6 +281,19 @@ struct stack<bool> {
 };
 
 template<>
+struct stack<char> {
+	static char get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, char v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
 struct stack<const char *> {
 	static const char *get(LuaGlueBase *, lua_State *s, int idx)
 	{
@@ -275,12 +310,20 @@ template<>
 struct stack<std::string> {
 	static std::string get(LuaGlueBase *, lua_State *s, int idx)
 	{
-		return luaL_checkstring(s, idx);
+		const char *str = luaL_checkstring(s, idx);
+		LG_Debug("str: %s", str);
+		return str;
 	}
 	
 	static void put(LuaGlueBase *, lua_State *s, std::string v)
 	{
 		lua_pushstring(s, v.c_str());
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, std::string *v)
+	{
+		LG_Debug("str: %s", v->c_str());
+		lua_pushstring(s, v->c_str());
 	}
 };
 
@@ -303,7 +346,10 @@ struct stack<T *> {
 			(void)g;
 #endif
 			LG_Debug("stack::get<%s *>: mapped", typeid(T).name());
-			LuaGlueObject<T> obj = *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LG_Debug("p: %p", p);
+			LuaGlueObject<T> obj = *p;
+			LG_Debug("ptr: %p", obj.ptr());
 			return obj.ptr();
 #ifdef LUAGLUE_TYPECHECK
 		}
@@ -322,7 +368,7 @@ struct stack<T *> {
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
-			LG_Debug("stack::put<%s *>: mapped", typeid(T).name());
+			LG_Debug("stack::put<%s *>: mapped %p", typeid(T).name(), v);
 			lgc->pushInstance(s, v);
 			return;
 		}

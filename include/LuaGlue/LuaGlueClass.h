@@ -1,6 +1,7 @@
 #ifndef LUAGLUE_CLASS_H_GUARD
 #define LUAGLUE_CLASS_H_GUARD
 
+#include <cassert>
 #include <vector>
 #include <string>
 #include <map>
@@ -118,6 +119,59 @@ class LuaGlueClass : public LuaGlueClassBase
 			//lua_pop(luaGlue_->state(), 1);
 		}
 		
+		template<typename _Ret>
+		_Ret getProperty(const std::string &name, _Class *obj)
+		{
+			pushInstance(luaGlue_->state(), obj);
+			lua_getfield(luaGlue_->state(), -1, name.c_str());
+			
+			_Ret ret = getPropertyImpl<_Ret>(std::is_class<typename std::remove_pointer<_Ret>::type>());
+			lua_pop(luaGlue_->state(), 1);
+			
+			return ret;
+		}
+		
+		// basic types
+		template<typename _Ret>
+		_Ret getPropertyImpl(std::false_type)
+		{
+			_Ret ret = stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			return ret;
+		}
+		
+		// objects
+		template<class _Ret>
+		_Ret getPropertyImpl(std::true_type)
+		{
+			_Ret ret = getPropertyImplObject<_Ret>(std::is_pointer<_Ret>());
+			return ret;
+		}
+		
+		// pointers to objects
+		template<class _Ret>
+		_Ret getPropertyImplObject(std::true_type)
+		{
+			_Ret ptr = stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			return ptr;
+		}
+		
+		// static objects
+		template<class _Ret>
+		_Ret getPropertyImplObject(std::false_type)
+		{
+			_Ret obj = stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			return obj;
+		}
+		
+		template<typename _Type>
+		void setProperty(const std::string &name, _Class *obj, _Type v)
+		{
+			pushInstance(luaGlue_->state(), obj);
+			stack<_Type>::put(luaGlue_, luaGlue_->state(), v);
+			lua_setfield(luaGlue_->state(), -2, name.c_str());
+			lua_pop(luaGlue_->state(), 1);
+		}
+		
 		LuaGlueClass<_Class> &pushInstance(_Class *obj)
 		{
 			return pushInstance(luaGlue_->state(), obj);
@@ -125,6 +179,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, _Class *obj, bool owner = false)
 		{
+			assert(obj != nullptr);
+			
+			LG_Debug("%s pushInstance", typeid(_Class).name());
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj, this, owner); // placement new to initialize object
 			
@@ -136,6 +193,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueObject<_Class> &obj)
 		{
+			assert(obj.ptr() != nullptr);
+			
+			LG_Debug("LuaGlueObject<%s> pushInstance", typeid(_Class).name());
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj); // placement new to initialize object
 			
@@ -147,7 +207,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> obj)
 		{
-			LG_Debug("pushInstance");
+			assert(obj.get() != nullptr);
+		
+			LG_Debug("shared_ptr<%s> pushInstance", typeid(_Class).name());
 			std::shared_ptr<_Class> *ptr_ptr = new std::shared_ptr<_Class>(obj);
 			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
 			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
@@ -268,6 +330,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
+
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (_Class::*fn)(_Args...) const)
 		{
@@ -340,13 +403,13 @@ class LuaGlueClass : public LuaGlueClassBase
 				return false;
 			}
 
-		    lua_getfield(state, -1, methodName.c_str());
+			lua_getfield(state, -1, methodName.c_str());
 
-		    bool exists = lua_isfunction(state, -1);
+			bool exists = lua_isfunction(state, -1);
 
 			lua_pop(state, 2);
 
-		    return exists;
+			return exists;
 		}
 		
 		template<typename T>
@@ -424,6 +487,10 @@ class LuaGlueClass : public LuaGlueClassBase
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_gc, 1);
 			lua_setfield(luaGlue->state(), meta_id, "__gc");
+			
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_meta_concat, 1);
+			lua_setfield(luaGlue->state(), meta_id, "__concat");
 			
 			for(auto &method: methods)
 			{
@@ -610,6 +677,53 @@ class LuaGlueClass : public LuaGlueClassBase
 			return 0;
 		}
 		
+		int concat(lua_State *state)
+		{
+			int arg1_type = lua_type(state, 1);
+			int arg2_type = lua_type(state, 2);
+			
+			push_obj_str(state, arg1_type, 1);
+			push_obj_str(state, arg2_type, 2);
+			
+			lua_concat(state, 2);
+
+			return 1;
+		}
+		
+		void push_obj_str(lua_State *state, int type, int idx)
+		{
+			if(type == LUA_TUSERDATA)
+			{
+				LuaGlueObjectBase *lg_obj = (LuaGlueObjectBase *)lua_touserdata(state, idx);
+				_Class *obj = nullptr;
+				
+				if(lg_obj->isSharedPtr())
+				{
+					auto o = CastLuaGlueObjectShared(_Class, lg_obj);
+					obj = o->ptr();
+				}
+				else
+				{
+					auto o = CastLuaGlueObject(_Class, lg_obj);
+					obj = o->ptr();
+				}
+				
+				char buff[2048];
+				sprintf(buff, "%s(%p)", name_.c_str(), obj);
+				lua_pushstring(state, buff);
+			}
+			else if(type == LUA_TNIL)
+			{
+				LG_Debug("nil!");
+				lua_pushstring(state, "nil");
+			}
+			else
+			{
+				LG_Debug("type: %s", lua_typename(state, type));
+				lua_pushstring(state, lua_tostring(state, idx));
+			}
+		}
+		
 		static int lua_index(lua_State *state)
 		{
 			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
@@ -626,6 +740,12 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
 			return cimp->gc(state);
+		}
+		
+		static int lua_meta_concat(lua_State *state)
+		{
+			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->concat(state);
 		}
 };
 
