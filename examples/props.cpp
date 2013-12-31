@@ -36,7 +36,7 @@ class Foo
 		const std::string &getStdString() { return stdstr_prop; }
 		void setStdString(const std::string &v) { stdstr_prop = v; }
 		
-		AProp *getObjPtr() { return obj_ptr_prop; }
+		AProp *getObjPtr() const { return obj_ptr_prop; }
 		void setObjPtr(AProp *v) { obj_ptr_prop = v; }
 		
 		AProp::SPtr getObjSPtr() { return obj_sptr_prop; }

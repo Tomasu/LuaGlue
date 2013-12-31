@@ -288,6 +288,16 @@ class LuaGlueClass : public LuaGlueClassBase
 			
 			return *this;
 		}
+		
+		template<typename _Type>
+		LuaGlueClass<_Class> &property(const std::string &name, _Type (_Class::*getter)() const, void (_Class::*setter)(_Type))
+		{
+			//printf("property(%s)\n", name.c_str());
+			auto impl = new LuaGlueProperty<_Type, _Class>(this, name, getter, setter);
+			properties_.addSymbol(name.c_str(), impl);
+			
+			return *this;
+		}
 
 		template<typename _Type>
 		LuaGlueClass<_Class> &property(const std::string &name, _Type (_Class::*getter)())

@@ -324,9 +324,15 @@ class LuaGlueProperty : public LuaGluePropertyBase
 	public:
 		typedef typename std::remove_const<typename std::remove_reference<_Type>::type>::type Type;
 		typedef _Type (_Class::*GetterType)();
+		typedef _Type (_Class::*ConstGetterType)() const;
 		typedef void (_Class::*SetterType)(_Type);
 		
 		LuaGlueProperty(LuaGlueClass<_Class> *luaClass, const std::string &name, GetterType getter, SetterType setter) : name_(name), getter(getter), setter(setter), glueClass(luaClass)
+		{
+			
+		}
+		
+		LuaGlueProperty(LuaGlueClass<_Class> *luaClass, const std::string &name, ConstGetterType getter, SetterType setter) : name_(name), getter((GetterType)getter), setter(setter), glueClass(luaClass)
 		{
 			
 		}
