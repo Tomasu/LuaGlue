@@ -50,7 +50,7 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 #ifdef LUAGLUE_TYPECHECK
 
 #include <LuaGlue/LuaGlueBase.h>
-static inline void LG_TypeCheck_(LuaGlueBase *g, const char *module, int type, int what = -1)
+static inline void LG_TypeCheck(LuaGlueBase *g, const char *module, int type, int what = -1)
 {
 	int what_type = lua_type(g->state(), what);
 	if(what_type != type)
@@ -62,11 +62,12 @@ static inline void LG_TypeCheck_(LuaGlueBase *g, const char *module, int type, i
 	}
 }
 
-#define LG_TypeCheck(g, module, type, what) LG_TypeCheck_(g, module, what, type)
+//#define LG_TypeCheck(g, module, type, what) LG_TypeCheck_(g, module, what, type)
 
 #else /* !LUAGLUE_TYPECHECK */
 
-#define LG_TypeCheck(g, module, type, what) (void)((g), (module), (type), (what))
+//#define LG_TypeCheck(g, module, type, what) (void)((g), (module), (type), (what))
+#define LG_TypeCheck(g, module, type, what) (void)g
 
 #endif /* LUAGLUE_TYPECHECK */
 

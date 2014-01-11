@@ -7,6 +7,8 @@
 #include <typeinfo>
 
 class LuaGlueBase;
+template<typename _Ret, typename... _Args>
+class LuaGlueLuaFuncRef;
 
 template<class T>
 LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
@@ -212,6 +214,64 @@ struct stack<LuaGlueObject<T>> {
 		LG_Debug("stack::put<LuaGlueObject<%s>>: lud", typeid(T).name());
 		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v);
 		lua_pushlightuserdata(s, obj);
+	}
+};
+
+template<typename _Ret, typename... _Args>
+struct stack<std::function<_Ret(_Args...)>> {
+	static std::function<_Ret(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
+	{
+		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
+		
+		return LuaGlueLuaFuncRef<_Ret, _Args...>(b, idx);
+	}
+	
+	static void put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
+	{
+		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
+		//        when passing std::functions back and forth
+		
+		auto func = [b,_f](lua_State *_s) -> int
+		{
+			static const unsigned int Arg_Count_ = sizeof...(_Args);
+			std::tuple<_Args...> t;
+			
+			_Ret ret = applyTuple(b, _s, _f, t);
+			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
+			stack<_Ret>::put(b, _s, ret);
+			return 1;
+		};
+		
+		lua_pushcfunction(s, func);
+	}
+};
+
+template<typename... _Args>
+struct stack<std::function<void(_Args...)>> {
+	static std::function<void(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
+	{
+		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
+		
+		auto v = LuaGlueLuaFuncRef<void, _Args...>(b, idx);
+		return v;
+	}
+	
+	static void put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
+	{
+		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
+		//        when passing std::functions back and forth
+		
+		auto func = [b,_f](lua_State *_s)
+		{
+			static const unsigned int Arg_Count_ = sizeof...(_Args);
+			std::tuple<_Args...> t;
+			
+			applyTuple(b, _s, _f, t);
+			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
+			return 0;
+		};
+		
+		lua_pushcfunction(s, func);
 	}
 };
 
@@ -862,6 +922,71 @@ R applyTuple( LuaGlueBase *g, lua_State *s, R (*f)(ArgsF...),
 }
 
 //-----------------------------------------------------------------------------
+
+/**
+ * std::function Tuple Argument Unpacking
+ *
+ * This recursive template unpacks the tuple parameters into
+ * variadic template arguments until we reach the count of 0 where the function
+ * is called with the correct parameters
+ *
+ * @tparam N Number of tuple arguments to unroll
+ *
+ * @ingroup g_util_tuple
+ */
+template < int N >
+struct apply_std_func
+{
+	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
+	static R applyTuple(	LuaGlueBase *g, lua_State *s, std::function<R(ArgsF...)> f,
+									const std::tuple<ArgsT...>& t,
+									Args... args )
+	{
+		const static int argCount = sizeof...(ArgsT);
+		typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
+		typedef typename std::remove_const<ltype_const>::type ltype;
+		return apply_std_func<N-1>::applyTuple( g, s, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), args... );
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+/**
+ * std::function Tuple Argument Unpacking End Point
+ *
+ * This recursive template unpacks the tuple parameters into
+ * variadic template arguments until we reach the count of 0 where the function
+ * is called with the correct parameters
+ *
+ * @ingroup g_util_tuple
+ */
+template <>
+struct apply_std_func<0>
+{
+	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
+	static R applyTuple(	LuaGlueBase *, lua_State *, std::function<R(ArgsF...)> f,
+									const std::tuple<ArgsT...>& /* t */,
+									Args... args )
+	{
+		return f( args... );
+	}
+};
+
+//-----------------------------------------------------------------------------
+
+/**
+ * std::function Call Forwarding Using Tuple Pack Parameters
+ */
+// Actual apply function
+template < typename R, typename... ArgsF, typename... ArgsT >
+R applyTuple( LuaGlueBase *g, lua_State *s, std::function<R(ArgsF...)> f,
+                 const std::tuple<ArgsT...> & t )
+{
+	return apply_std_func<sizeof...(ArgsT)>::applyTuple( g, s, f, std::forward<decltype(t)>(t) );
+}
+
+//-----------------------------------------------------------------------------
+
 
 // object constructor tuple unpack
 

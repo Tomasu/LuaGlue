@@ -7,6 +7,10 @@ function invoke_lua(obj)
 	obj:fromlua();
 end
 
+function callback(i)
+	io.write("in lua callback! got: "..i.."\n");
+end
+
 function from_c()
 	io.write("in lua! called from c!\n");
 end
@@ -26,3 +30,5 @@ invoke:invoke_lua(2, 3, "four");
 
 invoke:invokeObj(invoke);
 obj = invoke:objInvoke();
+
+invoke:luaCallback(callback);

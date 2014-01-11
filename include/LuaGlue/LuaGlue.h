@@ -11,6 +11,7 @@
 #include "LuaGlue/LuaGlueBase.h"
 #include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueFunction.h"
+#include "LuaGlue/LuaGlueLuaFuncRef.h"
 #include "LuaGlue/LuaGlueSymTab.h"
 
 template<typename _Class>
