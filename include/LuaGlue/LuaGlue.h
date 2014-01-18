@@ -71,6 +71,13 @@ class LuaGlue : public LuaGlueBase
 		}
 		
 		template<typename _Type>
+		void setGlobal(const char *name, _Type v)
+		{
+			stack<_Type>::put(this, state_, v);
+			lua_setglobal(state_, name);
+		}
+		
+		template<typename _Type>
 		_Type getGlobal(const char *name);
 		
 		lua_State *state() { return state_; }

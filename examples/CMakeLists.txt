@@ -26,3 +26,10 @@ target_link_libraries(shared_ptr ${LUA_LIBRARIES})
 copy_to_build(props.lua)
 add_executable(props props.cpp props.lua)
 target_link_libraries(props ${LUA_LIBRARIES})
+
+copy_to_build(plugin_test.lua)
+add_executable(plugin_test plugin_test.cpp plugin_test.lua)
+target_link_libraries(plugin_test ${LUA_LIBRARIES} dl)
+
+add_library(plugin MODULE plugin.cpp)
+
