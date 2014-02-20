@@ -161,49 +161,49 @@ class LuaGlue : public LuaGlueBase
 };
 
 template<>
-int LuaGlue::getGlobal<int>(const char *name)
+inline int LuaGlue::getGlobal<int>(const char *name)
 {
 	lua_getglobal(state_, name);
 	return luaL_checkint(state_, -1);
 }
 
 template<>
-float LuaGlue::getGlobal<float>(const char *name)
+inline float LuaGlue::getGlobal<float>(const char *name)
 {
 	lua_getglobal(state_, name);
 	return luaL_checknumber(state_, -1);
 }
 
 template<>
-double LuaGlue::getGlobal<double>(const char *name)
+inline double LuaGlue::getGlobal<double>(const char *name)
 {
 	lua_getglobal(state_, name);
 	return luaL_checknumber(state_, -1);
 }
 
 template<>
-char LuaGlue::getGlobal<char>(const char *name)
+inline char LuaGlue::getGlobal<char>(const char *name)
 {
 	lua_getglobal(state_, name);
 	return luaL_checkint(state_, -1);
 }
 
 template<>
-const char *LuaGlue::getGlobal<const char *>(const char *name)
+inline const char *LuaGlue::getGlobal<const char *>(const char *name)
 {
 	lua_getglobal(state_, name);
 	return luaL_checkstring(state_, -1);
 }
 
 template<>
-const std::string LuaGlue::getGlobal<const std::string>(const char *name)
+inline const std::string LuaGlue::getGlobal<const std::string>(const char *name)
 {
 	lua_getglobal(state_, name);
 	return luaL_checkstring(state_, -1);
 }
 
 template<class _Class>
-_Class LuaGlue::getGlobal(const char *name)
+inline _Class LuaGlue::getGlobal(const char *name)
 {
 	lua_getglobal(state_, name);
 	
