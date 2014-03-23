@@ -35,15 +35,15 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 	delete[] msg;
 }
 
-#define LG_Debug(a, b...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "D", a, ##b)
-#define LG_Warn(a, b...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "W", a, ##b)
-#define LG_Error(a, b...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "E", a, ##b)
+#define LG_Debug(a, ...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "D", a, ##__VA_ARGS__)
+#define LG_Warn(a, ...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "W", a, ##__VA_ARGS__)
+#define LG_Error(a, ...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "E", a, ##__VA_ARGS__)
 
 #else
 
-#define LG_Debug(a, b...) ((void)a)
-#define LG_Warn(a, b...) ((void)a)
-#define LG_Error(a, b...) ((void)a)
+#define LG_Debug(a, ...) ((void)a)
+#define LG_Warn(a, ...) ((void)a)
+#define LG_Error(a, ...) ((void)a)
 
 #endif /* !defined LG_DEBUG */
 
