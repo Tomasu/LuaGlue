@@ -486,7 +486,8 @@ class LuaGlueClass : public LuaGlueClassBase
 			lua_pushstring(luaGlue->state(), name_.c_str());
 			lua_setfield(luaGlue->state(), meta_id, METATABLE_CLASSNAME_FIELD);
 			
-			lua_pushcclosure(luaGlue->state(), &lua_typeid, 0);
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_typeid, 1);
 			lua_setfield(luaGlue->state(), meta_id, METATABLE_TYPEID_FIELD);
 			
 			lua_pushlightuserdata(luaGlue->state(), this);

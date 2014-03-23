@@ -34,3 +34,9 @@ print("testb.b: "..testb.b);
 print("set testb.a.a");
 testb.a.a = 456;
 print("testb.a.a: "..testb.a.a);
+
+print("STestB.typeid: "..STestB.typeid());
+print("testb.typeid: "..testb.typeid());
+
+print("testa.typeid: "..STestA.typeid());
+print("testb.a.typeid: "..testb.a.typeid());
