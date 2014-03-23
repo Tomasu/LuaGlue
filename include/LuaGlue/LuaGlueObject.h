@@ -2,7 +2,7 @@
 #define LUAGLUE_OBJECT_BASE_H_GUARD
 
 #include <atomic>
-#include <exception>
+#include <stdexcept>
 
 #include "LuaGlue/LuaGlueDebug.h"
 
