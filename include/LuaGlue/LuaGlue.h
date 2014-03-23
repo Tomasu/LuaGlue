@@ -37,7 +37,9 @@ class LuaGlue : public LuaGlueBase
 		{
 			//printf("glue.Class(\"%s\")\n", name.c_str());
 			auto new_class = new LuaGlueClass<_Class>(this, name);
-			classes.addSymbol(name.c_str(), new_class);
+			auto sym = classes.addSymbol(name.c_str(), new_class);
+			new_class->setLGTypeID(sym.lg_typeid);
+			
 			return *new_class;
 		}
 		

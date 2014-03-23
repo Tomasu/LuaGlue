@@ -61,16 +61,19 @@ class LuaGlueClass : public LuaGlueClassBase
 		static const char METATABLE_CLASSNAME_FIELD[];
 		static const char METATABLE_INTCLASSNAME_FIELD[];
 		static const char METATABLE_CLASSIDX_FIELD[];
+		static const char METATABLE_TYPEID_FIELD[];
 		
 		typedef _Class ClassType;
 		
-		LuaGlueClass(LuaGlueBase *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name)
+		LuaGlueClass(LuaGlueBase *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name), lg_typeid_(0) 
 		{ }
 		
 		~LuaGlueClass()
 		{ 	}
 		
 		const std::string &name() { return name_; }
+
+		void setLGTypeID(uint64_t lgt) { lg_typeid_ = lgt; }
 		
 		template<typename _Ret, typename... _Args>
 		_Ret invokeMethod(const std::string &name, _Class *obj, _Args... args)
@@ -483,6 +486,9 @@ class LuaGlueClass : public LuaGlueClassBase
 			lua_pushstring(luaGlue->state(), name_.c_str());
 			lua_setfield(luaGlue->state(), meta_id, METATABLE_CLASSNAME_FIELD);
 			
+			lua_pushcclosure(luaGlue->state(), &lua_typeid, 0);
+			lua_setfield(luaGlue->state(), meta_id, METATABLE_TYPEID_FIELD);
+			
 			lua_pushlightuserdata(luaGlue->state(), this);
 			lua_pushcclosure(luaGlue->state(), &lua_index, 1);
 			lua_setfield(luaGlue->state(), meta_id, "__index");
@@ -552,6 +558,7 @@ class LuaGlueClass : public LuaGlueClassBase
 	private:
 		LuaGlueBase *luaGlue_;
 		std::string name_;
+		uint64_t lg_typeid_;
 		
 		LuaGlueSymTab<LuaGlueConstant *> constants_;
 		LuaGlueSymTab<LuaGlueMethodBase *> methods;
@@ -734,6 +741,12 @@ class LuaGlueClass : public LuaGlueClassBase
 			}
 		}
 		
+		int lg_typeid(lua_State *state)
+		{
+			lua_pushunsigned(state, lg_typeid_);
+			return 1;
+		}
+		
 		static int lua_index(lua_State *state)
 		{
 			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
@@ -757,6 +770,12 @@ class LuaGlueClass : public LuaGlueClassBase
 			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
 			return cimp->concat(state);
 		}
+		
+		static int lua_typeid(lua_State *state)
+		{
+			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->lg_typeid(state);
+		}
 };
 
 template<class _Class>
@@ -767,5 +786,8 @@ const char LuaGlueClass<_Class>::METATABLE_INTCLASSNAME_FIELD[] = "LuaGlueIntCla
 
 template<class _Class>
 const char LuaGlueClass<_Class>::METATABLE_CLASSIDX_FIELD[] = "LuaGlueClassIdx";
+
+template<class _Class>
+const char LuaGlueClass<_Class>::METATABLE_TYPEID_FIELD[] = "typeid";
 
 #endif /* LUAGLUE_CLASS_H_GUARD */

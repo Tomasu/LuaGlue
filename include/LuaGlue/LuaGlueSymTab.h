@@ -4,12 +4,16 @@
 #include <cstring>
 #include <vector>
 #include <typeinfo>
+#include <random>
+#include <chrono>
 
 #include "LuaGlue/LuaGlueCompat.h"
 
 // NOTE: hashing algorithm used is FNV-1a
 
 // FNV-1a constants
+// unused for now
+/*
 class LuaGlueHash {
 	private:
 		static constexpr unsigned long long basis = 14695981039346656037ULL;
@@ -40,6 +44,7 @@ class LuaGlueHash {
 			return hash;
 		}
 };
+*/
 
 template<class T>
 class LuaGlueSymTab
@@ -49,16 +54,16 @@ class LuaGlueSymTab
 		struct Symbol {
 			char *name;
 			const char *typeid_name;
-			T ptr; int idx;
+			T ptr; int idx; uint64_t lg_typeid;
 			
 			Symbol(const char *n = nullptr, const char *tn = nullptr, T p = nullptr, int i = -1)
-				: name(n ? strdup(n) : nullptr), typeid_name(tn), ptr(p), idx(i)
+				: name(n ? strdup(n) : nullptr), typeid_name(tn), ptr(p), idx(i), lg_typeid(next_typeid())
 			{
 				//printf("new Symbol(\"%s\", \"%s\", %p, %i)\n", n, tn, p, idx);
 			}
 			
 			Symbol(const Symbol &s)
-				: name(s.name ? strdup(s.name) : nullptr), typeid_name(s.typeid_name), ptr(s.ptr), idx(s.idx)
+				: name(s.name ? strdup(s.name) : nullptr), typeid_name(s.typeid_name), ptr(s.ptr), idx(s.idx), lg_typeid(next_typeid())
 			{
 				
 			}
@@ -72,6 +77,7 @@ class LuaGlueSymTab
 				typeid_name = rhs.typeid_name;
 				ptr = rhs.ptr;
 				idx = rhs.ptr;
+				lg_typeid = rhs.lg_typeid;
 				
 				return *this;
 			}
@@ -81,10 +87,23 @@ class LuaGlueSymTab
 				if(name)
 					free((void*)name);
 			}
+		
+			private:
+			static uint64_t next_typeid()
+			{
+				static std::random_device rd;
+				auto clk = std::chrono::high_resolution_clock::now();
+				auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(clk.time_since_epoch()).count();
+				return ((uint64_t)(count & 0xfffffffff0000000LL)) | rd();
+			}
 		};
 		
 	public:
-		LuaGlueSymTab() { }
+		LuaGlueSymTab()
+		{
+		
+		}
+		
 		~LuaGlueSymTab()
 		{
 			for(auto &i: items)
@@ -92,13 +111,14 @@ class LuaGlueSymTab
 		}
 		
 		template<class C>
-		void addSymbol(const char *name, C *ptr)
+		const Symbol &addSymbol(const char *name, C *ptr)
 		{
 			const Symbol &sym = findSym(name);
 			if(sym.name)
-				return;
+				return sym;
 			
 			items.push_back(Symbol(name, typeid(C).name(), ptr, items.size()));
+			return items.back();
 		}
 		
 		/*
@@ -163,6 +183,11 @@ class LuaGlueSymTab
 			return findSym(idx).ptr;
 		}
 		
+		T lookupByLGTypeID(uint32_t id)
+		{
+			return findSym_lgtypeid(id).ptr;
+		}
+		
 		const Symbol &findSym(const char *name)
 		{
 			for(auto &sym: items)
@@ -192,6 +217,17 @@ class LuaGlueSymTab
 			return nullSymbol;
 		}
 		
+		const Symbol &findSym_lgtypeid(uint32_t id)
+		{
+			for(auto &sym: items)
+			{
+				if(sym.lg_typeid == id)
+					return sym;
+			}
+			
+			return nullSymbol;
+		}
+		
 		const Symbol &findSym(uint32_t idx)
 		{
 			if(idx > items.size())
@@ -203,6 +239,8 @@ class LuaGlueSymTab
 			//printf("findSym(%i): %s\n", idx, items[idx].name);
 			return items[idx];
 		}
+		
+		
 };
 
 template<typename T>
