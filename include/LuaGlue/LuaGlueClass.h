@@ -205,7 +205,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
-		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> obj)
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> const & obj)
 		{
 			assert(obj.get() != nullptr);
 		
