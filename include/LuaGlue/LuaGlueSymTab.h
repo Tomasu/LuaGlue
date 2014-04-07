@@ -9,6 +9,14 @@
 
 #include "LuaGlue/LuaGlueCompat.h"
 
+#if LUAI_BITSINT > 32
+#	define chrono_period std::chrono::nanoseconds
+#elseif LUAI_BITSINT < 32
+#	error unsupported LUA_UNSIGNED type
+#else
+#	define chrono_period std::chrono::milliseconds
+#endif
+
 // NOTE: hashing algorithm used is FNV-1a
 
 // FNV-1a constants
@@ -54,7 +62,7 @@ class LuaGlueSymTab
 		struct Symbol {
 			char *name;
 			const char *typeid_name;
-			T ptr; int idx; uint64_t lg_typeid;
+			T ptr; int idx; LUA_UNSIGNED lg_typeid;
 			
 			Symbol(const char *n = nullptr, const char *tn = nullptr, T p = nullptr, int i = -1)
 				: name(n ? strdup(n) : nullptr), typeid_name(tn), ptr(p), idx(i), lg_typeid(next_typeid())
@@ -89,12 +97,16 @@ class LuaGlueSymTab
 			}
 		
 			private:
-			static uint64_t next_typeid()
+			static LUA_UNSIGNED next_typeid()
 			{
 				static std::random_device rd;
 				auto clk = std::chrono::high_resolution_clock::now();
-				auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(clk.time_since_epoch()).count();
+				auto count = std::chrono::duration_cast<chrono_period>(clk.time_since_epoch()).count();
+#if LUAI_BITSINT > 32
 				return ((uint64_t)(count & 0xfffffffff0000000LL)) | rd();
+#else
+				return ((uint32_t)(count & 0xffff0000L)) | (rd() & 0xffff0000L);
+#endif
 			}
 		};
 		
@@ -183,7 +195,7 @@ class LuaGlueSymTab
 			return findSym(idx).ptr;
 		}
 		
-		T lookupByLGTypeID(uint64_t id)
+		T lookupByLGTypeID(LUA_UNSIGNED id)
 		{
 			return findSym_lgtypeid(id).ptr;
 		}
@@ -217,7 +229,7 @@ class LuaGlueSymTab
 			return nullSymbol;
 		}
 		
-		const Symbol &findSym_lgtypeid(uint64_t id)
+		const Symbol &findSym_lgtypeid(LUA_UNSIGNED id)
 		{
 			for(auto &sym: items)
 			{

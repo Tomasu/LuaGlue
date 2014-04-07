@@ -73,7 +73,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		const std::string &name() { return name_; }
 
-		void setLGTypeID(uint64_t lgt) { lg_typeid_ = lgt; }
+		void setLGTypeID(LUA_UNSIGNED lgt) { lg_typeid_ = lgt; }
 		
 		template<typename _Ret, typename... _Args>
 		_Ret invokeMethod(const std::string &name, _Class *obj, _Args... args)
@@ -559,7 +559,7 @@ class LuaGlueClass : public LuaGlueClassBase
 	private:
 		LuaGlueBase *luaGlue_;
 		std::string name_;
-		uint64_t lg_typeid_;
+		LUA_UNSIGNED lg_typeid_;
 		
 		LuaGlueSymTab<LuaGlueConstant *> constants_;
 		LuaGlueSymTab<LuaGlueMethodBase *> methods;
