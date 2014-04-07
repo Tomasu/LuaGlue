@@ -183,7 +183,7 @@ class LuaGlueSymTab
 			return findSym(idx).ptr;
 		}
 		
-		T lookupByLGTypeID(uint32_t id)
+		T lookupByLGTypeID(uint64_t id)
 		{
 			return findSym_lgtypeid(id).ptr;
 		}
@@ -217,7 +217,7 @@ class LuaGlueSymTab
 			return nullSymbol;
 		}
 		
-		const Symbol &findSym_lgtypeid(uint32_t id)
+		const Symbol &findSym_lgtypeid(uint64_t id)
 		{
 			for(auto &sym: items)
 			{
