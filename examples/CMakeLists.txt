@@ -33,3 +33,6 @@ target_link_libraries(plugin_test ${LUA_LIBRARIES} dl)
 
 add_library(plugin MODULE plugin.cpp)
 
+copy_to_build(light_sandbox.lua)
+add_executable(light_sandbox light_sandbox.cpp light_sandbox.lua)
+target_link_libraries(light_sandbox ${LUA_LIBRARIES})

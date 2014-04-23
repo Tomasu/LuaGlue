@@ -62,12 +62,41 @@ class LuaGlue : public LuaGlueBase
 			return stack<_Ret>::get(this, state_, -1);
 		}
 		
+		template<typename _Ret, typename... _Args>
+		_Ret invokeFunction(const std::string &ns_name, const std::string &name, _Args... args)
+		{
+			const unsigned int Arg_Count_ = sizeof...(_Args);
+			
+			lua_getglobal(state_, ns_name.c_str());
+			lua_pushstring(state_, name.c_str());
+			lua_rawget(state_, -2);
+			lua_remove(state_, -2);
+			
+			applyTuple(this, state_, args...);
+			lua_pcall(state_, Arg_Count_, 1, 0);
+			return stack<_Ret>::get(this, state_, -1);
+		}
+		
 		template<typename... _Args>
 		void invokeVoidFunction(const std::string &name, _Args... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
 			lua_getglobal(state_, name.c_str());
+			applyTuple(this, state_, args...);
+			lua_pcall(state_, Arg_Count_, 0, 0);
+		}
+		
+		template<typename... _Args>
+		void invokeVoidFunction(const std::string &ns_name, const std::string &name, _Args... args)
+		{
+			const unsigned int Arg_Count_ = sizeof...(_Args);
+			
+			lua_getglobal(state_, ns_name.c_str());
+			lua_pushstring(state_, name.c_str());
+			lua_rawget(state_, -2);
+			lua_remove(state_, -2);
+			
 			applyTuple(this, state_, args...);
 			lua_pcall(state_, Arg_Count_, 0, 0);
 		}
@@ -117,6 +146,50 @@ class LuaGlue : public LuaGlueBase
 			
 			return success;
 		}
+		
+		// loads script into light sandbox of sorts.
+		// calls to functions must be prefixed with ns_name.
+		bool doFile(const std::string &ns_name, const std::string &path)
+		{
+			LG_Debug("load script %s: %s", ns_name.c_str(), path.c_str());
+			
+			int ret = luaL_loadfile(state_, path.c_str());
+			if(ret != LUA_OK) // 1
+			{
+				const char *errstr = ret != 7 ? luaL_checklstring(state_, -1, 0) : "file not found?";
+				printf("failed to load %s: err:%i %s\n", ns_name.c_str(), ret, errstr);
+				last_error = std::string(errstr);
+				return false;
+			}
+			
+			LG_Debug("new table");
+			lua_newtable(state_); // script env  // 21
+			lua_setglobal(state_, ns_name.c_str()); // set global name for new table // 1
+
+			lua_getglobal(state_, ns_name.c_str()); // 21
+			lua_newtable(state_); // metatable // 321
+			lua_getglobal(state_, "_G"); // 4321
+			lua_setfield(state_, -2, "__index"); // set __index in metatable to _G // 321
+			lua_setmetatable(state_, -2); // set metatable for script env // 21
+
+			LG_Debug("set env upvalue");
+			lua_setupvalue(state_, -2, 1); // set env for state // 21
+			
+			LG_Debug("run script %s\n", ns_name.c_str());
+			
+			ret = lua_pcall(state_, 0, LUA_MULTRET, 0);
+			if(ret != LUA_OK) // run script // 1
+			{
+				const char *errstr = lua_tostring(state_, -1);
+				printf("failed to run script %s: err:%i %s\n", ns_name.c_str(), ret, errstr ? errstr : "unknown error");
+				last_error = std::string(errstr);
+				return false;
+			}
+
+			LG_Debug("end");
+			return true;
+		}
+
 		
 		bool doString(const std::string &script)
 		{

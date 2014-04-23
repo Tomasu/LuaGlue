@@ -49,7 +49,7 @@ class LuaGlueIndexMethod;
 template<typename _Value, typename _Class, typename _Key>
 class LuaGlueNewIndexMethod;
 
-#include "LuaGlueProperty.h"
+#include "LuaGlue/LuaGlueProperty.h"
 
 template<class _Class>
 class LuaGlueObject;
