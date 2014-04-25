@@ -33,5 +33,5 @@ function(copy_to_build file_name)
 		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${file_name})
 endfunction()
 
-add_subdirectory(tools)
+#add_subdirectory(tools)
 add_subdirectory(examples)
