@@ -6,9 +6,9 @@ option(LUAGLUE_TYPECHECK "enable strict typechecking (slows things down quite a 
 
 # tell CMake to search first in the cmake subdirectory for FIND_PACKAGE() or INCLUDE()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
-set(WARNINGS -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef)
+set(WARNINGS "-Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef")
 
-add_definitions(${WARNINGS})
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${WARNINGS})
 
 if(LUAGLUE_TYPECHECK STREQUAL ON)
 	add_definitions(-DLUAGLUE_TYPECHECK)
@@ -33,4 +33,5 @@ function(copy_to_build file_name)
 		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${file_name})
 endfunction()
 
+add_subdirectory(tools)
 add_subdirectory(examples)
