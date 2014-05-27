@@ -1,6 +1,7 @@
 #ifndef LUAGLUE_OBJECT_BASE_H_GUARD
 #define LUAGLUE_OBJECT_BASE_H_GUARD
 
+#include <memory>
 #include <atomic>
 #include <stdexcept>
 
@@ -211,10 +212,10 @@ class LuaGlueObject : public LuaGlueObjectBase
 			}
 		}
 		
-		Type &operator*() { return *p->ptr<Type>(); }
-		Type *operator->() { return p->ptr<Type>(); }
+		Type &operator*() const { return *p->ptr<Type>(); }
+		Type *operator->() const { return p->ptr<Type>(); }
 		
-		Type *ptr() { return p->ptr<Type>(); }
+		Type *ptr() const { return p->ptr<Type>(); }
 		
 		LuaGlueObjectImplBase *impl() const { return p; }
 	private:
@@ -285,10 +286,10 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 			}
 		}
 		
-		Type operator*() { LG_Debug("operator*"); return *p->ptr<Type>(); }
-		Type *operator->() { return p->ptr<Type>(); }
+		Type operator*() const { LG_Debug("operator*"); return *p->ptr<Type>(); }
+		Type *operator->() const { return p->ptr<Type>(); }
 		
-		ClassType *ptr() { return (*(p->ptr<Type>())).get(); }
+		ClassType *ptr() const { return (*(p->ptr<Type>())).get(); }
 		
 		LuaGlueObjectImplBase *impl() const { return p; }
 	private:

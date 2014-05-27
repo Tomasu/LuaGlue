@@ -59,8 +59,8 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			//stack<Type>::put(glueClass->luaGlue(), state, val);
 
 
-			Type *val = &(obj->*prop_);
-			stack<Type>::put(glueClass->luaGlue(), state, val);
+			//Type *val = &(obj->*prop_);
+			stack<Type>::put(glueClass->luaGlue(), state, obj->*prop_);
 		}
 		
 		void getReturnVal(lua_State *state, _Class *obj)
@@ -155,8 +155,8 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			{
 				// get
 				LG_Debug("type: %s", typeid(decltype((ptr->*prop_))).name());
-				Type val = (ptr->*prop_);
-				stack<Type>::put(glueClass->luaGlue(), state, val);
+				//Type val = (ptr->*prop_);
+				stack<Type>::put(glueClass->luaGlue(), state, ptr->*prop_);
 				return 1;
 			}
 			else if(nargs == 3)
@@ -175,6 +175,85 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 		static int lua_access(lua_State *state)
 		{
 			auto pimp = (LuaGlueDirectProperty<_Type, _Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			return pimp->access(state);
+		}
+};
+
+template<int _N, typename _Type, typename _Class>
+class LuaGlueDirectPropertyArray : public LuaGluePropertyBase
+{
+	public:
+		typedef typename std::remove_const<typename std::remove_reference<_Type>::type>::type Type;
+		typedef _Type (_Class::*PropType)[_N];
+		typedef _Type (ArrayType)[_N];
+		
+		char LUAGLUE_CLASS_NAME[256];
+		
+		LuaGlueDirectPropertyArray(LuaGlueClass<_Class> *luaClass, const std::string &name, PropType prop) : name_(name), prop_(prop), glueClass(luaClass)
+		{
+			snprintf(LUAGLUE_CLASS_NAME, 255, "LuaGlueStaticArray<%i, %s>", _N, typeid(_Type).name());
+		}
+		
+		~LuaGlueDirectPropertyArray() { }
+		
+		std::string name() { return name_; }
+		
+		bool glue(LuaGlueBase *luaGlue)
+		{
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_access, 1);
+			lua_setfield(luaGlue->state(), -2, name_.c_str());
+			return true;
+		}
+		
+	private:
+		std::string name_;
+		Type (_Class::*prop_)[_N];
+		
+		LuaGlueClass<_Class> *glueClass;
+		
+		int access(lua_State *state)
+		{
+			LG_Debug("access: %s::%s", glueClass->name().c_str(), name_.c_str());
+			
+			int nargs = lua_gettop(state);
+			
+			_Class *ptr = nullptr;
+			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
+			if(base->isSharedPtr())
+			{
+				auto obj = *CastLuaGlueObjectShared(_Class, base);
+				ptr = obj.ptr();
+			}
+			else
+			{
+				auto obj = *CastLuaGlueObject(_Class, base);
+				ptr = obj.ptr();
+			}
+			
+			if(nargs == 2)
+			{
+				// get
+				LG_Debug("type: %s", typeid(ArrayType).name());
+				stack<ArrayType>::put(glueClass->luaGlue(), state, (ptr->*prop_));
+				return 1;
+			}
+			else if(nargs == 3)
+			{
+				// set
+				stack<ArrayType>::getInPlace(glueClass->luaGlue(), state, 3, (ptr->*prop_));
+
+				LG_Debug("set prop to <array>");
+				return 0;
+			}
+			
+			return 0;
+		}
+		
+		
+		static int lua_access(lua_State *state)
+		{
+			auto pimp = (LuaGlueDirectPropertyArray<_N, _Type, _Class> *)lua_touserdata(state, lua_upvalueindex(1));
 			return pimp->access(state);
 		}
 };

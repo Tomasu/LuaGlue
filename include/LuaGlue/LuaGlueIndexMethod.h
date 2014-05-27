@@ -51,13 +51,13 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 			{
 				auto obj = *CastLuaGlueObjectShared(ClassType, base);
 				lua_remove(state, 1); // hopefully remove table...
-				ret = applyTuple(glueClass->luaGlue(), state, obj, fn, args);
+				ret = applyTuple<_Class, _Key, _Key>(glueClass->luaGlue(), state, obj, fn, args);
 			}
 			else
 			{
 				auto obj = *CastLuaGlueObject(ClassType, base);
 				lua_remove(state, 1); // hopefully remove table...
-				ret = applyTuple(glueClass->luaGlue(), state, obj, fn, args);
+				ret = applyTuple<_Class, _Key, _Key>(glueClass->luaGlue(), state, obj, fn, args);
 			}
 			
 			lua_pop(state, 2);

@@ -48,6 +48,7 @@ class LuaGlueNewIndexMethod : public LuaGlueMethodBase
 			if(base->isSharedPtr())
 			{
 				auto obj = *CastLuaGlueObjectShared(ClassType, base);
+				
 				lua_remove(state, 1);
 				applyTuple(glueClass->luaGlue(), state, obj, fn, args);
 			}

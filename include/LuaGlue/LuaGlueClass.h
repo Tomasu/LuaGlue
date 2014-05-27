@@ -18,6 +18,7 @@
 #include "LuaGlue/LuaGlueDebug.h"
 
 #include "LuaGlue/LuaGlueBase.h"
+#include "LuaGlue/LuaGlueArray.h"
 
 template<typename _Class, typename... _Args>
 class LuaGlueCtorMethod;
@@ -89,7 +90,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			//lua_dump_stack(luaGlue_->state());
 		
 			lua_pushvalue(luaGlue_->state(), -2);
-			applyTuple(luaGlue_, luaGlue_->state(), args...);
+			applyTupleLuaFunc(luaGlue_, luaGlue_->state(), args...);
 			
 			//using Alias=char[];
 			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
@@ -113,7 +114,8 @@ class LuaGlueClass : public LuaGlueClassBase
 			//lua_dump_stack(luaGlue_->state());
 		
 			lua_pushvalue(luaGlue_->state(), -2);
-			applyTuple(luaGlue_, luaGlue_->state(), args...);
+			
+			applyTupleLuaFunc(luaGlue_, luaGlue_->state(), args...);
 			
 			//using Alias=char[];
 			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
@@ -277,6 +279,30 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			//printf("prop(%s)\n", name.c_str());
 			auto impl = new LuaGlueDirectProperty<_Type, _Class>(this, name, prop);
+			properties_.addSymbol(name.c_str(), impl);
+			
+			return *this;
+		}
+		
+		template<int _N, typename _Type>
+		LuaGlueClass<_Class> &property(const std::string &name, _Type (_Class::*prop)[_N])
+		{
+			printf("prop array!\n");
+			auto impl = new LuaGlueDirectPropertyArray<_N, _Type, _Class>(this, name, prop);
+			
+			// check to see if the required LuaGlueArray specialization is registered
+			// if not, register it.
+			if(!luaGlue_->classExists(impl->LUAGLUE_CLASS_NAME))
+			{
+				// FIXME: calling glue() here ourselves works for now, but later
+				//  if/when namespaces are added, or more complex registration is done, this may break.
+				//  however, not calling it here would mean it may not ever get registered in some cases.
+				auto &ac = ((LuaGlue*)luaGlue_)->Class< LuaGlueStaticArray<_N, _Type> >(impl->LUAGLUE_CLASS_NAME);
+				
+				// if, and only if the state is set
+				if(luaGlue_->state())
+					ac.glue(luaGlue_);
+			}
 			properties_.addSymbol(name.c_str(), impl);
 			
 			return *this;

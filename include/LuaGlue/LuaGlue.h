@@ -46,18 +46,18 @@ class LuaGlue : public LuaGlueBase
 		template<typename _Ret, typename... _Args>
 		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args...))
 		{
-			auto new_func = new LuaGlueFunction<_Ret, _Args...>(this, name, std::forward<decltype(fn)>(fn));
+			auto new_func = new LuaGlueFunction<_Ret, _Args&&...>(this, name, fn);
 			functions.addSymbol(name.c_str(), new_func);
 			return *this;
 		}
 		
 		template<typename _Ret, typename... _Args>
-		_Ret invokeFunction(const std::string &name, _Args... args)
+		_Ret invokeFunction(const std::string &name, _Args&&... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
 			lua_getglobal(state_, name.c_str());
-			applyTuple(this, state_, args...);
+			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
 			lua_pcall(state_, Arg_Count_, 1, 0);
 			return stack<_Ret>::get(this, state_, -1);
 		}
@@ -72,23 +72,23 @@ class LuaGlue : public LuaGlueBase
 			lua_rawget(state_, -2);
 			lua_remove(state_, -2);
 			
-			applyTuple(this, state_, args...);
+			applyTupleLuaFunc(this, state_, args...);
 			lua_pcall(state_, Arg_Count_, 1, 0);
 			return stack<_Ret>::get(this, state_, -1);
 		}
 		
 		template<typename... _Args>
-		void invokeVoidFunction(const std::string &name, _Args... args)
+		void invokeVoidFunction(const std::string &name, _Args&&... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
 			lua_getglobal(state_, name.c_str());
-			applyTuple(this, state_, args...);
+			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
 			lua_pcall(state_, Arg_Count_, 0, 0);
 		}
 		
 		template<typename... _Args>
-		void invokeVoidFunction(const std::string &ns_name, const std::string &name, _Args... args)
+		void invokeVoidFunction(const std::string &ns_name, const std::string &name, _Args&&... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
@@ -97,7 +97,7 @@ class LuaGlue : public LuaGlueBase
 			lua_rawget(state_, -2);
 			lua_remove(state_, -2);
 			
-			applyTuple(this, state_, args...);
+			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
 			lua_pcall(state_, Arg_Count_, 0, 0);
 		}
 		
@@ -210,6 +210,11 @@ class LuaGlue : public LuaGlueBase
 		LuaGlueClassBase *lookupClass(const char *name, bool internal_name = false)
 		{
 			return classes.lookup(name, internal_name);
+		}
+		
+		bool classExists(const char *name, bool internal_name = false)
+		{
+			return classes.exists(name, internal_name);
 		}
 		
 		//LuaGlueClassBase *lookupClass(const std::string &name);

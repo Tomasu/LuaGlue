@@ -58,14 +58,14 @@ class LuaGlueFunction : public LuaGlueFunctionBase
 };
 
 template<typename... _Args>
-class LuaGlueFunction<void, _Args...> : public LuaGlueFunctionBase
+class LuaGlueFunction<void, _Args&&...> : public LuaGlueFunctionBase
 {
 	public:
 		typedef void ReturnType;
-		typedef void (*MethodType)( _Args... );
+		typedef void (*MethodType)( _Args&&... );
 		
-		LuaGlueFunction(LuaGlueBase *lg, const std::string &n, MethodType &&fn) :
-			g(lg), name_(n), fn_(std::forward<decltype(fn)>(fn))
+		LuaGlueFunction(LuaGlueBase *lg, const std::string &n, MethodType fn) :
+			g(lg), name_(n), fn_(fn)
 		{ }
 		
 		~LuaGlueFunction() {}
@@ -85,19 +85,19 @@ class LuaGlueFunction<void, _Args...> : public LuaGlueFunctionBase
 		LuaGlueBase *g;
 		std::string name_;
 		MethodType fn_;
-		std::tuple<_Args...> args;
+		std::tuple<_Args&&...> args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 		
 		int invoke(lua_State *state)
 		{
-			applyTuple(g, state, fn_, args);
+			applyTuple<void, _Args&&...>(g, state, fn_, args);
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
 			return 0;
 		}
 		
 		static int lua_call_func(lua_State *state)
 		{
-			auto mimp = (LuaGlueFunction<void, _Args...> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto mimp = (LuaGlueFunction<void, _Args&&...> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };
