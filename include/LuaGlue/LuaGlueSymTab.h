@@ -65,8 +65,9 @@ class LuaGlueSymTab
 			T ptr; int idx; LUA_UNSIGNED lg_typeid;
 			
 			Symbol(const char *n = nullptr, const char *tn = nullptr, T p = nullptr, int i = -1)
-				: name(n ? strdup(n) : nullptr), typeid_name(tn), ptr(p), idx(i), lg_typeid(next_typeid())
+				: name(nullptr), typeid_name(tn), ptr(p), idx(i), lg_typeid(next_typeid())
 			{
+				name = n ? strdup(n) : nullptr;
 				//printf("new Symbol(\"%s\", \"%s\", %p, %i)\n", n, tn, p, idx);
 			}
 			
