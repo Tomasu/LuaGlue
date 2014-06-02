@@ -39,9 +39,16 @@ int main(int, char **)
 	std::shared_ptr<Shared> ptr(shared);
 
 	printf("shared == %p\n", shared);
+	printf("sptr(shared) == %p\n", ptr.get());
+	
 	state.invokeVoidFunction("test_ptr", ptr);
+	printf("sptr(shared) == %p\n", ptr.get());
+	
 	state.invokeVoidFunction("test_ptr", ptr);
+	printf("sptr(shared) == %p\n", ptr.get());
+	
 	state.invokeVoidFunction("test_ptr", ptr);
+	printf("sptr(shared) == %p\n", ptr.get());
 	
 	printf("done!\n");
 	

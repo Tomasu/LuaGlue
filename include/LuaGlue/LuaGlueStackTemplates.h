@@ -3,6 +3,9 @@
 
 #include <lua.hpp>
 #include <cstdint>
+#include <memory.h>
+
+#include "LuaGlue/LuaGlueUtils.h"
 
 class LuaGlueBase;
 
@@ -12,7 +15,7 @@ LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
 	int ret = luaL_getmetafield(s, idx, LuaGlueClass<T>::METATABLE_CLASSIDX_FIELD);
 	if(!ret)
 	{
-		LG_Warn("typeid:%s", typeid(LuaGlueClass<T>).name());
+		LG_Warn("typeid:%s", CxxDemangle(LuaGlueClass<T>));
 		LG_Warn("failed to get metafield for obj at idx %i", idx);
 		return 0;
 	}
@@ -28,90 +31,13 @@ LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
 template<typename T>
 struct stack;
 
-
-/*
-template<class T>
-struct stack<std::shared_ptr<T>> {
-	static std::shared_ptr<T> get(LuaGlueBase *g, lua_State *s, int idx)
-	{
-		if(lua_islightuserdata(s, idx))
-		{
-			//printf("stack<shared_ptr<T>>::get: lud!\n");
-			LG_Debug("stack::get<shared_ptr<%s>>: lud", typeid(T).name());
-			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
-		}
-		
-		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
-#ifdef LUAGLUE_TYPECHECK
-		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
-		if(lgc)
-		{
-#else
-			(void)g;
-#endif
-			LG_Debug("stack::get<shared_ptr<%s>>: mapped", typeid(T).name());
-			return **(LuaGlueObject<std::shared_ptr<T>> *)lua_touserdata(s, idx);
-
-#ifdef LUAGLUE_TYPECHECK
-		}
-#endif
-
-		LG_Debug("stack::get<%s>: unk", typeid(T).name());
-		//printf("stack::get<shared_ptr<T>>: failed to get a class instance for lua stack value at idx: %i\n", idx);
-		return 0; // TODO: is this a valid thing? I can't imagine this is a good thing.
-	}
-	
-	static void put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
-	{
-		//printf("stack<T>::put(T)\n");
-		
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
-		if(lgc)
-		{
-			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
-			LG_Debug("stack::put<shared_ptr<%s>>: mapped", typeid(T).name());
-			lgc->pushInstance(s, v);
-			return;
-		}
-		
-		// otherwise push onto stack as light user data
-		//printf("stack::put<T>: lud!\n");
-		LG_Debug("stack::put<shared_ptr<%s>>: lud", typeid(T).name());
-		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(v);
-		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
-		lua_pushlightuserdata(s, obj);
-	}
-	
-	static void put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> *v)
-	{
-		//printf("stack<T>::put(T)\n");
-		
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
-		if(lgc)
-		{
-			//printf("stack<shared_ptr<T>>::put: name:%s\n", typeid(T).name());
-			LG_Debug("stack::put<shared_ptr<%s>>: mapped", typeid(T).name());
-			lgc->pushInstance(s, *v);
-			return;
-		}
-		
-		// otherwise push onto stack as light user data
-		//printf("stack::put<T>: lud!\n");
-		LG_Debug("stack::put<shared_ptr<%s>>: lud", typeid(T).name());
-		std::shared_ptr<T> *ptr = new std::shared_ptr<T>(*v);
-		LuaGlueObject<std::shared_ptr<T>> *obj = new LuaGlueObject<std::shared_ptr<T>>(ptr, nullptr, true);
-		lua_pushlightuserdata(s, obj);
-	}
-};
-*/
-
 template<class T>
 struct stack<LuaGlueObject<T>&> {
 	static T get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<LuaGlueObject<%s>>: lud", typeid(T).name());
+			LG_Debug("stack::get<LuaGlueObject<%s>>: lud", CxxDemangle(T));
 			return *(LuaGlueObject<T> *)lua_touserdata(s, idx);
 		}
 		
@@ -123,14 +49,14 @@ struct stack<LuaGlueObject<T>&> {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<LuaGlueObject<%s>>: mapped", typeid(T).name());
+			LG_Debug("stack::get<LuaGlueObject<%s>>: mapped", CxxDemangle(T));
 			return **(LuaGlueObject<T> *)lua_touserdata(s, idx);
 
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
-		LG_Debug("stack::get<LuaGlueObject<%s>>: unk", typeid(T).name());
+		LG_Debug("stack::get<LuaGlueObject<%s>>: unk", CxxDemangle(T));
 		return T(); // TODO: is this a valid thing? I can't imagine this is a good thing.
 	}
 	
@@ -139,20 +65,122 @@ struct stack<LuaGlueObject<T>&> {
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			LG_Debug("stack::put<LuaGlueObject<%s>>: mapped", typeid(T).name());
+			LG_Debug("stack::put<LuaGlueObject<%s>>: mapped", CxxDemangle(T));
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
-		LG_Debug("stack::put<LuaGlueObject<%s>>: lud", typeid(T).name());
-		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v);
+		LG_Debug("stack::put<LuaGlueObject<%s>>: lud", CxxDemangle(T));
+		LuaGlueObject<T> *obj = new LuaGlueObject<T>(v, nullptr, true);
+		lua_pushlightuserdata(s, obj);
+	}
+};
+
+template<class T>
+struct stack<std::shared_ptr<T>> {
+	typedef typename std::shared_ptr<T> SType;
+	
+	static SType get(LuaGlueBase *g, lua_State *s, int idx)
+	{
+		if(lua_islightuserdata(s, idx))
+		{
+			LG_Debug("stack::get<LuaGlueObject<std::shared_ptr<%s>>>: lud", CxxDemangle(T));
+			LuaGlueObject<SType> ptr = *(LuaGlueObject<SType> *)lua_touserdata(s, idx);
+			return *ptr;
+		}
+		
+		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
+#ifdef LUAGLUE_TYPECHECK
+		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
+		if(lgc)
+		{
+#else
+			(void)g;
+#endif
+			LG_Debug("stack::get<LuaGlueObject<std::shared_ptr<%s>>>: mapped", CxxDemangle(T));
+			LuaGlueObject<SType> obj = *(LuaGlueObject<SType> *)lua_touserdata(s, idx);
+			return *obj;
+
+#ifdef LUAGLUE_TYPECHECK
+		}
+#endif
+
+		LG_Debug("stack::get<LuaGlueObject<std::shared_ptr<%s>>>: unk", CxxDemangle(T));
+		return SType(); // TODO: is this a valid thing? I can't imagine this is a good thing.
+	}
+	
+	static void put(LuaGlueBase *g, lua_State *s, SType v)
+	{
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
+			LG_Debug("stack::put<LuaGlueObject<std::shared_ptr<%s>>>: mapped", CxxDemangle(T));
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		LG_Debug("stack::put<LuaGlueObject<std::shared_ptr<%s>>>: lud", CxxDemangle(T));
+		SType *ptr = new SType(v);
+		LuaGlueObject<SType> *obj = new LuaGlueObject<SType>(ptr, nullptr, true);
+		lua_pushlightuserdata(s, obj);
+	}
+};
+
+template<class T>
+struct stack<std::shared_ptr<T>&> {
+	typedef typename std::shared_ptr<T> SType;
+	
+	static SType get(LuaGlueBase *g, lua_State *s, int idx)
+	{
+		if(lua_islightuserdata(s, idx))
+		{
+			LG_Debug("stack::get<LuaGlueObject<std::shared_ptr<%s>>>: lud", CxxDemangle(T));
+			LuaGlueObject<SType> ptr = *(LuaGlueObject<SType> *)lua_touserdata(s, idx);
+			return *ptr;
+		}
+		
+		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
+#ifdef LUAGLUE_TYPECHECK
+		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
+		if(lgc)
+		{
+#else
+			(void)g;
+#endif
+			LG_Debug("stack::get<LuaGlueObject<std::shared_ptr<%s>>>: mapped", CxxDemangle(T));
+			LuaGlueObject<SType> obj = *(LuaGlueObject<SType> *)lua_touserdata(s, idx);
+			return *obj;
+
+#ifdef LUAGLUE_TYPECHECK
+		}
+#endif
+
+		LG_Debug("stack::get<LuaGlueObject<std::shared_ptr<%s>>>: unk", CxxDemangle(T));
+		return SType(); // TODO: is this a valid thing? I can't imagine this is a good thing.
+	}
+	
+	static void put(LuaGlueBase *g, lua_State *s, SType v)
+	{
+		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		if(lgc)
+		{
+			LG_Debug("stack::put<LuaGlueObject<std::shared_ptr<%s>>>: mapped", CxxDemangle(T));
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		LG_Debug("stack::put<LuaGlueObject<std::shared_ptr<%s>>>: lud", CxxDemangle(T));
+		SType *ptr = new SType(v);
+		LuaGlueObject<SType> *obj = new LuaGlueObject<SType>(ptr, nullptr, true);
 		lua_pushlightuserdata(s, obj);
 	}
 };
 
 template<typename _Ret, typename... _Args>
-struct stack<std::function<_Ret(_Args...)>> {
+struct stack<std::function<_Ret(_Args...)>&> {
 	static std::function<_Ret(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
@@ -181,7 +209,7 @@ struct stack<std::function<_Ret(_Args...)>> {
 };
 
 template<typename... _Args>
-struct stack<std::function<void(_Args...)>> {
+struct stack<const std::function<void(_Args...)>&> {
 	static std::function<void(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
@@ -206,45 +234,6 @@ struct stack<std::function<void(_Args...)>> {
 		};
 		
 		lua_pushcfunction(s, func);
-	}
-};
-
-template<>
-struct stack<int&> {
-	static int get(LuaGlueBase *, lua_State *s, int idx)
-	{
-		return luaL_checkint(s, idx);
-	}
-	
-	static void put(LuaGlueBase *, lua_State *s, int &v)
-	{
-		lua_pushinteger(s, v);
-	}
-};
-
-template<>
-struct stack<const int&> {
-	static int get(LuaGlueBase *, lua_State *s, int idx)
-	{
-		return luaL_checkint(s, idx);
-	}
-	
-	static void put(LuaGlueBase *, lua_State *s, int &v)
-	{
-		lua_pushinteger(s, v);
-	}
-};
-
-template<>
-struct stack<int> {
-	static int get(LuaGlueBase *, lua_State *s, int idx)
-	{
-		return luaL_checkint(s, idx);
-	}
-	
-	static void put(LuaGlueBase *, lua_State *s, int &v)
-	{
-		lua_pushinteger(s, v);
 	}
 };
 
@@ -277,12 +266,13 @@ struct stack<T(&)[_N]> {
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
-			LG_Debug("stack::put<%s>: mapped %p", typeid(ArrayType).name(), v);
+			LG_Debug("stack::put<%s>: mapped %p", CxxDemangle(ArrayType), v);
 			ArrayType *sa = new ArrayType(v);
-			lgc->pushInstance(s, sa);
+			lgc->pushInstance(s, sa, true);
 			return;
 		}
-		
+	
+		LG_Debug("stack::put<%s>: lud", CxxDemangle(ArrayType));
 		lua_pushnil(s);
 	}
 	
@@ -296,7 +286,7 @@ struct stack<T(&)[_N]> {
 #else
 				(void)g;
 #endif
-				LG_Debug("stack::get<%s>: mapped", typeid(ArrayType).name());
+				LG_Debug("stack::get<%s>: mapped", CxxDemangle(ArrayType));
 				LuaGlueObject<ArrayType> *p = (LuaGlueObject<ArrayType> *)lua_touserdata(s, idx);
 				LG_Debug("p: %p", p);
 				LuaGlueObject<ArrayType> obj = *p;
@@ -307,7 +297,7 @@ struct stack<T(&)[_N]> {
 			}
 #endif
 			
-			LG_Debug("stack::get<%s>: unk", typeid(ArrayType).name());
+			LG_Debug("stack::get<%s>: unk", CxxDemangle(ArrayType));
 			return 0;
 		}
 };
@@ -335,13 +325,13 @@ struct stack<T[_N]> {
 		return 0;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
+	static void put(LuaGlueBase *g, lua_State *s, T v[_N])
 	{
 		LuaGlueClass<ArrayType> *lgc = (LuaGlueClass<ArrayType> *)g->lookupClass(typeid(LuaGlueClass<ArrayType>).name(), true);
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
-			LG_Debug("stack::put<%s>: mapped %p", typeid(ArrayType).name(), v);
+			LG_Debug("stack::put<%s>: mapped %p", CxxDemangle(ArrayType), v);
 			ArrayType *sa = new ArrayType(v);
 			lgc->pushInstance(s, sa);
 			return;
@@ -360,7 +350,7 @@ struct stack<T[_N]> {
 #else
 				(void)g;
 #endif
-				LG_Debug("stack::get<%s>: mapped", typeid(ArrayType).name());
+				LG_Debug("stack::get<%s>: mapped", CxxDemangle(ArrayType));
 				LuaGlueObject<ArrayType> *p = (LuaGlueObject<ArrayType> *)lua_touserdata(s, idx);
 				LG_Debug("p: %p", p);
 				LuaGlueObject<ArrayType> obj = *p;
@@ -371,13 +361,81 @@ struct stack<T[_N]> {
 			}
 #endif
 			
-			LG_Debug("stack::get<%s>: unk", typeid(ArrayType).name());
+			LG_Debug("stack::get<%s>: unk", CxxDemangle(ArrayType));
 			return 0;
 		}
 };
 
 template<>
+struct stack<int&> {
+	static int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		LG_Debug("stack::get<int&>:%i", idx);
+		return luaL_checkint(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, int &v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<const int&> {
+	static int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		LG_Debug("stack::get<const int&>:%i", idx);
+		return luaL_checkint(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, int &v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<int> {
+	static int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		LG_Debug("stack::get<int>:%i", idx);
+		return luaL_checkint(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, int v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
 struct stack<unsigned int> {
+	static unsigned int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, unsigned int v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<unsigned int&> {
+	static unsigned int get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, unsigned int v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<const unsigned int&> {
 	static unsigned int get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checkinteger(s, idx);
@@ -403,7 +461,59 @@ struct stack<float> {
 };
 
 template<>
+struct stack<float&> {
+	static float get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checknumber(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, float v)
+	{
+		lua_pushnumber(s, v);
+	}
+};
+
+template<>
+struct stack<const float&> {
+	static float get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checknumber(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, float v)
+	{
+		lua_pushnumber(s, v);
+	}
+};
+
+template<>
 struct stack<double> {
+	static double get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checknumber(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, double v)
+	{
+		lua_pushnumber(s, v);
+	}
+};
+
+template<>
+struct stack<double&> {
+	static double get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checknumber(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, double v)
+	{
+		lua_pushnumber(s, v);
+	}
+};
+
+template<>
+struct stack<const double&> {
 	static double get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checknumber(s, idx);
@@ -429,6 +539,32 @@ struct stack<bool> {
 };
 
 template<>
+struct stack<bool&> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return lua_toboolean(s, idx) ? true : false;
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, bool v)
+	{
+		lua_pushboolean(s, v);
+	}
+};
+
+template<>
+struct stack<const bool&> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return lua_toboolean(s, idx) ? true : false;
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, bool v)
+	{
+		lua_pushboolean(s, v);
+	}
+};
+
+template<>
 struct stack<char> {
 	static char get(LuaGlueBase *, lua_State *s, int idx)
 	{
@@ -438,6 +574,58 @@ struct stack<char> {
 	static void put(LuaGlueBase *, lua_State *s, char v)
 	{
 		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<char&> {
+	static char get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, char v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<const char&> {
+	static char get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, char v)
+	{
+		lua_pushinteger(s, v);
+	}
+};
+
+template<>
+struct stack<const char *&> {
+	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkstring(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	{
+		lua_pushstring(s, v);
+	}
+};
+
+template<>
+struct stack<const char * const &> {
+	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkstring(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	{
+		lua_pushstring(s, v);
 	}
 };
 
@@ -475,13 +663,57 @@ struct stack<std::string> {
 	}
 };
 
+template<>
+struct stack<std::string &> {
+	static std::string get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		const char *str = luaL_checkstring(s, idx);
+		LG_Debug("str: %s", str);
+		return str;
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, std::string v)
+	{
+		lua_pushstring(s, v.c_str());
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, std::string *v)
+	{
+		LG_Debug("str: %s", v->c_str());
+		lua_pushstring(s, v->c_str());
+	}
+};
+
+template<>
+struct stack<const std::string&> {
+	static std::string get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		const char *str = luaL_checkstring(s, idx);
+		LG_Debug("str: %s", str);
+		return str;
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, std::string v)
+	{
+		lua_pushstring(s, v.c_str());
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, std::string *v)
+	{
+		LG_Debug("str: %s", v->c_str());
+		lua_pushstring(s, v->c_str());
+	}
+};
+
 template<class T>
 struct stack<T *> {
 	static T *get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<%s *>: lud", typeid(T).name());
+			LG_Debug("stack::get<%s *>: lud", CxxDemangle(T));
+			// Might want to wrap this in a LuaGlueObject, but not sure we need to.
+			// generally only copies of statically allocated types are done that way.
 			return (T*)lua_touserdata(s, idx);
 		}
 		
@@ -493,7 +725,7 @@ struct stack<T *> {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<%s *>: mapped", typeid(T).name());
+			LG_Debug("stack::get<%s *>: mapped", CxxDemangle(T));
 			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
 			LG_Debug("p: %p", p);
 			LuaGlueObject<T> obj = *p;
@@ -503,7 +735,7 @@ struct stack<T *> {
 		}
 #endif
 		
-		LG_Debug("stack::get<%s *>: unk", typeid(T).name());
+		LG_Debug("stack::get<%s *>: unk", CxxDemangle(T));
 		return 0;
 	}
 	
@@ -516,17 +748,71 @@ struct stack<T *> {
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
-			LG_Debug("stack::put<%s *>: mapped %p", typeid(T).name(), v);
+			LG_Debug("stack::put<%s *>: mapped %p", CxxDemangle(T), v);
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T*>: lud!\n");
-		LG_Debug("stack::put<%s *>: lud", typeid(T).name());
+		LG_Debug("stack::put<%s *>: lud", CxxDemangle(T));
 		lua_pushlightuserdata(s, v);
 	}
 };
+
+template<class T>
+struct stack<T *&> {
+	static T *get(LuaGlueBase *g, lua_State *s, int idx)
+	{
+		if(lua_islightuserdata(s, idx))
+		{
+			LG_Debug("stack::get<%s *>: lud", CxxDemangle(T));
+			return (T*)lua_touserdata(s, idx);
+		}
+		
+#ifdef LUAGLUE_TYPECHECK
+		typedef typename std::remove_pointer<T>::type TC;
+		LuaGlueClass<TC> *lgc = getGlueClass<TC>(g, s, idx);
+		if(lgc)
+		{
+#else
+			(void)g;
+#endif
+			LG_Debug("stack::get<%s *>: mapped", CxxDemangle(T));
+			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LG_Debug("p: %p", p);
+			LuaGlueObject<T> obj = *p;
+			LG_Debug("ptr: %p", obj.ptr());
+			return obj.ptr();
+#ifdef LUAGLUE_TYPECHECK
+		}
+#endif
+		
+		LG_Debug("stack::get<%s *>: unk", CxxDemangle(T));
+		return 0;
+	}
+	
+	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	{
+		// first look for a class we support
+
+		typedef typename std::remove_pointer<T>::type TC;
+		LuaGlueClass<TC> *lgc = (LuaGlueClass<TC> *)g->lookupClass(typeid(LuaGlueClass<TC>).name(), true);
+		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
+		if(lgc)
+		{
+			LG_Debug("stack::put<%s *>: mapped %p", CxxDemangle(T), v);
+			lgc->pushInstance(s, v);
+			return;
+		}
+		
+		// otherwise push onto stack as light user data
+		//printf("stack::put<T*>: lud!\n");
+		LG_Debug("stack::put<%s *>: lud", CxxDemangle(T));
+		lua_pushlightuserdata(s, v);
+	}
+};
+
 
 template<class T>
 struct stack<T *const&> {
@@ -534,7 +820,7 @@ struct stack<T *const&> {
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<%s *>: lud", typeid(T).name());
+			LG_Debug("stack::get<%s *>: lud", CxxDemangle(T));
 			return (T*)lua_touserdata(s, idx);
 		}
 		
@@ -546,7 +832,10 @@ struct stack<T *const&> {
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<%s *>: mapped", typeid(T).name());
+			lua_dump_stack(s);
+			LG_Debug("stack::get<%s *>:%i: %s mapped", CxxDemangle(T), idx, lua_typename(s, lua_type(s, idx)));
+		
+			lua_dump_stack(s);
 			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
 			LG_Debug("p: %p", p);
 			LuaGlueObject<T> obj = *p;
@@ -556,7 +845,7 @@ struct stack<T *const&> {
 		}
 #endif
 		
-		LG_Debug("stack::get<%s *>: unk", typeid(T).name());
+		LG_Debug("stack::get<%s *>: unk", CxxDemangle(T));
 		return 0;
 	}
 	
@@ -569,14 +858,14 @@ struct stack<T *const&> {
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
-			LG_Debug("stack::put<%s *>: mapped %p", typeid(T).name(), v);
+			LG_Debug("stack::put<%s *>: mapped %p", CxxDemangle(T), v);
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
 		//printf("stack::put<T*>: lud!\n");
-		LG_Debug("stack::put<%s *>: lud", typeid(T).name());
+		LG_Debug("stack::put<%s *>: lud", CxxDemangle(T));
 		lua_pushlightuserdata(s, v);
 	}
 };
@@ -585,47 +874,53 @@ struct stack<T *const&> {
 // new LuaGlueObject stuff needs a way to "own" a pointer, and know how to delete it.
 template<class T>
 struct stack {
-	static T get(LuaGlueBase *g, lua_State *s, int idx)
+	typedef typename std::remove_reference<T>::type RRT;
+	
+	static RRT get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
-			LG_Debug("stack::get<static %s>: lud", typeid(T).name());
-			return *(T*)lua_touserdata(s, idx);
+			LG_Debug("stack::get<static %s>: lud", CxxDemangle(RRT));
+			LuaGlueObject<RRT> obj = *(LuaGlueObject<RRT> *)lua_touserdata(s, idx);
+			return *obj;
 		}
 		
 #ifdef LUAGLUE_TYPECHECK
-		LuaGlueClass<T> *lgc = getGlueClass<T>(g, s, idx);
+		LuaGlueClass<RRT> *lgc = getGlueClass<RRT>(g, s, idx);
 		if(lgc)
 		{
 #else
 			(void)g;
 #endif
-			LG_Debug("stack::get<static %s>: mapped", typeid(T).name());
-			LuaGlueObject<T> obj = *(LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LG_Debug("stack::get<static %s>: mapped", CxxDemangle(RRT));
+			LuaGlueObject<RRT> *ptr = (LuaGlueObject<RRT> *)lua_touserdata(s, idx);
+			if(!ptr)
+				LG_Debug("no glue object found?");
+			LuaGlueObject<RRT> obj = *ptr;
 			return *obj;
 #ifdef LUAGLUE_TYPECHECK
 		}
 #endif
 
-		LG_Debug("stack::get<static %s>: failed to get a class instance for lua stack value at idx: %i", typeid(T).name(), idx);
-		return T();
+		LG_Debug("stack::get<static %s>: failed to get a class instance for lua stack value at idx: %i", CxxDemangle(RRT), idx);
+		return RRT();
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T v)
+	static void put(LuaGlueBase *g, lua_State *s, RRT &v)
 	{
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		LuaGlueClass<RRT> *lgc = (LuaGlueClass<RRT> *)g->lookupClass(typeid(LuaGlueClass<RRT>).name(), true);
 		if(lgc)
 		{
-			LG_Debug("stack::put<static1 %s>: mapped", typeid(T).name());
-			lgc->pushInstance(s, new T(v), true);
+			LG_Debug("stack::put<static1 %s>: mapped", CxxDemangle(RRT));
+			lgc->pushInstance(s, new RRT(v), true);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
-		//printf("stack::put<T>: lud!\n");
+		//printf("stack::put<RRT>: lud!\n");
 		
-		LG_Debug("stack::put<static1 %s>: lud", typeid(T).name());
-		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(v), 0, true);
+		LG_Debug("stack::put<static1 %s>: lud", CxxDemangle(RRT));
+		LuaGlueObject<RRT> *obj = new LuaGlueObject<RRT>(new RRT(v), 0, true);
 		lua_pushlightuserdata(s, obj);
 	}
 	

@@ -65,6 +65,7 @@ R applyTuple(LuaGlueBase *g, lua_State *s, T* pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
+	LG_Debug("in ObjFunc applyTuple");
 	return apply_obj_func<sizeof...(ArgsT)>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t) );
 }
 

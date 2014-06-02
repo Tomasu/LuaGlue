@@ -4,6 +4,8 @@
 #ifdef LG_DEBUG
 
 #include <cstring>
+#include <vector>
+
 static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, const char *t, const char *format, ...)
 {
 	va_list ap;
@@ -30,14 +32,18 @@ static inline void LG_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 	else
 		fptr++;
 	
+	//char *buff = (char*)calloc(1, strlen(FUNCTION)+1);
+	//LG_Debug_subst_symbol(FUNCTION, buff);
 	printf("%s:%s:%i: %s: %s\n", fptr, FUNCTION, LINE, t, msg);
+	//(void)FUNCTION;
+	//printf("%s:%i: %s: %s\n", fptr, LINE, t, msg);
 	
 	delete[] msg;
 }
 
-#define LG_Debug(a, ...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "D", a, ##__VA_ARGS__)
-#define LG_Warn(a, ...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "W", a, ##__VA_ARGS__)
-#define LG_Error(a, ...) LG_Debug_(__FILE__, __PRETTY_FUNCTION__, __LINE__, "E", a, ##__VA_ARGS__)
+#define LG_Debug(a, ...) LG_Debug_(__FILE__, __FUNCTION__, __LINE__, "D", a, ##__VA_ARGS__)
+#define LG_Warn(a, ...) LG_Debug_(__FILE__, __FUNCTION__, __LINE__, "W", a, ##__VA_ARGS__)
+#define LG_Error(a, ...) LG_Debug_(__FILE__, __FUNCTION__, __LINE__, "E", a, ##__VA_ARGS__)
 
 #else
 

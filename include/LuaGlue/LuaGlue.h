@@ -13,6 +13,7 @@
 #include "LuaGlue/LuaGlueFunction.h"
 #include "LuaGlue/LuaGlueLuaFuncRef.h"
 #include "LuaGlue/LuaGlueSymTab.h"
+#include "LuaGlue/LuaGlueUtils.h"
 
 template<typename _Class>
 class LuaGlueClass;
@@ -43,8 +44,16 @@ class LuaGlue : public LuaGlueBase
 			return *new_class;
 		}
 		
-		template<typename _Ret, typename... _Args>
+		/*template<typename _Ret, typename... _Args>
 		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args...))
+		{
+			auto new_func = new LuaGlueFunction<_Ret, _Args...>(this, name, fn);
+			functions.addSymbol(name.c_str(), new_func);
+			return *this;
+		}*/
+		
+		template<typename _Ret, typename... _Args>
+		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args&&...))
 		{
 			auto new_func = new LuaGlueFunction<_Ret, _Args&&...>(this, name, fn);
 			functions.addSymbol(name.c_str(), new_func);
@@ -72,7 +81,10 @@ class LuaGlue : public LuaGlueBase
 			lua_rawget(state_, -2);
 			lua_remove(state_, -2);
 			
+			LG_Debug("before applyTupleLuaFunc");
 			applyTupleLuaFunc(this, state_, args...);
+
+			LG_Debug("before pcall");
 			lua_pcall(state_, Arg_Count_, 1, 0);
 			return stack<_Ret>::get(this, state_, -1);
 		}
@@ -83,8 +95,20 @@ class LuaGlue : public LuaGlueBase
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
 			lua_getglobal(state_, name.c_str());
+			LG_Debug("before applyTupleLuaFunc");
+			//lua_dump_stack(state_);
 			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
-			lua_pcall(state_, Arg_Count_, 0, 0);
+
+			LG_Debug("before pcall");
+			//lua_dump_stack(state_);
+			int ret = lua_pcall(state_, Arg_Count_, 0, 0);
+			if(ret != LUA_OK)
+			{
+				const char *err = luaL_checkstring(state_, -1);
+				printf("error: %s\n", err);
+			}
+			
+			LG_Debug("after pcall");
 		}
 		
 		template<typename... _Args>
@@ -98,7 +122,12 @@ class LuaGlue : public LuaGlueBase
 			lua_remove(state_, -2);
 			
 			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
-			lua_pcall(state_, Arg_Count_, 0, 0);
+			int ret = lua_pcall(state_, Arg_Count_, 0, 0);
+			if(ret != LUA_OK)
+			{
+				const char *err = luaL_checkstring(state_, -1);
+				printf("error: %s\n", err);
+			}
 		}
 		
 		template<typename _Type>

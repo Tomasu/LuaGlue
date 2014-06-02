@@ -186,7 +186,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			assert(obj != nullptr);
 			
-			LG_Debug("%s pushInstance", typeid(_Class).name());
+			LG_Debug("%s pushInstance", CxxDemangle(_Class));
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj, this, owner); // placement new to initialize object
 			
@@ -198,9 +198,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueObject<_Class> &obj)
 		{
-			assert(obj.ptr() != nullptr);
+			//assert(obj.ptr() != nullptr);
 			
-			LG_Debug("LuaGlueObject<%s> pushInstance", typeid(_Class).name());
+			LG_Debug("LuaGlueObject<%s> pushInstance", CxxDemangle(_Class));
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj); // placement new to initialize object
 			
@@ -212,12 +212,26 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, std::shared_ptr<_Class> const & obj)
 		{
-			assert(obj.get() != nullptr);
+			//assert(obj.get() != nullptr);
 		
-			LG_Debug("shared_ptr<%s> pushInstance", typeid(_Class).name());
+			LG_Debug("shared_ptr<%s> pushInstance", CxxDemangle(_Class));
 			std::shared_ptr<_Class> *ptr_ptr = new std::shared_ptr<_Class>(obj);
 			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
 			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
+			
+			luaL_getmetatable(state, name_.c_str());
+			lua_setmetatable(state, -2);
+			
+			return *this;
+		}
+		
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueObject<std::shared_ptr<_Class>> &obj)
+		{
+			assert(obj.ptr() != nullptr);
+			
+			LG_Debug("LuaGlueObject<std::shared_ptr<%s>> pushInstance", CxxDemangle(_Class));
+			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
+			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(obj); // placement new to initialize object
 			
 			luaL_getmetatable(state, name_.c_str());
 			lua_setmetatable(state, -2);
@@ -247,7 +261,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Value, typename _Key>
 		LuaGlueClass<_Class> &index(_Value (_Class::*fn)(_Key))
 		{
-			//printf("index()\n");
+			LG_Debug("%s %s::index(%s)", CxxDemangle(_Value), CxxDemangle(_Class), CxxDemangle(_Key));
 			auto impl = new LuaGlueIndexMethod<_Value, _Class, _Key>(this, "m__index", std::forward<decltype(fn)>(fn));
 			meta_methods.addSymbol("m__index", impl);
 			
@@ -287,7 +301,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<int _N, typename _Type>
 		LuaGlueClass<_Class> &property(const std::string &name, _Type (_Class::*prop)[_N])
 		{
-			printf("prop array!\n");
+			LG_Debug("prop array!\n");
 			auto impl = new LuaGlueDirectPropertyArray<_N, _Type, _Class>(this, name, prop);
 			
 			// check to see if the required LuaGlueArray specialization is registered
@@ -299,9 +313,14 @@ class LuaGlueClass : public LuaGlueClassBase
 				//  however, not calling it here would mean it may not ever get registered in some cases.
 				auto &ac = ((LuaGlue*)luaGlue_)->Class< LuaGlueStaticArray<_N, _Type> >(impl->LUAGLUE_CLASS_NAME);
 				
+				LG_Debug("register %s", impl->LUAGLUE_CLASS_NAME);
+				LuaGlueStaticArray<_N, _Type>::glue(ac);
+					
 				// if, and only if the state is set
 				if(luaGlue_->state())
+				{
 					ac.glue(luaGlue_);
+				}
 			}
 			properties_.addSymbol(name.c_str(), impl);
 			
@@ -607,7 +626,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			if(type == LUA_TSTRING)
 			{
 				const char *key = lua_tostring(state, 2);
-
+				
 				lua_getmetatable(state, 1);
 				lua_pushvalue(state, 2); // push key
 				
@@ -625,6 +644,8 @@ class LuaGlueClass : public LuaGlueClassBase
 			}
 			else if(type == LUA_TNUMBER)
 			{
+				lua_dump_stack(state);
+				LG_Debug("array type?");
 				lua_getmetatable(state, 1);
 				lua_pushstring(state, "m__index");
 				
@@ -635,10 +656,15 @@ class LuaGlueClass : public LuaGlueClassBase
 					lua_pushvalue(state, 1); // copy 1st and 2nd stack elements
 					lua_pushvalue(state, 2);
 					
+					LG_Debug("before pcall");
 					lua_pcall(state, 2, 1, 0); // removes the argument copies
 				// should always be a function.. might want to put some debug/trace messages to make sure
 					
 					//lua_dump_stack(state);
+				}
+				else
+				{
+					LG_Debug("not a function :( %s", lua_typename(state, -1));
 				}
 			}
 			else

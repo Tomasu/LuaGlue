@@ -26,6 +26,19 @@ struct apply_func
 		typedef typename std::remove_const<decltype(std::get<N-1>(t))>::type ltype;
 		return apply_func<N-1>::applyTuple( g, s, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), std::forward<Args>(args)... );
 	}
+	
+	template < typename R, typename... ArgsF, typename... ArgsT, typename... Args >
+	static R applyTuple(	LuaGlueBase *g, lua_State *s, R (*f)( ArgsF ... ),
+									const std::tuple<ArgsT...>& t,
+									decltype(std::get<N-1>(t)) argN,
+									Args &&... args )
+	{
+		const static int argCount = sizeof...(ArgsT);
+		//typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
+		//typedef typename std::remove_const<ltype_const>::type ltype;
+		typedef typename std::remove_const<decltype(std::get<N-1>(t))>::type ltype;
+		return apply_func<N-1>::applyTuple( g, s, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), std::forward<Args>(args)... );
+	}
 };
 
 //-----------------------------------------------------------------------------
@@ -59,8 +72,9 @@ struct apply_func<0>
 // Actual apply function
 template < typename R, typename... ArgsF, typename... ArgsT >
 R applyTuple( LuaGlueBase *g, lua_State *s, R (*f)(ArgsF...),
-                 const std::tuple<ArgsT...> & t )
+                 const std::tuple<ArgsT&&...> & t )
 {
+	LG_Debug("in StaticFunc applyTuple");
 	return apply_func<sizeof...(ArgsT)>::applyTuple( g, s, f, std::forward<decltype(t)>(t) );
 }
 

@@ -165,7 +165,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 				Type val = stack<Type>::get(glueClass->luaGlue(), state, 3);
 				(ptr->*prop_) = val;
 				//setProp(state, ptr);
-				LG_Debug("set prop to %d", (ptr->*prop_));
+				LG_Debug("set (%p) prop to %d", ptr, (ptr->*prop_));
 				return 0;
 			}
 			

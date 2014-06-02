@@ -18,7 +18,9 @@ template<typename _Value, typename _Class, typename _Key>
 class LuaGlueIndexMethod : public LuaGlueMethodBase
 {
 	public:
+		typedef _Value ValueType;
 		typedef _Class ClassType;
+		typedef _Key KeyType;
 		typedef _Value (_Class::*MethodType)(_Key);
 		
 		LuaGlueIndexMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<MethodType>(fn))
@@ -36,28 +38,28 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 			return true;
 		}
 		
-	private:
-		LuaGlueClass<_Class> *glueClass;
-		std::string name_;
-		MethodType fn;
-		std::tuple<_Key> args;
-		
 		int invoke(lua_State *state)
 		{
 			_Value ret;
 			
+			LG_Debug("invoke index");
+			lua_dump_stack(state);
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
 				auto obj = *CastLuaGlueObjectShared(ClassType, base);
 				lua_remove(state, 1); // hopefully remove table...
-				ret = applyTuple<_Class, _Key, _Key>(glueClass->luaGlue(), state, obj, fn, args);
+				ret = applyTuple<_Class, _Value, _Key>(glueClass->luaGlue(), state, obj, fn, args);
 			}
 			else
 			{
 				auto obj = *CastLuaGlueObject(ClassType, base);
 				lua_remove(state, 1); // hopefully remove table...
-				ret = applyTuple<_Class, _Key, _Key>(glueClass->luaGlue(), state, obj, fn, args);
+				
+				//lua_dump_stack(state);
+				LG_Debug("before applyTuple: %s %s", CxxDemangle(_Key), CxxDemangle(_Value));
+				ret = applyTuple<_Class, _Value, _Key>(glueClass->luaGlue(), state, obj, fn, args);
+				LG_Debug("after applyTuple");
 			}
 			
 			lua_pop(state, 2);
@@ -67,9 +69,15 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 			return 1;
 		}
 		
+	private:
+		LuaGlueClass<_Class> *glueClass;
+		std::string name_;
+		MethodType fn;
+		std::tuple<_Key> args;
+		
 		static int lua_call_func(lua_State *state)
 		{
-			auto mimp = (LuaGlueIndexMethod<_Value, _Class, _Value> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto mimp = (LuaGlueIndexMethod<_Value, _Class, _Key> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };

@@ -25,7 +25,9 @@ struct apply_glueobj_func
 		//typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		//typedef typename std::remove_const<ltype_const>::type ltype;
 		typedef typename std::remove_const<decltype(std::get<N-1>(t))>::type ltype;
-		return apply_glueobj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, -(argCount-N+1)), std::forward<Args>(args)... );
+		int idx = lua_absindex(s, -(argCount-N+1));
+		LG_Debug("apply_glueobj_func<%i>::applyTuple arg(%i,%i):%s", N, lua_gettop(s), idx, CxxDemangle(ltype));
+		return apply_glueobj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, idx), std::forward<Args>(args)... );
 	}
 };
 
@@ -65,6 +67,7 @@ R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> &pObj,
                  R (T::*f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
+	//LG_Debug("before apply_glueobj_func<%i>::applyTuple", sizeof...(ArgsT));
 	return apply_glueobj_func<sizeof...(ArgsT)>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t) );
 }
 

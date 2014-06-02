@@ -67,7 +67,7 @@ class LuaGlueLuaFuncRef
 		_Ret invokeImpl(std::false_type, _Args... args)
 		{
 			lua_rawgeti(g->state(), LUA_REGISTRYINDEX, lua_ref);
-			applyTuple(g, g->state(), args...);
+			applyTupleLuaFunc(g, g->state(), args...);
 			lua_call(g->state(), Arg_Count_, 1);
  
 			return stack<_Ret>::get(g, g->state(), -1);
@@ -76,7 +76,7 @@ class LuaGlueLuaFuncRef
 		void invokeImpl(std::true_type, _Args... args)
 		{
 			lua_rawgeti(g->state(), LUA_REGISTRYINDEX, lua_ref);
-			applyTuple(g, g->state(), args...);
+			applyTupleLuaFunc(g, g->state(), args...);
 			lua_call(g->state(), Arg_Count_, 0);
 		}
 		

@@ -25,6 +25,7 @@ struct apply_lua_func
 		//typedef typename std::remove_reference<decltype(std::get<argIdx>(t))>::type ltype_const;
 		//typedef typename std::remove_const<ltype_const>::type ltype;
 		typedef typename std::remove_const<decltype(std::get<argIdx>(t))>::type ltype;
+		//typedef typename std::remove_reference<ltype>::type ltype_dref;
 		//typedef decltype(std::get<argIdx>(t)) AType;
 		stack<ltype>::put(g, s, std::forward<ltype>(std::get<argIdx>(t)));
 		
@@ -63,6 +64,7 @@ struct apply_lua_func<0>
 template < typename... Args >
 void applyTupleLuaFunc( LuaGlueBase *g, lua_State *s, Args&&... args )
 {
+	LG_Debug("in LuaFunc applyTuple");
 	std::tuple<Args&&...> t(std::forward<Args>(args)...);
 	apply_lua_func<sizeof...(Args)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }

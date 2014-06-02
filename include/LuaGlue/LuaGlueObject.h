@@ -33,6 +33,8 @@ class LuaGlueObjectImplBase
 		
 		template<typename T>
 		T *ptr() { return (T *)vptr(); }
+		
+		virtual int ref_cnt() = 0;
 };
 
 class LuaGlueObjectBase
@@ -95,6 +97,8 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 		
 		//Type &ref() { return *_ptr; }
 		void *vptr() { return _ptr; }
+		
+		int ref_cnt() { return _ref_cnt; }
 	private:
 		std::atomic_int _ref_cnt;
 		LuaGlueClass<Type> *_clss;
@@ -114,11 +118,12 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 			// something else will be needed for MSVC
 			// std::atomic_init(&_ref_cnt, 1);
 			
-			//LG_Debug("ctor");
+			LG_Debug("ctor");
 		}
 		
 		~LuaGlueObjectImpl()
 		{
+			LG_Debug("dtor");
 			if(_clss) _clss->_impl_dtor(_ptr); 
 			if(_owner)
 			{
@@ -146,6 +151,8 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 		
 		//Type &ref() { return *_ptr; }
 		void *vptr() { return _ptr; }
+		
+		int ref_cnt() { return _ref_cnt; }
 	private:
 		std::atomic_int _ref_cnt;
 		LuaGlueClass<ClassType> *_clss;
@@ -231,45 +238,52 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 		
 		LuaGlueObject() : LuaGlueObjectBase(true), p(0)
 		{
-			//LG_Debug("ctor()");
+			LG_Debug("ctor()");
 		}
 		
-		LuaGlueObject(Type *optr, LuaGlueClass<ClassType> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(true), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
+		//LuaGlueObject(Type *optr, LuaGlueClass<ClassType> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(true), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
+		//{
+		//	//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
+		//}
+		
+		LuaGlueObject(Type *&optr, LuaGlueClass<ClassType> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(true), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
 		{
-			//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
+			LG_Debug("ctor(%p, %s, %i)", optr, clss->name().c_str(), owner);
 		}
 		
 		LuaGlueObject(const LuaGlueObjectBase *rhs) : LuaGlueObjectBase(true), p(rhs->impl())
 		{
-			//LG_Debug("ctor(LuaGlueObjectBase(%p))", p->vptr());
+			LG_Debug("ctor(LuaGlueObjectBase(%p)) ref_cnt:%i", p->vptr(), p->ref_cnt());
 			(void)p->vget();
 		}
 		
 		LuaGlueObject(const LuaGlueObject &rhs) : LuaGlueObjectBase(true), p(rhs.p)
 		{
-			//LG_Debug("copy ctor(%p)", p->vptr());
+			LG_Debug("copy ctor(%p) ref_cnt:%i", p->vptr(), p->ref_cnt());
 			(void)p->vget();
 		}
 		
 		LuaGlueObject &operator=( const LuaGlueObject &rhs )
 		{
-			//LG_Debug("assign(%p)", rhs.p->vptr());
+			LG_Debug("assign(%p) ref_cnt:%i", rhs.p->vptr(), rhs.p->ref_cnt());
 			p = rhs.p;
 			(void)p->vget();
 		}
 		
 		~LuaGlueObject()
 		{
-			//if(!p)
-			//	LG_Debug("p == 0");
+			LG_Debug("dtor ref_cnt:%i", p ? p->ref_cnt() : -1);
+			if(!p)
+				LG_Debug("p == 0");
 			
 			if(p && !p->put())
 			{
-				//LG_Debug("dtor ref count hit 0, delete impl");
+				LG_Debug("dtor ref count hit 0, delete impl");
 				delete p;
 				p = nullptr;
 			}
 			
+			LG_Debug("ptr: %p", p->vptr());
 			p = nullptr;
 		}
 		
@@ -280,7 +294,7 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 			
 			if(!p->put())
 			{
-				//LG_Debug("put ref count hit 0, delete impl");
+				LG_Debug("put ref count hit 0, delete impl");
 				delete p;
 				p = nullptr;
 			}
