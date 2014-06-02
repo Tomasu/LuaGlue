@@ -10,15 +10,17 @@ struct Foo
 
 typedef std::remove_reference<decltype(Foo::structArray[0])>::type FooStruct;
 
-void intArray_test(int foo[4])
+/*
+static void intArray_test(int foo[4])
 {
 	printf("intArray: %i, %i, %i, %i\n", foo[0], foo[1], foo[2], foo[3]);
 }
 
-void structArray_test(FooStruct foo[3])
+static void structArray_test(FooStruct foo[3])
 {
 	printf("intProp: %i, %i, %i\n", foo[0].intProp, foo[1].intProp, foo[2].intProp);
 }
+*/
 
 int main(int, char **)
 {

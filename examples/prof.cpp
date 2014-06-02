@@ -71,7 +71,7 @@ class D {
 		void argobj(D) { }
 };
 
-void log(const char *format, ...)
+static void log(const char *format, ...)
 {
 	va_list ap;
 	pid_t pid = getpid();

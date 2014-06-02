@@ -10,7 +10,7 @@ int main(int, char **)
 {
 	LuaGlue state;
 	
-	auto &Class = state.Class<Sandboxed>("Sandboxed").
+	state.Class<Sandboxed>("Sandboxed").
 		ctor("new").
 		method("test_c", &Sandboxed::test_c);
 		
