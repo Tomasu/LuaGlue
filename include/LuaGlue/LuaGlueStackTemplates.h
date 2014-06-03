@@ -408,6 +408,35 @@ struct stack<int> {
 	}
 };
 
+/*
+template<>
+struct stack<int*&> {
+	static int *get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		LG_Debug("stack::get<int *&>:%i", idx);
+		return (int *)luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, int *v)
+	{
+		lua_pushinteger(s, (lua_Integer)v);
+	}
+};
+
+template<>
+struct stack<int*> {
+	static int *get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		LG_Debug("stack::get<int *>:%i", idx);
+		return (int *)luaL_checkinteger(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, int *v)
+	{
+		lua_pushinteger(s, (lua_Integer)v);
+	}
+};*/
+
 template<>
 struct stack<unsigned int> {
 	static unsigned int get(LuaGlueBase *, lua_State *s, int idx)
@@ -709,6 +738,18 @@ template<class T>
 struct stack<T *> {
 	static T *get(LuaGlueBase *g, lua_State *s, int idx)
 	{
+		return get(g, s, idx, std::is_arithmetic<T>());
+	}
+	
+	static T *get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
+	{
+		T *p = (T *)lua_touserdata(s, idx);
+		LG_Debug("stack::get<%s *>: lud %p", CxxDemangle(T), p);
+		return p;
+	}
+	
+	static T *get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
+	{
 		if(lua_islightuserdata(s, idx))
 		{
 			LG_Debug("stack::get<%s *>: lud", CxxDemangle(T));
@@ -741,6 +782,17 @@ struct stack<T *> {
 	
 	static void put(LuaGlueBase *g, lua_State *s, T *v)
 	{
+		put(g, s, v, std::is_arithmetic<T>());
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
+	{
+		LG_Debug("stack::put<%s *>: lud %p", CxxDemangle(T), v);
+		lua_pushlightuserdata(s, v);
+	}
+	
+	static void put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
+	{
 		// first look for a class we support
 
 		typedef typename std::remove_pointer<T>::type TC;
@@ -763,6 +815,18 @@ struct stack<T *> {
 template<class T>
 struct stack<T *&> {
 	static T *get(LuaGlueBase *g, lua_State *s, int idx)
+	{
+		return get(g, s, idx, std::is_arithmetic<T>());
+	}
+	
+	static T *get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
+	{
+		T *p = (T *)lua_touserdata(s, idx);
+		LG_Debug("stack::get<%s *&>: lud %p", CxxDemangle(T), p);
+		return p;
+	}
+	
+	static T *get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -793,6 +857,17 @@ struct stack<T *&> {
 	}
 	
 	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	{
+		put(g, s, v, std::is_arithmetic<T>());
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
+	{
+		LG_Debug("stack::put<%s *&>: lud %p", CxxDemangle(T), v);
+		lua_pushlightuserdata(s, v);
+	}
+	
+	static void put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
 	{
 		// first look for a class we support
 

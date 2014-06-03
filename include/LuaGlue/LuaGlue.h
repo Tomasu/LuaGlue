@@ -53,9 +53,9 @@ class LuaGlue : public LuaGlueBase
 		}*/
 		
 		template<typename _Ret, typename... _Args>
-		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args&&...))
+		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args...))
 		{
-			auto new_func = new LuaGlueFunction<_Ret, _Args&&...>(this, name, fn);
+			auto new_func = new LuaGlueFunction<_Ret, _Args...>(this, name, fn);
 			functions.addSymbol(name.c_str(), new_func);
 			return *this;
 		}

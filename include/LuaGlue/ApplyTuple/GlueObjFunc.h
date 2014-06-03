@@ -26,7 +26,7 @@ struct apply_glueobj_func
 		//typedef typename std::remove_const<ltype_const>::type ltype;
 		typedef typename std::remove_const<decltype(std::get<N-1>(t))>::type ltype;
 		int idx = lua_absindex(s, -(argCount-N+1));
-		LG_Debug("apply_glueobj_func<%i>::applyTuple arg(%i,%i):%s", N, lua_gettop(s), idx, CxxDemangle(ltype));
+		LG_Debug("apply_glueobj_func<%i>::applyTuple arg(%i,%i): %s", N, lua_gettop(s), idx, CxxDemangle(ltype));
 		return apply_glueobj_func<N-1>::applyTuple(g, s, pObj, f, std::forward<decltype(t)>(t), stack<ltype>::get(g, s, idx), std::forward<Args>(args)... );
 	}
 };

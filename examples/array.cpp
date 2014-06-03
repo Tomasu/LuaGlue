@@ -2,6 +2,7 @@
 
 struct Foo
 {
+	int *pointerArray;
 	int intArray[4];
 	struct {
 		int intProp;
@@ -22,6 +23,15 @@ static void structArray_test(FooStruct foo[3])
 }
 */
 
+static void pointerArrayTest(int *foo)
+{
+	LG_Debug("foo: %p", foo);
+	printf("foo:");
+	for(int i = 0; i < 10; i++)
+		printf(" %i", foo[i]);
+	printf("\n");
+}
+
 int main(int, char **)
 {
 	LuaGlue g;
@@ -29,7 +39,8 @@ int main(int, char **)
 	g.Class<Foo>("Foo").
 		ctor("new").
 		property<4, int>("intArray", &Foo::intArray).
-		property("structArray", &Foo::structArray);
+		property("structArray", &Foo::structArray).
+		property("pointerArray", &Foo::pointerArray);
 		
 	g.Class< std::remove_reference<decltype(Foo::structArray[0])>::type >("FooStruct")
 		.property("intProp", &std::remove_reference<decltype(Foo::structArray[0])>::type::intProp);
@@ -37,10 +48,18 @@ int main(int, char **)
 	//g.func("intArray_test", intArray_test);
 	//g.func("structArray_test", structArray_test);
 	
+	g.func("pointerArrayTest", &pointerArrayTest);
+		
 	g.open().glue();
 	//printf("array typename: %s\n", typeid(decltype(Foo::structArray[0])).name());
 	
 	Foo *foo = new Foo;
+	foo->pointerArray = new int[10];
+	for(int i = 0; i < 10; i++)
+		foo->pointerArray[i] = i;
+	
+	printf("foo: %p\n", foo->pointerArray);
+	
 	foo->intArray[0] = 10;
 	foo->intArray[1] = 20;
 	foo->intArray[2] = 30;
@@ -71,6 +90,8 @@ int main(int, char **)
 	printf("intArray: %i, %i, %i, %i\n", foo->intArray[0], foo->intArray[1], foo->intArray[2], foo->intArray[3]);
 	printf("structArray.intProp: %i, %i, %i\n", foo->structArray[0].intProp, foo->structArray[1].intProp, foo->structArray[2].intProp);
 
+	g.invokeVoidFunction("pointerArrayTest", foo->pointerArray);
+	
 	printf("done!\n");
 	
 	return 0;

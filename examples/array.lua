@@ -13,6 +13,8 @@ function lua_structArray_test(structArray)
 	structArray[2].intProp = 10003;
 end
 
+pointerArrayTest(foo.pointerArray);
+
 --intArray_test(foo.intArray);
 --structArray_test(foo.structArray);
 
