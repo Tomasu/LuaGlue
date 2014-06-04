@@ -1,7 +1,7 @@
 #ifndef LUAGLUE_SYMTAB_H_GUARD
 #define LUAGLUE_SYMTAB_H_GUARD
 
-#include <cstring>
+#include <string.h>
 #include <vector>
 #include <typeinfo>
 #include <random>
