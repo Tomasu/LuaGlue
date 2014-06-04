@@ -22,7 +22,7 @@ else()
 	add_definitions(-O2 -s -march=native -DNDEBUG)
 endif()
 
-add_definitions(-Wextra -Wall -pipe -std=c++11 -D_GNU_SOURCE)
+add_definitions(-Wextra -Wall -pipe -std=c++11 -U__STRICT_ANSI__)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
 

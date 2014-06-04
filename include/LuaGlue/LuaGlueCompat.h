@@ -15,12 +15,4 @@
 
 #endif /* _MSC_VER */
 
-#ifdef defined(__MINGW32__)
-
-#ifndef strdup
-#define strdup _strdup
-#endif
-
-#endif /* __MINGW32__ */
-
 #endif /* LUAGLUE_COMPAT_H_GUARD */
