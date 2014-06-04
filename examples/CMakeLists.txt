@@ -29,9 +29,16 @@ target_link_libraries(props ${LUA_LIBRARIES})
 
 copy_to_build(plugin_test.lua)
 add_executable(plugin_test plugin_test.cpp plugin_test.lua)
-target_link_libraries(plugin_test ${LUA_LIBRARIES} dl)
+if(MSYS)
+	target_link_libraries(plugin_test ${LUA_LIBRARIES} dl)
+else(MSYS)
+	target_link_libraries(plugin_test ${LUA_LIBRARIES} ltdl)
+endif(MSYS)
 
 add_library(plugin MODULE plugin.cpp)
+if(MSYS OR MINGW)
+	target_link_libraries(plugin ${LUA_LIBRARIES})
+endif(MSYS OR MINGW)
 
 copy_to_build(light_sandbox.lua)
 add_executable(light_sandbox light_sandbox.cpp light_sandbox.lua)
