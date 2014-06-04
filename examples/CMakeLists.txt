@@ -31,6 +31,8 @@ copy_to_build(plugin_test.lua)
 add_executable(plugin_test plugin_test.cpp plugin_test.lua)
 if(NOT MSYS)
 	target_link_libraries(plugin_test ${LUA_LIBRARIES} dl)
+else(NOT MSYS)
+	target_link_libraries(plugin_test ${LUA_LIBRARIES})
 endif(NOT MSYS)
 
 add_library(plugin MODULE plugin.cpp)
