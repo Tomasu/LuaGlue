@@ -1,9 +1,40 @@
 #include <LuaGlue/LuaGlue.h>
+#ifndef _WIN32
 #include <dlfcn.h>
+#endif
 #include <errno.h>
 #include <string.h>
 
 #include "LuaPluginBase.h"
+
+#ifndef _WIN32
+static void *dlopen(const char *filename, int)
+{
+	return LoadLibrary(filename);
+}
+
+static char *dlerror(void)
+{
+	static char err[2048];
+	DWORD lastError = GetLastError();
+	DWORD fmtError = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS, 0, lastError, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, sizeof(err), 0);
+	if(!fmtError)
+		return "unknown error";
+	
+	return err;
+}
+
+static void *dlsym(void *handle, const char *symbol)
+{
+	return GetProcAddress(handle, symbol);
+}
+
+static int dlclose(void *handle)
+{
+	FreeLibrary(handle);
+}
+
+#endif
 
 int main(int, char **)
 {
