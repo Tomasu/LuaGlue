@@ -3,6 +3,7 @@
 
 #include <cxxabi.h>
 #include <string>
+#include <stdlib.h>
 
 #define CxxDemangle(T) ((const char *)CxxDemangle_<T>())
 

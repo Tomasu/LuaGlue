@@ -1,6 +1,7 @@
 #ifndef LUAGLUE_H_GUARD
 #define LUAGLUE_H_GUARD
 
+#include <stdlib.h>
 #include <lua.hpp>
 #include <lauxlib.h>
 #include <string>
