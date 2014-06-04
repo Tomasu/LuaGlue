@@ -2,6 +2,7 @@
 #define LUAGLUE_H_GUARD
 
 #include <stdlib.h>
+#include <string.h>
 #include <lua.hpp>
 #include <lauxlib.h>
 #include <string>
