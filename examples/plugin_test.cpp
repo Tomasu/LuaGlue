@@ -7,7 +7,7 @@
 
 #include "LuaPluginBase.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
 static void *dlopen(const char *filename, int)
 {
 	return LoadLibrary(filename);
