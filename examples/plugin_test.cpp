@@ -9,12 +9,13 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#define RTLD_LAZY 0
 static void *dlopen(const char *filename, int)
 {
-	return LoadLibrary(filename);
+	return (void *)LoadLibrary(filename);
 }
 
-static char *dlerror(void)
+static const char *dlerror(void)
 {
 	static char err[2048];
 	DWORD lastError = GetLastError();
@@ -27,12 +28,12 @@ static char *dlerror(void)
 
 static void *dlsym(void *handle, const char *symbol)
 {
-	return GetProcAddress(handle, symbol);
+	return (void *)GetProcAddress((HMODULE)handle, symbol);
 }
 
 static int dlclose(void *handle)
 {
-	FreeLibrary(handle);
+	return !FreeLibrary((HMODULE)handle);
 }
 
 #endif
