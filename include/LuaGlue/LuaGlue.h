@@ -13,7 +13,7 @@
 
 #include "LuaGlue/LuaGlueUtils.h"
 #include "LuaGlue/LuaGlueBase.h"
-#include "LuaGlue/LuaGlueClassBase.h"
+#include "LuaGlue/LuaGlueType.h"
 #include "LuaGlue/LuaGlueFunction.h"
 #include "LuaGlue/LuaGlueSymTab.h"
 #include "LuaGlue/LuaGlueLuaFuncRef.h"
@@ -21,7 +21,7 @@
 template<typename _Class>
 class LuaGlueClass;
 
-class LuaGlue : public LuaGlueBase
+class LuaGlue : public LuaGlueType
 {
 	public:
 		

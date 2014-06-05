@@ -4,18 +4,9 @@
 #include <string.h>
 #include <vector>
 #include <typeinfo>
-#include <random>
-#include <chrono>
+
 
 #include "LuaGlue/LuaGlueCompat.h"
-
-#if LUAI_BITSINT > 32
-#	define chrono_period std::chrono::nanoseconds
-#elseif LUAI_BITSINT < 32
-#	error unsupported LUA_UNSIGNED type
-#else
-#	define chrono_period std::chrono::milliseconds
-#endif
 
 // NOTE: hashing algorithm used is FNV-1a
 
@@ -64,15 +55,15 @@ class LuaGlueSymTab
 			const char *typeid_name;
 			T ptr; int idx; LUA_UNSIGNED lg_typeid;
 			
-			Symbol(const char *n = nullptr, const char *tn = nullptr, T p = nullptr, int i = -1)
-				: name(nullptr), typeid_name(tn), ptr(p), idx(i), lg_typeid(next_typeid())
+			Symbol(const char *n = nullptr, const char *tn = nullptr, T p = nullptr, int i = -1, LUA_UNSIGNED lg_typeid_ = (LUA_UNSIGNED)-1)
+				: name(nullptr), typeid_name(tn), ptr(p), idx(i), lg_typeid(lg_typeid_)
 			{
 				name = n ? strdup(n) : nullptr;
 				//printf("new Symbol(\"%s\", \"%s\", %p, %i)\n", n, tn, p, idx);
 			}
 			
 			Symbol(const Symbol &s)
-				: name(s.name ? strdup(s.name) : nullptr), typeid_name(s.typeid_name), ptr(s.ptr), idx(s.idx), lg_typeid(next_typeid())
+				: name(s.name ? strdup(s.name) : nullptr), typeid_name(s.typeid_name), ptr(s.ptr), idx(s.idx), lg_typeid(s.lg_typeid)
 			{
 				
 			}
@@ -98,17 +89,7 @@ class LuaGlueSymTab
 			}
 		
 			private:
-			static LUA_UNSIGNED next_typeid()
-			{
-				static std::random_device rd;
-				auto clk = std::chrono::high_resolution_clock::now();
-				auto count = std::chrono::duration_cast<chrono_period>(clk.time_since_epoch()).count();
-#if LUAI_BITSINT > 32
-				return ((uint64_t)(count & 0xfffffffff0000000LL)) | rd();
-#else
-				return ((uint32_t)(count & 0xffff0000L)) | (rd() & 0xffff0000L);
-#endif
-			}
+			
 		};
 		
 	public:
