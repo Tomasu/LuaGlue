@@ -589,7 +589,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		void _impl_dtor(std::shared_ptr<_Class> *)
 		{
-			
+			LG_Debug("impl shared dtor!");
 		}
 		
 		// LuaGlueObjectImpl dtor?
