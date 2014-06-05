@@ -36,7 +36,7 @@ std::string lua_demangle()
 }
 
 std::string lua_demangle_sym(const char *sym);
-std::string lua_demangle_sym(const char *sym)
+inline std::string lua_demangle_sym(const char *sym)
 {
 	int status = 0;
 	char *s = abi::__cxa_demangle(sym, 0, 0, &status);
