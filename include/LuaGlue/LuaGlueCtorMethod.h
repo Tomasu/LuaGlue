@@ -17,6 +17,9 @@ class LuaGlueClass;
 template<typename _Class, typename... _Args>
 class LuaGlueCtorMethod : public LuaGlueMethodBase
 {
+	private: 
+		typedef std::tuple<typename std::remove_const<typename std::remove_reference<_Args>::type>::type...> ArgsTuple;
+		
 	public:
 		typedef _Class ClassType;
 		typedef _Class *ReturnType;
@@ -39,7 +42,7 @@ class LuaGlueCtorMethod : public LuaGlueMethodBase
 	private:
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
-		std::tuple<_Args...> args;
+		ArgsTuple args;
 		static const unsigned int Arg_Count_ = sizeof...(_Args);
 		
 		int invoke(lua_State *state)

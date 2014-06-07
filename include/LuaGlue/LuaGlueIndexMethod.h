@@ -17,11 +17,13 @@ class LuaGlueClass;
 template<typename _Value, typename _Class, typename _Key>
 class LuaGlueIndexMethod : public LuaGlueMethodBase
 {
+	private: 
+		typedef typename std::remove_const<typename std::remove_reference<_Value>::type>::type ValueType;
+		typedef typename std::remove_const<typename std::remove_reference<_Key>::type>::type KeyType;
+		
 	public:
-		typedef _Value ValueType;
 		typedef _Class ClassType;
-		typedef _Key KeyType;
-		typedef _Value (_Class::*MethodType)(_Key);
+		typedef ValueType (_Class::*MethodType)(KeyType);
 		
 		LuaGlueIndexMethod(LuaGlueClass<_Class> *luaClass, const std::string &name, MethodType &&fn) : glueClass(luaClass), name_(name), fn(std::forward<MethodType>(fn))
 		{ }
@@ -40,7 +42,7 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 		
 		int invoke(lua_State *state)
 		{
-			_Value ret;
+			ValueType ret;
 			
 			LG_Debug("invoke index");
 			lua_dump_stack(state);
@@ -64,7 +66,7 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 			
 			lua_pop(state, 2);
 			
-			stack<_Value>::put(glueClass->luaGlue(), state, ret);
+			stack<ValueType>::put(glueClass->luaGlue(), state, ret);
 			
 			return 1;
 		}
@@ -73,11 +75,11 @@ class LuaGlueIndexMethod : public LuaGlueMethodBase
 		LuaGlueClass<_Class> *glueClass;
 		std::string name_;
 		MethodType fn;
-		std::tuple<_Key> args;
+		std::tuple<KeyType> args;
 		
 		static int lua_call_func(lua_State *state)
 		{
-			auto mimp = (LuaGlueIndexMethod<_Value, _Class, _Key> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto mimp = (LuaGlueIndexMethod<ValueType, _Class, KeyType> *)lua_touserdata(state, lua_upvalueindex(1));
 			return mimp->invoke(state);
 		}
 };
