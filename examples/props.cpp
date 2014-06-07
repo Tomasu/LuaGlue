@@ -132,7 +132,7 @@ int main(int, char **)
 	printf("custom_prop2: %i\n", cprop);
 	
 	ptr = foo_class->getProperty<AProp *>("custom_obj2", foo);
-	printf("custom_ob2j: %p\n", ptr);
+	printf("custom_obj2: %p\n", ptr);
 	
 	return 0;
 }

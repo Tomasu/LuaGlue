@@ -60,7 +60,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 
 
 			//Type *val = &(obj->*prop_);
-			stack<Type>::put(glueClass->luaGlue(), state, obj->*prop_);
+			stack<Type>::put(glueClass->luaGlue(), state, &(obj->*prop_));
 		}
 		
 		void getReturnVal(lua_State *state, _Class *obj)
@@ -154,9 +154,9 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			if(nargs == 2)
 			{
 				// get
-				LG_Debug("type: %s/%s", typeid(decltype((ptr->*prop_))).name(), typeid(Type).name());
+				LG_Debug("type: %s/%s %p", typeid(decltype((ptr->*prop_))).name(), typeid(Type).name(), ptr);
 				//Type val = (ptr->*prop_);
-				stack<Type>::put(glueClass->luaGlue(), state, ptr->*prop_);
+				stack<Type>::put(glueClass->luaGlue(), state, (ptr->*prop_));
 				return 1;
 			}
 			else if(nargs == 3)

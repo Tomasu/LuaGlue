@@ -428,12 +428,14 @@ template<>
 struct stack<int&> {
 	static int get(LuaGlueBase *, lua_State *s, int idx)
 	{
-		LG_Debug("stack::get<int&>:%i", idx);
-		return luaL_checkint(s, idx);
+		int v = luaL_checkint(s, idx);
+		LG_Debug("stack::get<int&>:%i: %i", idx, v);
+		return v;
 	}
 	
 	static void put(LuaGlueBase *, lua_State *s, int &v)
 	{
+		LG_Debug("stack::put<int&>: %i", v);
 		lua_pushinteger(s, v);
 	}
 };
@@ -442,12 +444,14 @@ template<>
 struct stack<const int&> {
 	static int get(LuaGlueBase *, lua_State *s, int idx)
 	{
-		LG_Debug("stack::get<const int&>:%i", idx);
-		return luaL_checkint(s, idx);
+		int v = luaL_checkint(s, idx);
+		LG_Debug("stack::get<const int&>:%i: %i", idx, v);
+		return v;
 	}
 	
 	static void put(LuaGlueBase *, lua_State *s, int &v)
 	{
+		LG_Debug("stack::put<const int&>: %i", v);
 		lua_pushinteger(s, v);
 	}
 };
@@ -456,12 +460,14 @@ template<>
 struct stack<int> {
 	static int get(LuaGlueBase *, lua_State *s, int idx)
 	{
-		LG_Debug("stack::get<int>:%i", idx);
-		return luaL_checkint(s, idx);
+		int v = luaL_checkint(s, idx);
+		LG_Debug("stack::get<int>:%i: %i", idx, v);
+		return v;
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, int v)
+	static void put(LuaGlueBase *, lua_State *s, int &v)
 	{
+		LG_Debug("stack::put<int>: %i", v);
 		lua_pushinteger(s, v);
 	}
 };
@@ -1039,13 +1045,14 @@ struct stack {
 		return RRT();
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, RRT &v)
+	// think this is borked.
+	static void put(LuaGlueBase *g, lua_State *s, const RRT &v)
 	{
 		LuaGlueClass<RRT> *lgc = (LuaGlueClass<RRT> *)g->lookupClass(typeid(LuaGlueClass<RRT>).name(), true);
 		if(lgc)
 		{
 			LG_Debug("stack::put<static1 %s>: mapped", CxxDemangle(RRT));
-			lgc->pushInstance(s, new RRT(v), true);
+			lgc->pushInstance(s, new RRT(v), true); // we're owner
 			return;
 		}
 		
@@ -1066,24 +1073,24 @@ struct stack {
 	//}
 	
 	// for putting static types
-	/*
-	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	
+	static void put(LuaGlueBase *g, lua_State *s, RRT *v)
 	{
-		//printf("stack<T>::put(T*)\n");
-		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
+		//printf("stack<RRT>::put(RRT*)\n");
+		LuaGlueClass<RRT> *lgc = (LuaGlueClass<RRT> *)g->lookupClass(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
 		{
-			LG_Debug("stack::put<static2 %s>: mapped", typeid(T).name());
+			LG_Debug("stack::put<static2 %s>: mapped", CxxDemangle(T));
 			lgc->pushInstance(s, v);
 			return;
 		}
 		
 		// otherwise push onto stack as light user data
-		//printf("stack::put<T>: lud!\n");
-		LG_Debug("stack::put<static2 %s>: lud", typeid(T).name());
-		LuaGlueObject<T> *obj = new LuaGlueObject<T>(new T(*v), 0, true);
+		//printf("stack::put<RRT>: lud!\n");
+		LG_Debug("stack::put<static2 %s>: lud", CxxDemangle(RRT));
+		LuaGlueObject<RRT> *obj = new LuaGlueObject<RRT>(new RRT(*v), 0, true);
 		lua_pushlightuserdata(s, obj);
-	}*/
+	}
 };
 
 #endif /* LUAGLUE_STACK_TEMPLATES_H_GUARD */
