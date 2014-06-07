@@ -19,21 +19,118 @@ class LuaGlueBase;
 class LuaGlueTypeBase
 {
 	public:
-		static const char METATABLE_CLASSNAME_FIELD[];
-		static const char METATABLE_INTCLASSNAME_FIELD[];
-		static const char METATABLE_CLASSIDX_FIELD[];
+		static const char METATABLE_TYPENAME_FIELD[];
+		static const char METATABLE_TYPENAMEINT_FIELD[];
+		static const char METATABLE_TYPEIDINT_FIELD[];
 		static const char METATABLE_TYPEID_FIELD[];
 		
 		LuaGlueTypeBase(LuaGlueBase *luaGlue, const std::string &name) : g(luaGlue), name_(name), typeid_(0) { }
 		
 		virtual ~LuaGlueTypeBase() { }
-		virtual bool glue(LuaGlueBase *) = 0;
 	
 		const std::string &name() { return name_; }
 		LUA_UNSIGNED typeId() { return typeid_; }
 		
+		template<typename _Class, typename _Value, typename _Key>
+		
+		
+		// NO OVERRIDE. KEKEKE.
+		bool glue(LuaGlueBase *g) final
+		{
+			lua_State *s = g;
+			lua_createtable(s, 0, 0);
+			
+			for(auto &prop: type_props_)
+			{
+				if(!prop.ptr->glue(g))
+					goto err_type;
+			}
+			
+			for(auto &method: type_methods_)
+			{
+				if(!method.ptr->glue(g))
+					goto err_type;
+			}
+			
+			luaL_newmetatable(s, name_.c_str());
+			int meta_id = lua_gettop(s);
+			
+			int type_idx = g->getSymTab().findSym(name_.c_str()).idx;
+			lua_pushinteger(s, type_idx);
+			lua_setfield(s, meta_id, METATABLE_TYPEIDINT_FIELD);
+			
+			//printf("LuaGlueClass::glue: intclassname: %s\n", typeid(_Class).name());
+			lua_pushstring(s, typeid(_Class).name());
+			lua_setfield(s, meta_id, METATABLE_INTCLASSNAME_FIELD);
+
+			//printf("LuaGlueClass::glue: classname: %s\n", name_.c_str());
+			lua_pushstring(s, name_.c_str());
+			lua_setfield(s, meta_id, METATABLE_TYPENAME_FIELD);
+			
+			lua_pushlightuserdata(s, this);
+			lua_pushcclosure(s, &lua_typeid, 1);
+			lua_setfield(s, meta_id, METATABLE_TYPEID_FIELD);
+			
+			lua_pushlightuserdata(s, this);
+			lua_pushcclosure(s, &mm_index_cb, 1);
+			lua_setfield(s, meta_id, "__index");
+			
+			lua_pushlightuserdata(s, this);
+			lua_pushcclosure(s, &mm_newindex_cb, 1);
+			lua_setfield(s, meta_id, "__newindex");
+			
+			// TODO: this is supposed to disable lua from changing the metatable.
+			// make sure it actually does.
+			lua_pushvalue(s, -2);
+			lua_setfield(s, meta_id, "__metatable");
+			
+			lua_pushlightuserdata(s, this);
+			lua_pushcclosure(s, &mm_gc_cb, 1);
+			lua_setfield(s, meta_id, "__gc");
+			
+			lua_pushlightuserdata(s, this);
+			lua_pushcclosure(s, &mm_concat_cb, 1);
+			lua_setfield(s, meta_id, "__concat");
+			
+			// copy type methods to instance methods
+			for(auto &method: type_methods_)
+			{
+				if(!method.ptr->glue(g))
+					goto err_meta;
+			}
+			
+			// allow sub types to add instance methods.
+			if(!this->glue_instance_methods())
+				goto err_meta;
+			
+			// allow sub types to add instance properties.
+			if(!this->glue_instance_properties())
+				goto err_meta;
+			
+			// pop meta table, and assign as type metatable
+			lua_setmetatable(s, -2);
+			
+			// make copy of type table
+			lua_pushvalue(s, -1);
+			// create global so lua can access our type as type Name.
+			lua_setglobal(s, name_.c_str());
+			
+			// leave our type table on the stack
+			return true;
+			
+		err_meta:
+			lua_pop(s, 1); // remove metatable
+		err_type:
+			lua_pop(s, 1); // remove type table
+			return false;
+		}
+		
 	protected:
 		void setTypeId(LUA_UNSIGNED lgt) { typeid_ = lgt; }
+		
+		// sub types can implement these to add instance methods and properties
+		virtual bool glue_instance_methods(LuaGlueBase *) {}
+		virtual bool glue_instance_properties(LuaGlueBase *) {}
 		
 	private:
 		// symbol lookup metamethod
@@ -41,125 +138,19 @@ class LuaGlueTypeBase
 		
 		// if we skip the metatable check, we can speed things up a bit,
 		// but that would mean any lua sub classes won't get their props checked.
-		int mm_index(lua_State *state)
+		virtual int mm_index(lua_State *state)
 		{
-			//printf("index!\n");
-			
-			int type = lua_type(state, 2);
-			if(type == LUA_TSTRING)
-			{
-				const char *key = lua_tostring(state, 2);
-				
-				lua_getmetatable(state, 1);
-				lua_pushvalue(state, 2); // push key
-				
-				lua_rawget(state, -2); // get function
-				lua_remove(state, -2); // remove metatable
-					
-				if(properties_.exists(key))
-				{
-					//printf("prop!\n");
-					lua_pushvalue(state, 1); // push args
-					lua_pushvalue(state, 2);
-					lua_pcall(state, 2, 1, 0); // call function
-				}
-				
-			}
-			else if(type == LUA_TNUMBER)
-			{
-				lua_dump_stack(state);
-				LG_Debug("array type?");
-				lua_getmetatable(state, 1);
-				lua_pushstring(state, "m__index");
-				
-				lua_rawget(state, -2); // get m__index method from metatable
-				lua_remove(state, -2); // remove metatable
-				
-				if(lua_isfunction(state, -1)) { // if m__index is a function, call it
-					lua_pushvalue(state, 1); // copy 1st and 2nd stack elements
-					lua_pushvalue(state, 2);
-					
-					LG_Debug("before pcall");
-					lua_pcall(state, 2, 1, 0); // removes the argument copies
-				// should always be a function.. might want to put some debug/trace messages to make sure
-					
-					//lua_dump_stack(state);
-				}
-				else
-				{
-					LG_Debug("not a function :( %s", lua_typename(state, -1));
-				}
-			}
-			else
-			{
-				printf("index: unsupported type: %i\n", type);
-			}
-			
-			return 1;
+			return luaL_error(state, "index metamethod not defined for type %s", name_.c_str());
 		}
 		
-		int mm_newindex(lua_State *state)
+		virtual int mm_newindex(lua_State *)
 		{
-			int type = lua_type(state, 2);
-			if(type == LUA_TSTRING)
-			{
-				const char *key = lua_tostring(state, 2);
-
-				lua_getmetatable(state, 1); // get metatable
-				
-				if(properties_.exists(key))
-				{
-					lua_pushvalue(state, 2); // push key
-					lua_rawget(state, -2); // get field
-					lua_remove(state, -2); // remove metatable
-				
-					lua_pushvalue(state, 1); // push self
-					lua_pushvalue(state, 2); // push key
-					lua_pushvalue(state, 3); // push value
-				
-					lua_pcall(state, 3, 0, 0); // call function from field above
-					
-					//lua_dump_stack(state);
-				}
-				else
-				{
-					lua_pushvalue(state, 2); // push key
-					lua_pushvalue(state, 3); // push value
-					
-					//lua_dump_stack(state);
-					lua_rawset(state, -3);
-					//lua_dump_stack(state);
-				}
-				
-				lua_pop(state, 1);
-			}
-			else if(type == LUA_TNUMBER)
-			{
-				lua_getmetatable(state, 1);
-				
-				lua_pushstring(state, "m__newindex");
-				lua_rawget(state, -2); // get method
-				lua_remove(state, -2); // remove metatable
-				
-				if(lua_isfunction(state, -1)) {
-					lua_pushvalue(state, 1); // push self
-					lua_pushvalue(state, 2); // push idx
-					lua_pushvalue(state, 3); // push value
-					lua_pcall(state, 3, 0, 0);
-					//lua_dump_stack(state);
-				}
-			}
-			else
-			{
-				printf("newindex: unsupported type: %i\n", type);
-			}
-			
-			//printf("newindex end!\n");
-			
-			return 0;
+			return luaL_error(state, "newindex metamethod not defined for type %s", name_.c_str());
 		}
 		
-		int mm_gc(lua_State *state)
+		// TODO: maybe move this to LuaGlueClass, and have it use a new LuaGlueValueType here?
+		// or change everything to LuaGlueValueType?
+		virtual int mm_gc(lua_State *state)
 		{
 			if(lua_isuserdata(state, -1))
 			{
@@ -170,7 +161,8 @@ class LuaGlueTypeBase
 			return 0;
 		}
 		
-		int mm_concat(lua_State *state)
+		// TODO: this deffinitely needs work. similar to mm_gc??
+		virtual int mm_concat(lua_State *state)
 		{
 			int arg1_type = lua_type(state, 1);
 			int arg2_type = lua_type(state, 2);
@@ -223,33 +215,33 @@ class LuaGlueTypeBase
 			return 1;
 		}
 		
-		static int lua_index(lua_State *state)
+		static int mm_index_cb(lua_State *state)
 		{
-			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
-			return cimp->index(state);
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->mm_index(state);
 		}
 		
-		static int lua_newindex(lua_State *state)
+		static int mm_newindex_cb(lua_State *state)
 		{
-			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
-			return cimp->newindex(state);
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->mm_newindex(state);
 		}
 		
-		static int lua_gc(lua_State *state)
+		static int mm_gc_cb(lua_State *state)
 		{
-			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
-			return cimp->gc(state);
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->mm_gc(state);
 		}
 		
-		static int lua_meta_concat(lua_State *state)
+		static int mm_concat_cb(lua_State *state)
 		{
-			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
-			return cimp->concat(state);
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->mm_concat(state);
 		}
 		
-		static int lua_typeid(lua_State *state)
+		static int mm_typeid_cb(lua_State *state)
 		{
-			auto cimp = (LuaGlueClass<_Class> *)lua_touserdata(state, lua_upvalueindex(1));
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
 			return cimp->lg_typeid(state);
 		}
 		
@@ -269,11 +261,14 @@ class LuaGlueTypeBase
 		LuaGlueBase *g;
 		std::string name_;
 		LUA_UNSIGNED typeid_;
+		
+		LuaGlueSymTab type_props_;
+		LuaGlueSymTab type_methods_;
 };
 
-const char LuaGlueType::METATABLE_CLASSNAME_FIELD[] = "LuaGlueClassName";
-const char LuaGlueType::METATABLE_INTCLASSNAME_FIELD[] = "LuaGlueIntClassName";
-const char LuaGlueType::METATABLE_CLASSIDX_FIELD[] = "LuaGlueClassIdx";
-const char LuaGlueType::METATABLE_TYPEID_FIELD[] = "typeid";
+const char LuaGlueTypeBase::METATABLE_TYPENAME_FIELD[] = "TypeName";
+const char LuaGlueTypeBase::METATABLE_TYPENAMEINT_FIELD[] = "InternalTypeName";
+const char LuaGlueTypeBase::METATABLE_TYPEIDINT_FIELD[] = "InternalTypeId";
+const char LuaGlueTypeBase::METATABLE_TYPEID_FIELD[] = "TypeId";
 
 #endif /* LUAGLUE_TYPE_BASE_H */
