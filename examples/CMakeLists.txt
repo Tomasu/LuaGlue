@@ -47,3 +47,7 @@ target_link_libraries(light_sandbox ${LUA_LIBRARIES})
 copy_to_build(array.lua)
 add_executable(arrays array.cpp array.lua)
 target_link_libraries(arrays ${LUA_LIBRARIES})
+
+copy_to_build(stdfunc.lua)
+add_executable(stdfunc stdfunc.cpp stdfunc.lua)
+target_link_libraries(stdfunc ${LUA_LIBRARIES})

@@ -208,6 +208,64 @@ struct stack<std::function<_Ret(_Args...)>&> {
 	}
 };
 
+template<typename _Ret, typename... _Args>
+struct stack<const std::function<_Ret(_Args...)>&> {
+	static std::function<_Ret(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
+	{
+		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
+		
+		return LuaGlueLuaFuncRef<_Ret, _Args...>(b, idx);
+	}
+	
+	static void put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
+	{
+		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
+		//        when passing std::functions back and forth
+		
+		auto func = [b,_f](lua_State *_s) -> int
+		{
+			static const unsigned int Arg_Count_ = sizeof...(_Args);
+			std::tuple<_Args...> t;
+			
+			_Ret ret = applyTuple(b, _s, _f, t);
+			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
+			stack<_Ret>::put(b, _s, ret);
+			return 1;
+		};
+		
+		lua_pushcfunction(s, func);
+	}
+};
+
+template<typename... _Args>
+struct stack<std::function<void(_Args...)>&> {
+	static std::function<void(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
+	{
+		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
+		
+		auto v = LuaGlueLuaFuncRef<void, _Args...>(b, idx);
+		return v;
+	}
+	
+	static void put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
+	{
+		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
+		//        when passing std::functions back and forth
+		
+		auto func = [b,_f](lua_State *_s)
+		{
+			static const unsigned int Arg_Count_ = sizeof...(_Args);
+			std::tuple<_Args...> t;
+			
+			applyTuple(b, _s, _f, t);
+			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
+			return 0;
+		};
+		
+		lua_pushcfunction(s, func);
+	}
+};
+
 template<typename... _Args>
 struct stack<const std::function<void(_Args...)>&> {
 	static std::function<void(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
