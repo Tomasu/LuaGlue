@@ -74,6 +74,7 @@ class LuaGlue : public LuaGlueBase
 			return stack<_Ret>::get(this, state_, -1);
 		}
 		
+		/*
 		template<typename _Ret, typename... _Args>
 		_Ret invokeFunction(const std::string &ns_name, const std::string &name, _Args... args)
 		{
@@ -90,7 +91,7 @@ class LuaGlue : public LuaGlueBase
 			LG_Debug("before pcall");
 			lua_pcall(state_, Arg_Count_, 1, 0);
 			return stack<_Ret>::get(this, state_, -1);
-		}
+		}*/
 		
 		template<typename... _Args>
 		void invokeVoidFunction(const std::string &name, _Args&&... args)
