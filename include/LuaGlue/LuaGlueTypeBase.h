@@ -68,7 +68,7 @@ class LuaGlueTypeBase
 			lua_setfield(s, meta_id, METATABLE_TYPENAME_FIELD);
 			
 			lua_pushlightuserdata(s, this);
-			lua_pushcclosure(s, &lua_typeid, 1);
+			lua_pushcclosure(s, &typeid_cb, 1);
 			lua_setfield(s, meta_id, METATABLE_TYPEID_FIELD);
 			
 			lua_pushlightuserdata(s, this);
@@ -239,7 +239,7 @@ class LuaGlueTypeBase
 			return cimp->mm_concat(state);
 		}
 		
-		static int mm_typeid_cb(lua_State *state)
+		static int typeid_cb(lua_State *state)
 		{
 			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
 			return cimp->lg_typeid(state);
