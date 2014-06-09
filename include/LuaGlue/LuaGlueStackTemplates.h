@@ -28,8 +28,13 @@ LuaGlueClass<T> *getGlueClass(LuaGlueBase *g, lua_State *s, int idx)
 	return c;
 }
 
+template<typename _Ret, typename... _Args>
+class LuaGlueStdFuncWrapper;
+
 template<typename T>
 struct stack;
+
+#include "LuaGlue/LuaGlueStdFuncWrapper.h"
 
 template<class T>
 struct stack<LuaGlueObject<T>&> {
@@ -179,121 +184,141 @@ struct stack<std::shared_ptr<T>&> {
 	}
 };
 
+// begin std::function stack handlers
+
 template<typename _Ret, typename... _Args>
 struct stack<std::function<_Ret(_Args...)>&> {
+	typedef LuaGlueStdFuncWrapper<_Ret, _Args...> FuncWrapperType;
+	
 	static std::function<_Ret(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
+		const char *funcname = lua_getupvalue(s, idx, 1);
+		if(funcname) { /* !funcname means no upvalues */
+			// lua_getupvalue pushes the upvalue value onto the stack
+			auto wrapper = (FuncWrapperType *)lua_touserdata(s, -1);
+			if(wrapper)
+			{
+				FuncWrapperType fw = *wrapper;
+				delete wrapper;
+				
+				lua_pop(s, 1); // remove upvalue value
+				return fw;
+			}
+		}
+		
+		// got a lua function, create reference to it.
 		return LuaGlueLuaFuncRef<_Ret, _Args...>(b, idx);
 	}
 	
-	static void put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
+	static void put(LuaGlueBase *b, lua_State *, std::function<_Ret(_Args...)> _f)
 	{
-		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
-		//        when passing std::functions back and forth
-		
-		auto func = [b,_f](lua_State *_s) -> int
-		{
-			static const unsigned int Arg_Count_ = sizeof...(_Args);
-			std::tuple<_Args...> t;
-			
-			_Ret ret = applyTuple(b, _s, _f, t);
-			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
-			stack<_Ret>::put(b, _s, ret);
-			return 1;
-		};
-		
-		lua_pushcfunction(s, func);
+		auto func = new LuaGlueStdFuncWrapper<_Ret, _Args...>(b, _f);
+		func->glue(b);
 	}
 };
 
 template<typename _Ret, typename... _Args>
 struct stack<const std::function<_Ret(_Args...)>&> {
+	typedef LuaGlueStdFuncWrapper<_Ret, _Args...> FuncWrapperType;
+	
 	static std::function<_Ret(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
+		const char *funcname = lua_getupvalue(s, idx, 1);
+		if(funcname) { /* !funcname means no upvalues */
+			// lua_getupvalue pushes the upvalue value onto the stack
+			auto wrapper = (FuncWrapperType *)lua_touserdata(s, -1);
+			if(wrapper)
+			{
+				FuncWrapperType fw = *wrapper;
+				delete wrapper;
+				
+				lua_pop(s, 1); // remove upvalue value
+				return fw;
+			}
+		}
+		
+		// got a lua function, create reference to it.
 		return LuaGlueLuaFuncRef<_Ret, _Args...>(b, idx);
 	}
 	
 	static void put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
 	{
-		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
-		//        when passing std::functions back and forth
-		
-		auto func = [b,_f](lua_State *_s) -> int
-		{
-			static const unsigned int Arg_Count_ = sizeof...(_Args);
-			std::tuple<_Args...> t;
-			
-			_Ret ret = applyTuple(b, _s, _f, t);
-			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
-			stack<_Ret>::put(b, _s, ret);
-			return 1;
-		};
-		
-		lua_pushcfunction(s, func);
+		auto func = new LuaGlueStdFuncWrapper<_Ret, _Args...>(b, _f);
+		func.glue(b);
 	}
 };
 
 template<typename... _Args>
 struct stack<std::function<void(_Args...)>&> {
+	typedef LuaGlueStdFuncWrapper<void, _Args...> FuncWrapperType;
+	
 	static std::function<void(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
-		auto v = LuaGlueLuaFuncRef<void, _Args...>(b, idx);
-		return v;
+		const char *funcname = lua_getupvalue(s, idx, 1);
+		if(funcname) { /* !funcname means no upvalues */
+			// lua_getupvalue pushes the upvalue value onto the stack
+			auto wrapper = (FuncWrapperType *)lua_touserdata(s, -1);
+			if(wrapper)
+			{
+				FuncWrapperType fw = *wrapper;
+				delete wrapper;
+				
+				lua_pop(s, 1); // remove upvalue value
+				return fw;
+			}
+		}
+		
+		// got a lua function, create reference to it.
+		return LuaGlueLuaFuncRef<void, _Args...>(b, idx);
 	}
 	
 	static void put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
 	{
-		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
-		//        when passing std::functions back and forth
-		
-		auto func = [b,_f](lua_State *_s)
-		{
-			static const unsigned int Arg_Count_ = sizeof...(_Args);
-			std::tuple<_Args...> t;
-			
-			applyTuple(b, _s, _f, t);
-			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
-			return 0;
-		};
-		
-		lua_pushcfunction(s, func);
+		auto func = new LuaGlueStdFuncWrapper<void, _Args...>(b, _f);
+		func.glue(b);
 	}
 };
 
 template<typename... _Args>
 struct stack<const std::function<void(_Args...)>&> {
+	typedef LuaGlueStdFuncWrapper<void, _Args...> FuncWrapperType;
+	
 	static std::function<void(_Args...)> get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
-		auto v = LuaGlueLuaFuncRef<void, _Args...>(b, idx);
-		return v;
+		const char *funcname = lua_getupvalue(s, idx, 1);
+		if(funcname) { /* !funcname means no upvalues */
+			// lua_getupvalue pushes the upvalue value onto the stack
+			auto wrapper = (FuncWrapperType *)lua_touserdata(s, -1);
+			if(wrapper)
+			{
+				FuncWrapperType fw = *wrapper;
+				delete wrapper;
+				
+				lua_pop(s, 1); // remove upvalue value
+				return fw;
+			}
+		}
+		
+		// got a lua function, create reference to it.
+		return LuaGlueLuaFuncRef<void, _Args...>(b, idx);
 	}
 	
 	static void put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
 	{
-		// TODO: see if we need a wrapper class for these so weird LUA_TFUNCTION call chains don't get setup
-		//        when passing std::functions back and forth
-		
-		auto func = [b,_f](lua_State *_s)
-		{
-			static const unsigned int Arg_Count_ = sizeof...(_Args);
-			std::tuple<_Args...> t;
-			
-			applyTuple(b, _s, _f, t);
-			if(Arg_Count_) lua_pop(_s, (int)Arg_Count_);
-			return 0;
-		};
-		
-		lua_pushcfunction(s, func);
+		auto func = new LuaGlueStdFuncWrapper<void, _Args...>(b, _f);
+		func.glue(b);
 	}
 };
+
+// end std::function stack handlers
 
 template<size_t _N, typename T>
 struct stack<T(&)[_N]> {
@@ -724,6 +749,19 @@ struct stack<const char * const &> {
 
 template<>
 struct stack<const char *> {
+	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkstring(s, idx);
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	{
+		lua_pushstring(s, v);
+	}
+};
+
+template<size_t N>
+struct stack<const char (&)[N]> {
 	static const char *get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checkstring(s, idx);

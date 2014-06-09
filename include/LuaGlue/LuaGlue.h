@@ -11,12 +11,12 @@
 #include <typeinfo>
 #include <memory>
 
+#include "LuaGlue/LuaGlueUtils.h"
 #include "LuaGlue/LuaGlueBase.h"
 #include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueFunction.h"
-#include "LuaGlue/LuaGlueLuaFuncRef.h"
 #include "LuaGlue/LuaGlueSymTab.h"
-#include "LuaGlue/LuaGlueUtils.h"
+#include "LuaGlue/LuaGlueLuaFuncRef.h"
 
 template<typename _Class>
 class LuaGlueClass;
@@ -47,18 +47,26 @@ class LuaGlue : public LuaGlueBase
 			return *new_class;
 		}
 		
-		/*template<typename _Ret, typename... _Args>
+		template<typename _Ret, typename... _Args>
 		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args...))
 		{
 			auto new_func = new LuaGlueFunction<_Ret, _Args...>(this, name, fn);
 			functions.addSymbol(name.c_str(), new_func);
 			return *this;
-		}*/
+		}
 		
 		template<typename _Ret, typename... _Args>
-		LuaGlue &func(const std::string &name, _Ret (*fn)(_Args...))
+		LuaGlue &func(const std::string &name, const std::function<_Ret(_Args...)> &fn)
 		{
 			auto new_func = new LuaGlueFunction<_Ret, _Args...>(this, name, fn);
+			functions.addSymbol(name.c_str(), new_func);
+			return *this;
+		}
+		
+		template<typename... _Args>
+		LuaGlue &func(const std::string &name, const std::function<void(_Args...)> &fn)
+		{
+			auto new_func = new LuaGlueFunction<void, _Args...>(this, name, fn);
 			functions.addSymbol(name.c_str(), new_func);
 			return *this;
 		}
@@ -115,6 +123,7 @@ class LuaGlue : public LuaGlueBase
 			LG_Debug("after pcall");
 		}
 		
+		/*
 		template<typename... _Args>
 		void invokeVoidFunction(const std::string &ns_name, const std::string &name, _Args&&... args)
 		{
@@ -132,7 +141,7 @@ class LuaGlue : public LuaGlueBase
 				const char *err = luaL_checkstring(state_, -1);
 				printf("error: %s\n", err);
 			}
-		}
+		}*/
 		
 		template<typename _Type>
 		void setGlobal(const char *name, _Type v)

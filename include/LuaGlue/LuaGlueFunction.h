@@ -108,4 +108,103 @@ class LuaGlueFunction<void, _Args...> : public LuaGlueFunctionBase
 		}
 };
 
+// std::function specializations
+
+template<typename _Ret, typename... _Args>
+class LuaGlueFunction<std::function<_Ret(_Args...)>> : public LuaGlueFunctionBase
+{
+	private:
+		typedef std::tuple<typename std::remove_const<typename std::remove_reference<_Args>::type>::type...> ArgsTuple;
+		
+	public:
+		typedef _Ret ReturnType;
+		typedef std::function<_Ret( _Args... )> MethodType;
+		
+		LuaGlueFunction(LuaGlueBase *lg, const std::string &n, MethodType fn) :
+			g(lg), name_(n), fn_(std::forward<decltype(fn)>(fn))
+		{ }
+		
+		~LuaGlueFunction() {}
+		
+		std::string name() { return name_; }
+		
+		bool glue(LuaGlueBase *luaGlue)
+		{
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
+			//printf("add function: %s\n", name_.c_str());
+			lua_setglobal(luaGlue->state(), name_.c_str());
+			return true;
+		}
+		
+		int invoke(lua_State *state)
+		{
+			ReturnType ret = applyTupleStaticFunc(g, state, fn_, args);
+			lua_pop(state, Arg_Count_);
+			stack<_Ret>::put(g, state, ret);
+			return 1;
+		}
+		
+	private:
+		LuaGlueBase *g;
+		std::string name_;
+		MethodType fn_;
+		ArgsTuple args;
+		static const unsigned int Arg_Count_ = sizeof...(_Args);
+		
+		static int lua_call_func(lua_State *state)
+		{
+			auto mimp = (LuaGlueFunction<std::function<void(_Args...)>> *)lua_touserdata(state, lua_upvalueindex(1));
+			return mimp->invoke(state);
+		}
+};
+
+template<typename... _Args>
+class LuaGlueFunction<std::function<void(_Args...)>> : public LuaGlueFunctionBase
+{
+	private:
+		typedef std::tuple<typename std::remove_const<typename std::remove_reference<_Args>::type>::type...> ArgsTuple;
+		
+	public:
+		typedef void ReturnType;
+		typedef std::function<void( _Args... )> MethodType;
+		
+		LuaGlueFunction(LuaGlueBase *lg, const std::string &n, MethodType fn) :
+			g(lg), name_(n), fn_(fn)
+		{ }
+		
+		~LuaGlueFunction() {}
+		
+		std::string name() { return name_; }
+		
+		bool glue(LuaGlueBase *luaGlue)
+		{
+			//printf("add vfunction: %s\n", name_.c_str());
+			lua_pushlightuserdata(luaGlue->state(), this);
+			lua_pushcclosure(luaGlue->state(), &lua_call_func, 1);
+			lua_setglobal(luaGlue->state(), name_.c_str());
+			return true;
+		}
+		
+		int invoke(lua_State *state)
+		{
+			applyTupleStaticFunc<void, _Args...>(g, state, fn_, args);
+			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			return 0;
+		}
+		
+	private:
+		LuaGlueBase *g;
+		std::string name_;
+		MethodType fn_;
+		ArgsTuple args;
+		static const unsigned int Arg_Count_ = sizeof...(_Args);
+		
+		static int lua_call_func(lua_State *state)
+		{
+			auto mimp = (LuaGlueFunction<std::function<void(_Args...)>> *)lua_touserdata(state, lua_upvalueindex(1));
+			return mimp->invoke(state);
+		}
+};
+
 #endif /* LUAGLUE_FUNCTION_H_GUARD */

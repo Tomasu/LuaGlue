@@ -367,6 +367,8 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
+		// begin instance methods
+		
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (_Class::*fn)(_Args...))
 		{
@@ -418,6 +420,10 @@ class LuaGlueClass : public LuaGlueClassBase
 			
 			return *this;
 		}
+		
+		// end instance methods
+		
+		// begin decorator methods.
 
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (*fn)(_Class*, _Args...))
@@ -439,6 +445,11 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 
+		// end decorator methods
+		
+		
+		// static/class method
+		
 		template<typename _Ret, typename... _Args>
 		LuaGlueClass<_Class> &method(const std::string &name, _Ret (*fn)(_Args...))
 		{
