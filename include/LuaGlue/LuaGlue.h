@@ -11,17 +11,19 @@
 #include <typeinfo>
 #include <memory>
 
-#include "LuaGlue/LuaGlueUtils.h"
+//#include "LuaGlue/LuaGlueUtils.h"
 #include "LuaGlue/LuaGlueBase.h"
-#include "LuaGlue/LuaGlueType.h"
+#include "LuaGlue/LuaGlueTypeBase.h"
 #include "LuaGlue/LuaGlueFunction.h"
 #include "LuaGlue/LuaGlueSymTab.h"
 #include "LuaGlue/LuaGlueLuaFuncRef.h"
+#include "LuaGlue/LuaGlueStackTemplates.h"
 
 template<typename _Class>
 class LuaGlueClass;
+//class LuaGlueTypeBase;
 
-class LuaGlue : public LuaGlueType
+class LuaGlue : public LuaGlueBase
 {
 	public:
 		
@@ -36,13 +38,18 @@ class LuaGlue : public LuaGlueType
 			return *this;
 		}
 		
+		LuaGlue &AddType(LuaGlueTypeBase *type)
+		{
+			auto sym = types.addSymbol(type->name().c_str(), type, type->typeId());
+			return *this;
+		}
+		
 		template<typename _Class>
 		LuaGlueClass<_Class> &Class(const std::string &name)
 		{
 			//printf("glue.Class(\"%s\")\n", name.c_str());
 			auto new_class = new LuaGlueClass<_Class>(this, name);
-			auto sym = classes.addSymbol(name.c_str(), new_class);
-			new_class->setLGTypeID(sym.lg_typeid);
+			auto sym = types.addSymbol(name.c_str(), new_class, new_class->typeId());
 			
 			return *new_class;
 		}
@@ -158,7 +165,7 @@ class LuaGlue : public LuaGlueType
 		bool glue()
 		{
 			//printf("LuaGlue.glue()\n");
-			for(auto &c: classes)
+			for(auto &c: types)
 			{
 				if(!c.ptr->glue(this))
 					return false;
@@ -249,34 +256,57 @@ class LuaGlue : public LuaGlueType
 			return success;
 		}
 		
-		LuaGlueClassBase *lookupClass(const char *name, bool internal_name = false)
+		LuaGlueTypeBase *lookupType(const char *name, bool internal_name = false)
 		{
-			return classes.lookup(name, internal_name);
+			return types.lookup(name, internal_name);
 		}
 		
-		bool classExists(const char *name, bool internal_name = false)
+		bool typeExists(const char *name, bool internal_name = false)
 		{
-			return classes.exists(name, internal_name);
+			return types.exists(name, internal_name);
 		}
 		
 		//LuaGlueClassBase *lookupClass(const std::string &name);
-		LuaGlueClassBase *lookupClass(uint32_t idx)
+		LuaGlueTypeBase *lookupType(uint32_t idx)
 		{
-			return classes.lookup(idx);
+			return types.lookup(idx);
 		}
 		
 		template<class _Class>
 		LuaGlueClass<_Class> *getClass(const char *name)
 		{
-			return (LuaGlueClass<_Class> *)classes.lookup(name, false);
+			return (LuaGlueClass<_Class> *)types.lookup(name, false);
 		}
 		
-		LuaGlueSymTab<LuaGlueClassBase *> &getSymTab() { return classes; }
+		LuaGlueTypeBase *getType(const char *name)
+		{
+			return types.lookup(name, false);
+		}
+		
+		LuaGlueSymTab<LuaGlueTypeBase *> &getSymTab() { return types; }
 		
 		const std::string &lastError() { return last_error; }
+		
+		template<class _Class>
+		bool glueFunction(const std::string &name, _Class *ctx, int (*fn)(lua_State *), int idx = -2)
+		{
+			lua_pushlightuserdata(this->state(), ctx);
+			lua_pushcclosure(this->state(), fn, 1);
+			lua_setfield(this->state(), idx, name.c_str());
+			return true;
+		}
+		
+		template<typename _Value>
+		bool setField(const std::string &name, _Value v, int idx = -2)
+		{
+			stack<_Value>::put(this, this->state(), v);
+			lua_setfield(this->state(), idx, name.c_str());
+			return true;
+		}
+		
 	private:
 		lua_State *state_;
-		LuaGlueSymTab<LuaGlueClassBase *> classes;
+		LuaGlueSymTab<LuaGlueTypeBase *> types;
 		LuaGlueSymTab<LuaGlueFunctionBase *> functions;
 		
 		std::string last_error;

@@ -8,7 +8,6 @@
 #include <new>
 
 #include "LuaGlue/LuaGlueObject.h"
-#include "LuaGlue/LuaGlueClassBase.h"
 #include "LuaGlue/LuaGlueConstant.h"
 #include "LuaGlue/LuaGlueMethodBase.h"
 #include "LuaGlue/LuaGluePropertyBase.h"
@@ -55,23 +54,17 @@ class LuaGlueNewIndexMethod;
 template<class _Class>
 class LuaGlueObject;
 
+#include "LuaGlue/LuaGlueType.h"
+
 template<typename _Class>
-class LuaGlueClass : public LuaGlueClassBase
+class LuaGlueClass : public LuaGlueType<_Class>
 {
 	public:
-		
-		
 		typedef _Class ClassType;
 		
-		LuaGlueClass(LuaGlueBase *luaGlue, const std::string &name) : luaGlue_(luaGlue), name_(name), lg_typeid_(0) 
-		{ }
+		LuaGlueClass(LuaGlueBase *luaGlue, const std::string &name) : LuaGlueType<_Class>(luaGlue, name) { }
 		
-		~LuaGlueClass()
-		{ 	}
-		
-		const std::string &name() { return name_; }
-
-		void setLGTypeID(LUA_UNSIGNED lgt) { lg_typeid_ = lgt; }
+		virtual ~LuaGlueClass() { }
 		
 		template<typename _Ret, typename... _Args>
 		_Ret invokeMethod(const std::string &name, _Class *obj, _Args... args)
@@ -81,54 +74,60 @@ class LuaGlueClass : public LuaGlueClassBase
 			// note, there is no direct support for overridden methods. each method registered with LuaGlue
 			//  must have a different "name" when registered.
 			
-			pushInstance(luaGlue_->state(), obj);
-			//printf("attempting to get method %s::%s\n", name_.c_str(), name.c_str());
-			lua_getfield(luaGlue_->state(), -1, name.c_str());
-			//lua_dump_stack(luaGlue_->state());
+			LuaGlueBase *g = luaGlue();
+			
+			pushInstance(g->state(), obj);
+			//printf("attempting to get method %s::%s\n", name().c_str(), name.c_str());
+			lua_getfield(g->state(), -1, name.c_str());
+			//lua_dump_stack(g->state());
 		
-			lua_pushvalue(luaGlue_->state(), -2);
-			applyTupleLuaFunc(luaGlue_, luaGlue_->state(), args...);
+			lua_pushvalue(g->state(), -2);
+			applyTupleLuaFunc(g, g->state(), args...);
 			
 			//using Alias=char[];
-			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
+			//Alias{ (returnValue(*g, g->state(), args), void(), '\0')... };
 			
-			lua_pcall(luaGlue_->state(), Arg_Count_+1, 1, 0);
-			lua_remove(luaGlue_->state(), -2);
-			return stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			lua_pcall(g->state(), Arg_Count_+1, 1, 0);
+			lua_remove(g->state(), -2);
+			return stack<_Ret>::get(g, g->state(), -1);
 		}
 		
 		template<typename... _Args>
-		void invokeVoidMethod(const std::string &name, _Class *obj, _Args... args)
+		void invokeVoidMethod(const std::string &n, _Class *obj, _Args... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
 			// note, there is no direct support for overridden methods. each method registered with LuaGlue
 			//  must have a different "name" when registered.
 			
-			pushInstance(luaGlue_->state(), obj);
-			//printf("attempting to get method %s::%s\n", name_.c_str(), name.c_str());
-			lua_getfield(luaGlue_->state(), -1, name.c_str());
-			//lua_dump_stack(luaGlue_->state());
-		
-			lua_pushvalue(luaGlue_->state(), -2);
+			LuaGlueBase *g = luaGlue();
 			
-			applyTupleLuaFunc(luaGlue_, luaGlue_->state(), args...);
+			pushInstance(g->state(), obj);
+			//printf("attempting to get method %s::%s\n", name().c_str(), n.c_str());
+			lua_getfield(g->state(), -1, n.c_str());
+			//lua_dump_stack(g->state());
+		
+			lua_pushvalue(g->state(), -2);
+			
+			applyTupleLuaFunc(g, g->state(), args...);
 			
 			//using Alias=char[];
-			//Alias{ (returnValue(*luaGlue_, luaGlue_->state(), args), void(), '\0')... };
+			//Alias{ (returnValue(*g, g->state(), args), void(), '\0')... };
 			
-			lua_pcall(luaGlue_->state(), Arg_Count_+1, 0, 0);
-			//lua_pop(luaGlue_->state(), 1);
+			lua_pcall(g->state(), Arg_Count_+1, 0, 0);
+			//lua_pop(g->state(), 1);
 		}
 		
 		template<typename _Ret>
-		_Ret getProperty(const std::string &name, _Class *obj)
+		_Ret getProperty(const std::string &n, _Class *obj)
 		{
-			pushInstance(luaGlue_->state(), obj);
-			lua_getfield(luaGlue_->state(), -1, name.c_str());
+			LuaGlueBase *g = luaGlue();
+			
+			pushInstance(g->state(), obj);
+			lua_getfield(g->state(), -1, n.c_str());
 			
 			_Ret ret = getPropertyImpl<_Ret>(std::is_class<typename std::remove_pointer<_Ret>::type>());
-			lua_pop(luaGlue_->state(), 1);
+			lua_pop(g->state(), 1);
 			
 			return ret;
 		}
@@ -137,7 +136,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<typename _Ret>
 		_Ret getPropertyImpl(std::false_type)
 		{
-			_Ret ret = stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			LuaGlueBase *g = luaGlue();
+			
+			_Ret ret = stack<_Ret>::get(g, g->state(), -1);
 			return ret;
 		}
 		
@@ -153,7 +154,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<class _Ret>
 		_Ret getPropertyImplObject(std::true_type)
 		{
-			_Ret ptr = stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			LuaGlueBase *g = luaGlue();
+			
+			_Ret ptr = stack<_Ret>::get(g, g->state(), -1);
 			return ptr;
 		}
 		
@@ -161,22 +164,28 @@ class LuaGlueClass : public LuaGlueClassBase
 		template<class _Ret>
 		_Ret getPropertyImplObject(std::false_type)
 		{
-			_Ret obj = stack<_Ret>::get(luaGlue_, luaGlue_->state(), -1);
+			LuaGlueBase *g = luaGlue();
+			
+			_Ret obj = stack<_Ret>::get(g, g->state(), -1);
 			return obj;
 		}
 		
 		template<typename _Type>
-		void setProperty(const std::string &name, _Class *obj, _Type v)
+		void setProperty(const std::string &n, _Class *obj, _Type v)
 		{
-			pushInstance(luaGlue_->state(), obj);
-			stack<_Type>::put(luaGlue_, luaGlue_->state(), v);
-			lua_setfield(luaGlue_->state(), -2, name.c_str());
-			lua_pop(luaGlue_->state(), 1);
+			LuaGlueBase *g = luaGlue();
+			
+			pushInstance(g->state(), obj);
+			stack<_Type>::put(g, g->state(), v);
+			lua_setfield(g->state(), -2, n.c_str());
+			lua_pop(g->state(), 1);
 		}
 		
 		LuaGlueClass<_Class> &pushInstance(_Class *obj)
 		{
-			return pushInstance(luaGlue_->state(), obj);
+			LuaGlueBase *g = luaGlue();
+			
+			return pushInstance(g->state(), obj);
 		}
 		
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, _Class *obj, bool owner = false)
@@ -187,7 +196,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj, this, owner); // placement new to initialize object
 			
-			luaL_getmetatable(state, name_.c_str());
+			luaL_getmetatable(state, name().c_str());
 			lua_setmetatable(state, -2);
 			
 			return *this;
@@ -201,7 +210,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
 			new (udata) LuaGlueObject<_Class>(obj); // placement new to initialize object
 			
-			luaL_getmetatable(state, name_.c_str());
+			luaL_getmetatable(state, name().c_str());
 			lua_setmetatable(state, -2);
 			
 			return *this;
@@ -216,7 +225,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
 			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
 			
-			luaL_getmetatable(state, name_.c_str());
+			luaL_getmetatable(state, name().c_str());
 			lua_setmetatable(state, -2);
 			
 			return *this;
@@ -230,7 +239,7 @@ class LuaGlueClass : public LuaGlueClassBase
 			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
 			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(obj); // placement new to initialize object
 			
-			luaL_getmetatable(state, name_.c_str());
+			luaL_getmetatable(state, name().c_str());
 			lua_setmetatable(state, -2);
 			
 			return *this;
@@ -301,22 +310,24 @@ class LuaGlueClass : public LuaGlueClassBase
 			LG_Debug("prop array!\n");
 			auto impl = new LuaGlueDirectPropertyArray<_N, _Type, _Class>(this, name, prop);
 			
+			LuaGlueBase *g = luaGlue();
+			
 			// check to see if the required LuaGlueArray specialization is registered
 			// if not, register it.
-			if(!luaGlue_->classExists(impl->LUAGLUE_CLASS_NAME))
+			if(!g->typeExists(impl->LUAGLUE_CLASS_NAME))
 			{
 				// FIXME: calling glue() here ourselves works for now, but later
 				//  if/when namespaces are added, or more complex registration is done, this may break.
 				//  however, not calling it here would mean it may not ever get registered in some cases.
-				auto &ac = ((LuaGlue*)luaGlue_)->Class< LuaGlueStaticArray<_N, _Type> >(impl->LUAGLUE_CLASS_NAME);
+				auto &ac = ((LuaGlue*)g)->Class< LuaGlueStaticArray<_N, _Type> >(impl->LUAGLUE_CLASS_NAME);
 				
 				LG_Debug("register %s", impl->LUAGLUE_CLASS_NAME);
 				LuaGlueStaticArray<_N, _Type>::glue(ac);
 					
 				// if, and only if the state is set
-				if(luaGlue_->state())
+				if(g->state())
 				{
-					ac.glue(luaGlue_);
+					ac.glue(g);
 				}
 			}
 			properties_.addSymbol(name.c_str(), impl);
@@ -459,9 +470,9 @@ class LuaGlueClass : public LuaGlueClassBase
 		
 		bool hasMethod(const std::string& methodName)
 		{
-			auto state = luaGlue_->state();
+			auto state = luaGlue()->state();
 
-			lua_getglobal(state, name_.c_str());
+			lua_getglobal(state, name().c_str());
 			if (!lua_istable(state, -1))
 			{
 				lua_pop(state, 1);
@@ -500,99 +511,118 @@ class LuaGlueClass : public LuaGlueClassBase
 			return *this;
 		}
 		
-		LuaGlue &end() { return *(LuaGlue*)luaGlue_; }
-		LuaGlueBase *luaGlue() { return luaGlue_; }
+		LuaGlue &end() { return *(LuaGlue*)g; }
+		LuaGlueBase *luaGlue() { return g; }
 		
-		bool glue(LuaGlueBase *luaGlue)
+		virtual bool glue_type_methods(LuaGlueBase *g)
 		{
-			lua_createtable(luaGlue->state(), 0, 0);
-			//int lib_id = lua_gettop(luaGlue->state());
-			
 			for(auto &method: static_methods)
 			{
-				//printf("Glue static method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.ptr->glue(luaGlue))
+				if(!method.ptr->glue(g))
 					return false;
 			}
 			
-			for(auto &constant: constants_)
+			return true;
+		}
+		
+		virtual bool glue_type_properties(LuaGlueBase *g)
+		{
+			for(auto &prop: constants_)
 			{
-				//printf("Glue constant: %s::%s\n", name_.c_str(), constant.first.c_str());
-				if(!constant.ptr->glue(luaGlue))
+				if(!prop.ptr->glue(g))
 					return false;
 			}
 			
-			//printf("Glue Class: %s\n", name_.c_str());
-			luaL_newmetatable(luaGlue->state(), name_.c_str());
-			int meta_id = lua_gettop(luaGlue->state());
-			
-			int idx = luaGlue->getSymTab().findSym(name_.c_str()).idx;
-			//printf("LuaGlueClass::glue: classidx: %i\n", idx);
-			lua_pushinteger(luaGlue->state(), idx);
-			lua_setfield(luaGlue->state(), meta_id, METATABLE_CLASSIDX_FIELD);
-			
-			//printf("LuaGlueClass::glue: intclassname: %s\n", typeid(_Class).name());
-			lua_pushstring(luaGlue->state(), typeid(_Class).name());
-			lua_setfield(luaGlue->state(), meta_id, METATABLE_INTCLASSNAME_FIELD);
-
-			//printf("LuaGlueClass::glue: classname: %s\n", name_.c_str());
-			lua_pushstring(luaGlue->state(), name_.c_str());
-			lua_setfield(luaGlue->state(), meta_id, METATABLE_CLASSNAME_FIELD);
-			
-			lua_pushlightuserdata(luaGlue->state(), this);
-			lua_pushcclosure(luaGlue->state(), &lua_typeid, 1);
-			lua_setfield(luaGlue->state(), meta_id, METATABLE_TYPEID_FIELD);
-			
-			lua_pushlightuserdata(luaGlue->state(), this);
-			lua_pushcclosure(luaGlue->state(), &lua_index, 1);
-			lua_setfield(luaGlue->state(), meta_id, "__index");
-			
-			lua_pushlightuserdata(luaGlue->state(), this);
-			lua_pushcclosure(luaGlue->state(), &lua_newindex, 1);
-			lua_setfield(luaGlue->state(), meta_id, "__newindex");
-			
-			lua_pushvalue(luaGlue->state(), -2);
-			lua_setfield(luaGlue->state(), meta_id, "__metatable");
-			
-			lua_pushlightuserdata(luaGlue->state(), this);
-			lua_pushcclosure(luaGlue->state(), &lua_gc, 1);
-			lua_setfield(luaGlue->state(), meta_id, "__gc");
-			
-			lua_pushlightuserdata(luaGlue->state(), this);
-			lua_pushcclosure(luaGlue->state(), &lua_meta_concat, 1);
-			lua_setfield(luaGlue->state(), meta_id, "__concat");
-			
+			return true;
+		}
+		
+		virtual bool glue_instance_methods(LuaGlueBase *g)
+		{
 			for(auto &method: methods)
 			{
-				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.ptr->glue(luaGlue))
+				if(!method.ptr->glue(g))
 					return false;
 			}
 			
-			for(auto &method: meta_methods)
-			{
-				//printf("Glue method: %s::%s\n", name_.c_str(), method.first.c_str());
-				if(!method.ptr->glue(luaGlue))
-					return false;
-			}
-			
+			return true;
+		}
+		
+		virtual bool glue_instance_properties(LuaGlueBase *g)
+		{
 			for(auto &prop: properties_)
 			{
-				//printf("prop: %s: %p\n", prop.name, prop.ptr); 
-				if(!prop.ptr->glue(luaGlue))
+				if(!prop.ptr->glue(g))
 					return false;
 			}
 			
-			//lua_pushvalue(luaGlue->state(), -1);
-			lua_setmetatable(luaGlue->state(), -2);
-			
-			lua_pushvalue(luaGlue->state(), -1);
-			lua_setglobal(luaGlue->state(), name_.c_str());
-			
-			//lua_pop(luaGlue->state(), 2);
-
-			//printf("done.\n");
 			return true;
+		}
+		
+		virtual bool glue_meta_methods(LuaGlueBase *g)
+		{
+			for(auto &mmethod: meta_methods)
+			{
+				if(!mmethod.ptr->glue(g))
+					return false;
+			}
+			return true;
+		}
+		
+		virtual lua_Integer toInteger()
+		{
+			// FIXME: allow overriding this?
+			return 0;
+		}
+		
+		virtual lua_Number toNumber()
+		{
+			// FIXME: allow overriding this?
+			// possibly via a new metamethod hook, like index/newindex, and gc use?
+			return 0;
+		}
+		
+		virtual std::string toString()
+		{
+			std::string ret;
+			
+			LuaGlueBase *g = luaGlue();
+			
+			lua_State *state = g->state();
+			
+			int type = lua_type(state, 1);
+			if(type == LUA_TUSERDATA)
+			{
+				LuaGlueObjectBase *lg_obj = (LuaGlueObjectBase *)lua_touserdata(state, 1);
+				_Class *obj = nullptr;
+				
+				if(lg_obj->isSharedPtr())
+				{
+					auto o = CastLuaGlueObjectShared(_Class, lg_obj);
+					obj = o->ptr();
+				}
+				else
+				{
+					auto o = CastLuaGlueObject(_Class, lg_obj);
+					obj = o->ptr();
+				}
+				
+				char buff[2048];
+				sprintf(buff, "%s(%p)", name().c_str(), obj);
+				
+				ret = buff;
+			}
+			else if(type == LUA_TNIL)
+			{
+				LG_Debug("nil!");
+				ret = "nil";
+			}
+			else
+			{
+				LG_Debug("type: %s", lua_typename(state, type));
+				ret = lua_tostring(state, 1);
+			}
+			
+			return ret;
 		}
 		
 		void _impl_dtor(std::shared_ptr<_Class> *)
@@ -605,7 +635,7 @@ class LuaGlueClass : public LuaGlueClassBase
 		{
 			// ???
 			LG_Debug("impl dtor!");
-			//printf("LuaGlueClass<%s>::_impl_dtor\n", name_.c_str());
+			//printf("LuaGlueClass<%s>::_impl_dtor\n", name().c_str());
 			//delete p;
 		}
 		
@@ -733,7 +763,6 @@ class LuaGlueClass : public LuaGlueClassBase
 		LuaGlueSymTab<LuaGlueMethodBase *> methods;
 		LuaGlueSymTab<LuaGlueMethodBase *> static_methods;
 		LuaGlueSymTab<LuaGlueMethodBase *> meta_methods;
-		//std::map<std::string, LuaGluePropertyBase *> properties_;
 		LuaGlueSymTab<LuaGluePropertyBase *> properties_;
 		
 		

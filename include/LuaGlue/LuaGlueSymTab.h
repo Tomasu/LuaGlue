@@ -105,13 +105,13 @@ class LuaGlueSymTab
 		}
 		
 		template<class C>
-		const Symbol &addSymbol(const char *name, C *ptr)
+		const Symbol &addSymbol(const char *name, C *ptr, LUA_UNSIGNED tid = -1)
 		{
 			const Symbol &sym = findSym(name);
 			if(sym.name)
 				return sym;
 			
-			items.push_back(Symbol(name, typeid(C).name(), ptr, items.size()));
+			items.push_back(Symbol(name, typeid(C).name(), ptr, items.size(), tid));
 			return items.back();
 		}
 		

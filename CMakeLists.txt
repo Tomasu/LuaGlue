@@ -11,7 +11,9 @@ set(WARNINGS "-Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisab
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${WARNINGS})
 
 if(LUAGLUE_TYPECHECK STREQUAL ON)
-	add_definitions(-DLUAGLUE_TYPECHECK)
+	add_definitions(-DLUAGLUE_TYPECHECK=1)
+else()
+	add_definitions(-DLUAGLUE_TYPECHECK=0)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
@@ -33,5 +35,5 @@ function(copy_to_build file_name)
 		MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/${file_name})
 endfunction()
 
-add_subdirectory(tools)
+#add_subdirectory(tools)
 add_subdirectory(examples)

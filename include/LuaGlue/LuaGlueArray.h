@@ -2,54 +2,82 @@
 #define LUAGLUE_ARRAY_H_GUARD
 
 #include <stdexcept>
+#include "LuaGlue/LuaGlueTypeBase.h"
+#include "LuaGlue/LuaHelpers.h"
 
 template<int N, typename T>
 class LuaGlueStaticArray
 {
 	public:
-		LuaGlueStaticArray(T t[N]) : data(t) { }
-		virtual ~LuaGlueStaticArray() { }
+		typedef T (&ArrayType)[N];
+		typedef T *PtrType;
 		
-		T &operator[]( int idx )
+		LuaGlueStaticArray(ArrayType array) : data(array)
 		{
-			return data[idx];
-		}
-		
-		const T at( int idx )
-		{
-			if(idx < 0 || idx > N)
-				throw std::out_of_range("LuaGlueStaticArray access out of range");
 			
+		}
+		
+		T& operator[] (const int idx)
+		{
+#ifdef LUAGLUE_TYPECHECK
+			if(idx < 0 || idx >= N)
+				throw std::runtime_error("LuaGlueStaticArray index out of bounds");
+#endif /* LUAGLUE_TYPECHECK */
 			return data[idx];
-		}
-		
-		T *ptr() { return data; }
-		
-		static void glue(LuaGlueClass<LuaGlueStaticArray<N, T>> &c, std::true_type)
-		{
-			c.index(&LuaGlueStaticArray<N, T>::index_class);
-			c.newindex(&LuaGlueStaticArray<N, T>::newindex_class);
-		}
-		
-		static void glue(LuaGlueClass<LuaGlueStaticArray<N, T>> &c, std::false_type)
-		{
-			c.index(&LuaGlueStaticArray<N, T>::index_basic);
-			c.newindex(&LuaGlueStaticArray<N, T>::newindex_basic);
-		}
-		
-		static void glue(LuaGlueClass<LuaGlueStaticArray<N, T>> &c)
-		{
-			glue(c, std::is_class<T>());
 		}
 		
 	private:
-		T *data;
+		PtrType data;
+};
+
+template<int N, typename T>
+class LuaGlueStaticArrayType : public LuaGlueTypeBase
+{
+	public:
+		virtual ~LuaGlueStaticArrayType() { }
 		
-		void newindex_class(int k, T *value) { LG_Debug("newindex %i: %p", k, value); data[k] = *value; }
-		void newindex_basic(int k, T value) { LG_Debug("newindex %i", k); data[k] = value; }
+	protected:
+		virtual bool glue_instance_properties(LuaGlueBase *g)
+		{
+			// TODO: make sure this field name is consistent with lua naming.
+			LuaHelpers::setField(g, "length", N);
+			return true;
+		}
 		
-		T *index_class(int k) { LG_Debug("index %i!", k); return &data[k]; }
-		T index_basic(int k) { LG_Debug("index %i!", k); return data[k]; }
+		virtual int mm_index(lua_State *s)
+		{
+			LuaGlueStaticArray<N, T> *obj = stack< LuaGlueStaticArray<N, T> * >::get(g, s, 1);
+			int idx = stack<int>::get(g, s, 2);
+			
+			try {
+				T v = obj[idx];
+				stack<T>::put(g, s, obj[idx]);
+				return 1;
+			}
+			catch(std::range_error &ex)
+			{
+				luaL_error(s, "%s", ex.what());
+			}
+			
+			return 0;
+		}
+		
+		virtual int mm_newindex(lua_State *s)
+		{
+			LuaGlueStaticArray<N, T> *obj = stack< LuaGlueStaticArray<N, T> * >::get(g, s, 1);
+			int idx = stack<int>::get(g, s, 2);
+			
+			try {
+				T v = stack<T>::get(g, s, 3);
+				obj[idx] = v;
+			}
+			catch(std::range_error &ex)
+			{
+				luaL_error(s, "%s", ex.what());
+			}
+			
+			return 0;
+		}
 };
 
 #endif /* LUAGLUE_ARRAY_H_GUARD */

@@ -142,4 +142,6 @@ class LuaGlueStdFuncWrapper<void, _Args...>
 		ArgsTuple args;
 };
 
+#include "LuaGlue/StackTemplates/StdFunction.h"
+
 #endif /* LUAGLUE_STDFUNC_WRAPPER_H_GUARD */

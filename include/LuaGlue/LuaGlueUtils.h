@@ -4,6 +4,7 @@
 #include <cxxabi.h>
 #include <string>
 #include <stdlib.h>
+#include "LuaGlue/LuaGlueTypeBase.h"
 
 #define CxxDemangle(T) ((const char *)CxxDemangle_<T>())
 
@@ -95,12 +96,7 @@ inline void lua_dump_stack_(const char *file, int line, const char *func, lua_St
 
 inline void lua_dump_userdata(lua_State *L, int idx)
 {
-	// FIXME: the metafeild name really needs to be found at compile time.
-	// but since LuaGlueClass is a template class, we don't have access to such things here...
-	// maybe move the static strings into LuaGlueObjectBase ?
-	// and maybe a name() field. :D
-	
-	int ret = luaL_getmetafield(L, idx, "LuaGlueClassName"); 
+	int ret = luaL_getmetafield(L, idx, LuaGlueTypeBase::METATABLE_TYPENAME_FIELD); 
 	if(!ret)
 	{
 		printf("%s", lua_typename(L, lua_type(L, idx)));
