@@ -29,7 +29,7 @@ struct stack<T(&)[_N]> {
 	
 	static void put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
 	{
-		LuaGlueClass<ArrayType> *lgc = (LuaGlueClass<ArrayType> *)g->lookupType(typeid(LuaGlueClass<ArrayType>).name(), true);
+		LuaGlueStaticArrayType<_N, T> *lgc = (LuaGlueStaticArrayType<_N, T> *)g->lookupType(typeid(LuaGlueStaticArrayType<_N, T>).name(), true);
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
 		if(lgc)
 		{
@@ -92,15 +92,15 @@ struct stack<T[_N]> {
 		return 0;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T v[_N])
+	static void put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
 	{
-		ArrayType *lgc = (ArrayType *)g->lookupType(typeid(ArrayType).name(), true);
+		auto lgt = (LuaGlueStaticArrayType<_N, T>*)g->lookupType(typeid(ArrayType).name(), true);
 		//printf("stack<T*>::put(T): %s %p lgc:%p\n", typeid(LuaGlueClass<T>).name(), v, lgc);
-		if(lgc)
+		if(lgt)
 		{
 			LG_Debug("stack::put<%s>: mapped %p", CxxDemangle(ArrayType), v);
 			ArrayType *sa = new ArrayType(v);
-			lgc->pushInstance(s, sa);
+			lgt->pushInstance(s, sa);
 			return;
 		}
 		

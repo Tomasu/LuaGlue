@@ -38,10 +38,9 @@ class LuaGlue : public LuaGlueBase
 			return *this;
 		}
 		
-		LuaGlue &AddType(LuaGlueTypeBase *type)
+		void addType(LuaGlueTypeBase *type)
 		{
 			auto sym = types.addSymbol(type->name().c_str(), type, type->typeId());
-			return *this;
 		}
 		
 		template<typename _Class>

@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "LuaGlue/LuaGlueTypeBase.h"
 #include "LuaGlue/LuaHelpers.h"
+#include "LuaGlue/LuaGlueType.h"
 
 template<int N, typename T>
 class LuaGlueStaticArray
@@ -26,15 +27,59 @@ class LuaGlueStaticArray
 			return data[idx];
 		}
 		
+		PtrType ptr() { return data; }
+		
 	private:
 		PtrType data;
 };
 
 template<int N, typename T>
-class LuaGlueStaticArrayType : public LuaGlueTypeBase
+class LuaGlueStaticArrayType : public LuaGlueType< LuaGlueStaticArray<N, T> >
 {
 	public:
 		virtual ~LuaGlueStaticArrayType() { }
+		LuaGlueStaticArrayType(LuaGlueBase *b, const std::string &n) : LuaGlueType< LuaGlueStaticArray<N,T> >(b, n) { }
+		
+		virtual std::string toString()
+		{
+			std::string ret;
+			
+			LuaGlueBase *g = this->luaGlue();
+			lua_State *state = g->state();
+			
+			int type = lua_type(state, 1);
+			if(type == LUA_TUSERDATA)
+			{
+				LuaGlueStaticArray<N, T> *sa = (LuaGlueStaticArray<N, T> *)lua_touserdata(state, 1);
+				
+				char buff[2048];
+				sprintf(buff, "%s(%p)", this->name().c_str(), sa);
+				
+				ret = buff;
+			}
+			else if(type == LUA_TNIL)
+			{
+				LG_Debug("nil!");
+				ret = "nil";
+			}
+			else
+			{
+				LG_Debug("type: %s", lua_typename(state, type));
+				ret = lua_tostring(state, 1);
+			}
+			
+			return ret;
+		}
+		
+		virtual lua_Integer toInteger()
+		{
+			return 0;
+		}
+		
+		virtual lua_Number toNumber()
+		{
+			return 0.0;
+		}
 		
 	protected:
 		virtual bool glue_instance_properties(LuaGlueBase *g)
@@ -46,12 +91,12 @@ class LuaGlueStaticArrayType : public LuaGlueTypeBase
 		
 		virtual int mm_index(lua_State *s)
 		{
-			LuaGlueStaticArray<N, T> *obj = stack< LuaGlueStaticArray<N, T> * >::get(g, s, 1);
-			int idx = stack<int>::get(g, s, 2);
+			auto obj = stack< LuaGlueStaticArray<N, T> * >::get(this->luaGlue(), s, 1);
+			int idx = stack<int>::get(this->luaGlue(), s, 2);
 			
 			try {
-				T v = obj[idx];
-				stack<T>::put(g, s, obj[idx]);
+				T v = (*obj)[idx];
+				stack<T>::put(this->luaGlue(), s, v);
 				return 1;
 			}
 			catch(std::range_error &ex)
@@ -64,12 +109,12 @@ class LuaGlueStaticArrayType : public LuaGlueTypeBase
 		
 		virtual int mm_newindex(lua_State *s)
 		{
-			LuaGlueStaticArray<N, T> *obj = stack< LuaGlueStaticArray<N, T> * >::get(g, s, 1);
-			int idx = stack<int>::get(g, s, 2);
+			auto obj = stack< LuaGlueStaticArray<N, T> * >::get(this->luaGlue(), s, 1);
+			int idx = stack<int>::get(this->luaGlue(), s, 2);
 			
 			try {
-				T v = stack<T>::get(g, s, 3);
-				obj[idx] = v;
+				T v = stack<T>::get(this->luaGlue(), s, 3);
+				(*obj)[idx] = v;
 			}
 			catch(std::range_error &ex)
 			{

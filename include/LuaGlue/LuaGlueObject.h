@@ -16,8 +16,12 @@
 #define CastLuaGlueObject(ClassType, o) ((LuaGlueObject<ClassType> *)o)
 #define CastLuaGlueObjectShared(ClassType, o) ( (LuaGlueObject<std::shared_ptr<ClassType>> *)o )
 
+#include "LuaGlue/LuaGlueTypeBase.h"
+#include "LuaGlue/LuaGlueType.h"
+
 template<class _Class>
 class LuaGlueClass;
+
 
 class LuaGlueObjectImplBase
 {
@@ -57,7 +61,7 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 {
 	public:
 		typedef _Class Type;
-		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _ref_cnt(1), _clss(clss), _ptr(p), _owner(owner)
+		LuaGlueObjectImpl(Type *p, LuaGlueTypeBase *type, bool owner = false) : _ref_cnt(1), _type(type), _ptr(p), _owner(owner)
 		{
 			// NOTE: std::atomic_init does not compile in GCC
 			// something else will be needed for MSVC
@@ -68,7 +72,7 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 		
 		~LuaGlueObjectImpl()
 		{
-			if(_clss) _clss->_impl_dtor(_ptr); 
+			if(_type) (LuaGlueType<_Class>*)_type)->impl_dtor(_ptr); 
 			if(_owner)
 			{
 				LG_Debug("we're owner, delete");
@@ -76,7 +80,7 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 			}
 			
 			_ref_cnt = 0;
-			_clss = 0;
+			_type = 0;
 			_ptr = 0;
 			_owner = false;
 		}
@@ -101,7 +105,7 @@ class LuaGlueObjectImpl : public virtual LuaGlueObjectImplBase
 		int ref_cnt() { return _ref_cnt; }
 	private:
 		std::atomic_int _ref_cnt;
-		LuaGlueClass<Type> *_clss;
+		LuaGlueTypeBase *_type;
 		Type *_ptr;
 		bool _owner;
 };
@@ -112,7 +116,7 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 	public:
 		typedef std::shared_ptr<_Class> Type;
 		typedef _Class ClassType;
-		LuaGlueObjectImpl(Type *p, LuaGlueClass<_Class> *clss, bool owner = false) : _ref_cnt(1), _clss(clss), _ptr(p), _owner(owner)
+		LuaGlueObjectImpl(Type *p, LuaGlueTypeBase *type, bool owner = false) : _ref_cnt(1), _type(type), _ptr(p), _owner(owner)
 		{
          // NOTE: std::atomic_init does not compile in GCC
 			// something else will be needed for MSVC
@@ -124,7 +128,7 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 		~LuaGlueObjectImpl()
 		{
 			LG_Debug("dtor");
-			if(_clss) _clss->_impl_dtor(_ptr); 
+			if(_type) (LuaGlueType<_Class>*)_type)->impl_dtor(_ptr); 
 			if(_owner)
 			{
 				LG_Debug("we're owner, delete");
@@ -132,7 +136,7 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 			}
 			
 			_ref_cnt = 0;
-			_clss = 0;
+			_type = 0;
 			_ptr = 0;
 			_owner = false;
 		}
@@ -155,7 +159,7 @@ class LuaGlueObjectImpl<std::shared_ptr<_Class>> : public virtual LuaGlueObjectI
 		int ref_cnt() { return _ref_cnt; }
 	private:
 		std::atomic_int _ref_cnt;
-		LuaGlueClass<ClassType> *_clss;
+		LuaGlueTypeBase *_type;
 		Type *_ptr;
 		bool _owner;
 };
@@ -171,7 +175,7 @@ class LuaGlueObject : public LuaGlueObjectBase
 			//LG_Debug("ctor()");
 		}
 		
-		LuaGlueObject(Type *optr, LuaGlueClass<Type> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(false), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
+		LuaGlueObject(Type *optr, LuaGlueTypeBase *type = nullptr, bool owner = false) : LuaGlueObjectBase(false), p(new LuaGlueObjectImpl<Type>(optr, type, owner))
 		{
 			//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
 		}
@@ -246,9 +250,9 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 		//	//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
 		//}
 		
-		LuaGlueObject(Type *&optr, LuaGlueClass<ClassType> *clss = nullptr, bool owner = false) : LuaGlueObjectBase(true), p(new LuaGlueObjectImpl<Type>(optr, clss, owner))
+		LuaGlueObject(Type *&optr, LuaGlueTypeBase *type = nullptr, bool owner = false) : LuaGlueObjectBase(true), p(new LuaGlueObjectImpl<Type>(optr, type, owner))
 		{
-			LG_Debug("ctor(%p, %s, %i)", optr, clss->name().c_str(), owner);
+			LG_Debug("ctor(%p, %s, %i)", optr, type->name().c_str(), owner);
 		}
 		
 		LuaGlueObject(const LuaGlueObjectBase *rhs) : LuaGlueObjectBase(true), p(rhs->impl())
@@ -309,5 +313,7 @@ class LuaGlueObject<std::shared_ptr<_Class>> : public LuaGlueObjectBase
 	private:
 		LuaGlueObjectImplBase *p;
 };
+
+#include "LuaGlue/StackTemplates/GlueObj.h"
 
 #endif /* LUAGLUE_OBJECT_BASE_H_GUARD */

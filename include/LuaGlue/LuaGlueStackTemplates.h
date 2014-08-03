@@ -40,7 +40,6 @@ struct stack;
 
 #endif /* LUAGLUE_STACK_TEMPLATES_H_GUARD */
 
-#include "LuaGlue/StackTemplates/GlueObj.h"
 #include "LuaGlue/StackTemplates/SharedPtr.h"
 #include "LuaGlue/StackTemplates/Array.h"
 #include "LuaGlue/StackTemplates/Integer.h"
