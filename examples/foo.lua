@@ -35,8 +35,8 @@ print("set testb.a.a");
 testb.a.a = 456;
 print("testb.a.a: "..testb.a.a);
 
-print("STestB.typeid: "..STestB.typeid());
-print("testb.typeid: "..testb.typeid());
+print("STestB.TypeId: "..STestB.TypeId());
+print("testb.TypeId: "..testb.TypeId());
 
-print("testa.typeid: "..STestA.typeid());
-print("testb.a.typeid: "..testb.a.typeid());
+print("testa.TypeId: "..STestA.TypeId());
+print("testb.a.TypeId: "..testb.a.TypeId());

@@ -2,7 +2,7 @@
 #define LUAGLUE_APPLYTUPLE_GLUEOBJCONSTFUNC_H_GUARD
 
 /**
- * LuaGlueObject Const Function Tuple Argument Unpacking
+ * LuaGlueTypeValue Const Function Tuple Argument Unpacking
  *
  * This recursive template unpacks the tuple parameters into
  * variadic template arguments until we reach the count of 0 where the function
@@ -16,7 +16,7 @@ template < int N >
 struct apply_glueobj_constfunc
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> &pObj,
+  static R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueTypeValue<T> &pObj,
                           R (T::*f)( ArgsF... ) const,
                           const std::tuple<ArgsT...> &t,
                           Args&&... args )
@@ -32,7 +32,7 @@ struct apply_glueobj_constfunc
 //-----------------------------------------------------------------------------
 
 /**
- * LuaGlueObject Function Tuple Argument Unpacking End Point
+ * LuaGlueTypeValue Function Tuple Argument Unpacking End Point
  *
  * This recursive template unpacks the tuple parameters into
  * variadic template arguments until we reach the count of 0 where the function
@@ -44,7 +44,7 @@ template <>
 struct apply_glueobj_constfunc<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlueBase *, lua_State *, LuaGlueObject<T> &pObj,
+  static R applyTuple(LuaGlueBase *, lua_State *, LuaGlueTypeValue<T> &pObj,
                           R (T::*f)( ArgsF... ) const,
                           const std::tuple<ArgsT...> &/* t */,
                           Args&... args )
@@ -56,11 +56,11 @@ struct apply_glueobj_constfunc<0>
 //-----------------------------------------------------------------------------
 
 /**
- * LuaGlueObject Function Call Forwarding Using Tuple Pack Parameters
+ * LuaGlueTypeValue Function Call Forwarding Using Tuple Pack Parameters
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<T> &pObj,
+R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueTypeValue<T> &pObj,
                  R (T::*f)( ArgsF... ) const,
                  const std::tuple<ArgsT...> &t )
 {

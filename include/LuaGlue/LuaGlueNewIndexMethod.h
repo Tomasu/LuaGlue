@@ -6,7 +6,7 @@
 #include <tuple>
 #include <utility>
 
-#include "LuaGlue/LuaGlueObject.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGlueBase.h"
 
@@ -51,16 +51,16 @@ class LuaGlueNewIndexMethod : public LuaGlueMethodBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
+				auto obj = CastLuaGlueTypeValueShared(ClassType, base);
 				
 				lua_remove(state, 1);
-				applyTuple(glueClass->luaGlue(), state, obj, fn, args);
+				applyTuple(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
 				lua_remove(state, 1);
-				applyTuple(glueClass->luaGlue(), state, obj, fn, args);
+				applyTuple(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			lua_pop(state, 2);

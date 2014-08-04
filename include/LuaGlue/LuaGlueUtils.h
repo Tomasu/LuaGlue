@@ -4,7 +4,6 @@
 #include <cxxabi.h>
 #include <string>
 #include <stdlib.h>
-#include "LuaGlue/LuaGlueTypeBase.h"
 
 #define CxxDemangle(T) ((const char *)CxxDemangle_<T>())
 
@@ -41,7 +40,7 @@ inline std::string lua_demangle_sym(const char *sym)
 {
 	int status = 0;
 	char *s = abi::__cxa_demangle(sym, 0, 0, &status);
-	std::string str = s;
+	std::string str = s ? s : sym;
 	free(s);
 	return str;
 }
@@ -94,19 +93,21 @@ inline void lua_dump_stack_(const char *file, int line, const char *func, lua_St
 	printf("\n");  /* end the listing */
 }
 
+#include "LuaGlue/LuaGlueTypeBase.h"
+
 inline void lua_dump_userdata(lua_State *L, int idx)
 {
 	int ret = luaL_getmetafield(L, idx, LuaGlueTypeBase::METATABLE_TYPENAME_FIELD); 
 	if(!ret)
 	{
-		printf("%s", lua_typename(L, lua_type(L, idx)));
+		printf("udata(typename:%s)", lua_typename(L, lua_type(L, idx)));
 		return;
 	}
 	
 	const char *name luaL_checkstring(L, -1);
 	lua_pop(L, 1);
 	
-	printf("%s", name);
+	printf("udata(%s)", name);
 }
 
 inline void lua_dump_table(lua_State *L, int index)

@@ -4,7 +4,7 @@
 class LuaGlueBase;
 
 #include "LuaGlue/LuaGlueStackTemplates.h"
-#include "LuaGlue/ApplyTuple/StdFunc.h"
+//#include "LuaGlue/ApplyTuple/StdFunc.h"
 
 template<typename _Ret, typename... _Args>
 class LuaGlueStdFuncWrapper

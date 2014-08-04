@@ -7,7 +7,7 @@
 #include <utility>
 
 #include "LuaGlue/LuaGlueMethodBase.h"
-#include "LuaGlue/LuaGlueObject.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGlueDebug.h"
 
@@ -59,13 +59,13 @@ class LuaGlueMethod : public LuaGlueMethodBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
-				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValueShared(ClassType, base);
+				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
-				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
+				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
@@ -122,13 +122,13 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
-				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValueShared(ClassType, base);
+				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
-				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
+				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
@@ -185,13 +185,13 @@ class LuaGlueConstMethod : public LuaGlueMethodBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				LuaGlueObject<std::shared_ptr<ClassType>> obj = *CastLuaGlueObjectShared(ClassType, base);
-				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				LuaGlueTypeValue<std::shared_ptr<ClassType>> *obj = CastLuaGlueTypeValueShared(ClassType, base);
+				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
-				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
+				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
@@ -248,13 +248,13 @@ class LuaGlueConstMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
-				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValueShared(ClassType, base);
+				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
-				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
+				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
@@ -315,13 +315,13 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
-				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValueShared(ClassType, base);
+				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
-				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
+				ret = applyTuple<_Class, _Ret, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
@@ -379,13 +379,13 @@ class LuaGlueMethod<void, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
-				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValueShared(ClassType, base);
+				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
-				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, obj, fn, args);
+				auto obj = CastLuaGlueTypeValue(ClassType, base);
+				applyTuple<_Class, void, _Args...>(glueClass->luaGlue(), state, *obj, fn, args);
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);

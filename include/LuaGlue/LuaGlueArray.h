@@ -6,6 +6,13 @@
 #include "LuaGlue/LuaHelpers.h"
 #include "LuaGlue/LuaGlueType.h"
 
+#include "LuaGlue/StackTemplates/SharedPtr.h"
+#include "LuaGlue/StackTemplates/Integer.h"
+#include "LuaGlue/StackTemplates/Numeric.h"
+#include "LuaGlue/StackTemplates/String.h"
+#include "LuaGlue/StackTemplates/Ptr.h"
+#include "LuaGlue/StackTemplates/StaticObj.h"
+
 template<int N, typename T>
 class LuaGlueStaticArray
 {
@@ -18,13 +25,33 @@ class LuaGlueStaticArray
 			
 		}
 		
+		~LuaGlueStaticArray() { LG_Debug("dtor"); data = nullptr; }
+		
 		T& operator[] (const int idx)
 		{
-#ifdef LUAGLUE_TYPECHECK
+			LG_Debug("operator[]: %i", idx);
 			if(idx < 0 || idx >= N)
 				throw std::runtime_error("LuaGlueStaticArray index out of bounds");
-#endif /* LUAGLUE_TYPECHECK */
+
 			return data[idx];
+		}
+		
+		T at(const int &idx)
+		{
+			LG_Debug("at: %i", idx);
+			if(idx < 0 || idx >= N)
+				throw std::runtime_error("LuaGlueStaticArray index out of bounds");
+
+			return data[idx];
+		}
+		
+		void set(const int &idx, T &v)
+		{
+			LG_Debug("set: %i", idx);
+			if(idx < 0 || idx >= N)
+				throw std::runtime_error("LuaGlueStaticArray index out of bounds");
+
+			data[idx] = v;
 		}
 		
 		PtrType ptr() { return data; }
@@ -38,7 +65,7 @@ class LuaGlueStaticArrayType : public LuaGlueType< LuaGlueStaticArray<N, T> >
 {
 	public:
 		virtual ~LuaGlueStaticArrayType() { }
-		LuaGlueStaticArrayType(LuaGlueBase *b, const std::string &n) : LuaGlueType< LuaGlueStaticArray<N,T> >(b, n) { }
+		LuaGlueStaticArrayType(LuaGlueBase *b) : LuaGlueType< LuaGlueStaticArray<N,T> >(b, typeid(decltype(*this)).name()) { }
 		
 		virtual std::string toString()
 		{
@@ -91,11 +118,14 @@ class LuaGlueStaticArrayType : public LuaGlueType< LuaGlueStaticArray<N, T> >
 		
 		virtual int mm_index(lua_State *s)
 		{
-			auto obj = stack< LuaGlueStaticArray<N, T> * >::get(this->luaGlue(), s, 1);
+			LG_Debug("index");
+			//auto obj = stack< LuaGlueStaticArray<N, T> * >::get(this->luaGlue(), s, 1);
+			//auto obj = GetLuaUdata(s, 1, typeid(LuaGlueStaticArrayType<N, T>).name());
+			LuaGlueTypeValue< LuaGlueStaticArray<N, T> > *obj = (LuaGlueTypeValue<LuaGlueStaticArray<N, T>> *)GetLuaUdata(s, 1, typeid(LuaGlueStaticArrayType<N, T>).name());
 			int idx = stack<int>::get(this->luaGlue(), s, 2);
 			
 			try {
-				T v = (*obj)[idx];
+				T v = obj->ptr()->at(idx);
 				stack<T>::put(this->luaGlue(), s, v);
 				return 1;
 			}
@@ -104,23 +134,28 @@ class LuaGlueStaticArrayType : public LuaGlueType< LuaGlueStaticArray<N, T> >
 				luaL_error(s, "%s", ex.what());
 			}
 			
+			LG_Debug("index end");
+			
 			return 0;
 		}
 		
 		virtual int mm_newindex(lua_State *s)
 		{
-			auto obj = stack< LuaGlueStaticArray<N, T> * >::get(this->luaGlue(), s, 1);
+			LG_Debug("newindex");
+			LuaGlueTypeValue< LuaGlueStaticArray<N, T> > *obj = (LuaGlueTypeValue<LuaGlueStaticArray<N, T>> *)GetLuaUdata(s, 1, typeid(LuaGlueStaticArrayType<N, T>).name());
+			//auto obj = stack< LuaGlueStaticArray<N, T> * >::get(this->luaGlue(), s, 1);
 			int idx = stack<int>::get(this->luaGlue(), s, 2);
 			
 			try {
 				T v = stack<T>::get(this->luaGlue(), s, 3);
-				(*obj)[idx] = v;
+				obj->ptr()->set(idx, v);
 			}
 			catch(std::range_error &ex)
 			{
 				luaL_error(s, "%s", ex.what());
 			}
-			
+
+			LG_Debug("newindex end");
 			return 0;
 		}
 };

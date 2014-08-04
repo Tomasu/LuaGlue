@@ -1,62 +1,58 @@
 #ifndef LUAGLUE_STACKTEMPLATES_PTR_H_GUARD
 #define LUAGLUE_STACKTEMPLATES_PTR_H_GUARD
 
-template<class T>
-struct stack<T *> {
-	static T *get(LuaGlueBase *g, lua_State *s, int idx)
+	template<class T>
+	T *stack<T *>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		return get(g, s, idx, std::is_arithmetic<T>());
 	}
 	
-	static T *get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
+	template<class T>
+	T *stack<T *>::get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
 	{
 		T *p = (T *)lua_touserdata(s, idx);
 		LG_Debug("stack::get<%s *>: lud %p", CxxDemangle(T), p);
 		return p;
 	}
 	
-	static T *get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
+	template<class T>
+	T *stack<T *>::get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
 			LG_Debug("stack::get<%s *>: lud", CxxDemangle(T));
-			// Might want to wrap this in a LuaGlueObject, but not sure we need to.
+			// Might want to wrap this in a LuaGlueTypeValue, but not sure we need to.
 			// generally only copies of statically allocated types are done that way.
 			return (T*)lua_touserdata(s, idx);
 		}
 		
-#ifdef LUAGLUE_TYPECHECK
 		if(checkGlueType(g, s, idx))
 		{
-#else
-			(void)g;
-#endif
 			LG_Debug("stack::get<%s *>: mapped", CxxDemangle(T));
-			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LuaGlueTypeValue<T> *p = (LuaGlueTypeValue<T> *)lua_touserdata(s, idx);
 			LG_Debug("p: %p", p);
-			LuaGlueObject<T> obj = *p;
-			LG_Debug("ptr: %p", obj.ptr());
-			return obj.ptr();
-#ifdef LUAGLUE_TYPECHECK
+			return p->ptr();
 		}
-#endif
 		
 		LG_Debug("stack::get<%s *>: unk", CxxDemangle(T));
 		return 0;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	template<class T>
+	void stack<T *>::put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		put(g, s, v, std::is_arithmetic<T>());
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
+	template<class T>
+	void stack<T *>::put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
 	{
 		LG_Debug("stack::put<%s *>: lud %p", CxxDemangle(T), v);
 		lua_pushlightuserdata(s, v);
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
+	template<class T>
+	void stack<T *>::put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
 	{
 		// first look for a class we support
 
@@ -75,23 +71,23 @@ struct stack<T *> {
 		LG_Debug("stack::put<%s *>: lud", CxxDemangle(T));
 		lua_pushlightuserdata(s, v);
 	}
-};
 
-template<class T>
-struct stack<T *&> {
-	static T *get(LuaGlueBase *g, lua_State *s, int idx)
+	template<class T>
+	T *stack<T *&>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		return get(g, s, idx, std::is_arithmetic<T>());
 	}
 	
-	static T *get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
+	template<class T>
+	T *stack<T *&>::get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
 	{
 		T *p = (T *)lua_touserdata(s, idx);
 		LG_Debug("stack::get<%s *&>: lud %p", CxxDemangle(T), p);
 		return p;
 	}
 	
-	static T *get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
+	template<class T>
+	T *stack<T *&>::get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -99,38 +95,33 @@ struct stack<T *&> {
 			return (T*)lua_touserdata(s, idx);
 		}
 		
-#ifdef LUAGLUE_TYPECHECK
 		if(checkGlueType(g, s, idx))
 		{
-#else
-			(void)g;
-#endif
 			LG_Debug("stack::get<%s *>: mapped", CxxDemangle(T));
-			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LuaGlueTypeValue<T> *p = (LuaGlueTypeValue<T> *)lua_touserdata(s, idx);
 			LG_Debug("p: %p", p);
-			LuaGlueObject<T> obj = *p;
-			LG_Debug("ptr: %p", obj.ptr());
-			return obj.ptr();
-#ifdef LUAGLUE_TYPECHECK
+			return p->ptr();
 		}
-#endif
 		
 		LG_Debug("stack::get<%s *>: unk", CxxDemangle(T));
 		return 0;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	template<class T>
+	void stack<T *&>::put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		put(g, s, v, std::is_arithmetic<T>());
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
+	template<class T>
+	void stack<T *&>::put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
 	{
 		LG_Debug("stack::put<%s *&>: lud %p", CxxDemangle(T), v);
 		lua_pushlightuserdata(s, v);
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
+	template<class T>
+	void stack<T *&>::put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
 	{
 		// first look for a class we support
 
@@ -149,12 +140,10 @@ struct stack<T *&> {
 		LG_Debug("stack::put<%s *>: lud", CxxDemangle(T));
 		lua_pushlightuserdata(s, v);
 	}
-};
+	
 
-
-template<class T>
-struct stack<T *const&> {
-	static T *get(LuaGlueBase *g, lua_State *s, int idx)
+	template<class T>
+	T *stack<T *const&>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -162,30 +151,23 @@ struct stack<T *const&> {
 			return (T*)lua_touserdata(s, idx);
 		}
 		
-#ifdef LUAGLUE_TYPECHECK
 		if(checkGlueType(g, s, idx))
 		{
-#else
-			(void)g;
-#endif
 			lua_dump_stack(s);
 			LG_Debug("stack::get<%s *>:%i: %s mapped", CxxDemangle(T), idx, lua_typename(s, lua_type(s, idx)));
 		
 			lua_dump_stack(s);
-			LuaGlueObject<T> *p = (LuaGlueObject<T> *)lua_touserdata(s, idx);
+			LuaGlueTypeValue<T> *p = (LuaGlueTypeValue<T> *)lua_touserdata(s, idx);
 			LG_Debug("p: %p", p);
-			LuaGlueObject<T> obj = *p;
-			LG_Debug("ptr: %p", obj.ptr());
-			return obj.ptr();
-#ifdef LUAGLUE_TYPECHECK
+			return p->ptr();
 		}
-#endif
 		
 		LG_Debug("stack::get<%s *>: unk", CxxDemangle(T));
 		return 0;
 	}
 	
-	static void put(LuaGlueBase *g, lua_State *s, T *v)
+	template<class T>
+	void stack<T *const&>::put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		// first look for a class we support
 
@@ -204,6 +186,5 @@ struct stack<T *const&> {
 		LG_Debug("stack::put<%s *>: lud", CxxDemangle(T));
 		lua_pushlightuserdata(s, v);
 	}
-};
 
 #endif /* LUAGLUE_STACKTEMPLATES_PTR_H_GUARD */

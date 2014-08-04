@@ -4,10 +4,13 @@
 #include <lua.hpp>
 #include <string>
 
-#include "LuaGlue/LuaGlueObject.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGluePropertyBase.h"
 #include "LuaGlue/LuaGlueBase.h"
+
+template<class _Class>
+class LuaGlueClass;
 
 template<typename _Type, typename _Class>
 class LuaGlueDirectProperty : public LuaGluePropertyBase
@@ -104,13 +107,13 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			//  we're done with the internal ptr() object.
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValueShared(_Class, base);
+				ptr = obj->ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValue(_Class, base);
+				ptr = obj->ptr();
 			}
 			
 			LG_Debug("accessImpl: ptr=%p", ptr);
@@ -140,13 +143,13 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValueShared(_Class, base);
+				ptr = obj->ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValue(_Class, base);
+				ptr = obj->ptr();
 			}
 			
 			//printf("accessImpl: %p pod nargs:%i '%s'\n", obj, nargs, lua_tostring(state, -1));
@@ -154,7 +157,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			if(nargs == 2)
 			{
 				// get
-				LG_Debug("type: %s/%s %p", typeid(decltype((ptr->*prop_))).name(), typeid(Type).name(), ptr);
+				LG_Debug("type: %s/%s %p", typeid(decltype((ptr->*prop_))).name(), typeid(Type).name(), (ptr->*prop_));
 				//Type val = (ptr->*prop_);
 				stack<Type>::put(glueClass->luaGlue(), state, (ptr->*prop_));
 				return 1;
@@ -191,7 +194,7 @@ class LuaGlueDirectPropertyArray : public LuaGluePropertyBase
 		
 		LuaGlueDirectPropertyArray(LuaGlueClass<_Class> *luaClass, const std::string &name, PropType prop) : name_(name), prop_(prop), glueClass(luaClass)
 		{
-			snprintf(LUAGLUE_CLASS_NAME, 255, "LuaGlueStaticArray<%i, %s>", _N, typeid(_Type).name());
+			snprintf(LUAGLUE_CLASS_NAME, 255, "LuaGlueStaticArrayType<%i, %s>", _N, typeid(_Type).name());
 		}
 		
 		~LuaGlueDirectPropertyArray() { }
@@ -222,13 +225,13 @@ class LuaGlueDirectPropertyArray : public LuaGluePropertyBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValueShared(_Class, base);
+				ptr = obj->ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValue(_Class, base);
+				ptr = obj->ptr();
 			}
 			
 			if(nargs == 2)
@@ -323,13 +326,13 @@ class LuaGlueDirectProperty<std::shared_ptr<_Type>, _Class> : public LuaGlueProp
 			//  we're done with the internal ptr() object.
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValueShared(_Class, base);
+				ptr = obj->ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValue(_Class, base);
+				ptr = obj->ptr();
 			}
 			
 			if(nargs == 2)
@@ -358,13 +361,13 @@ class LuaGlueDirectProperty<std::shared_ptr<_Type>, _Class> : public LuaGlueProp
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValueShared(_Class, base);
+				ptr = obj->ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValue(_Class, base);
+				ptr = obj->ptr();
 			}
 			
 			//printf("accessImpl: %p pod nargs:%i '%s'\n", obj, nargs, lua_tostring(state, -1));
@@ -442,13 +445,13 @@ class LuaGlueProperty : public LuaGluePropertyBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValueShared(_Class, base);
+				ptr = obj->ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(_Class, base);
-				ptr = obj.ptr();
+				auto obj = CastLuaGlueTypeValue(_Class, base);
+				ptr = obj->ptr();
 			}
 			
 			if(nargs == 2)

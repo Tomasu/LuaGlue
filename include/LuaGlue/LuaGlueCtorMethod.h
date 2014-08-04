@@ -7,7 +7,7 @@
 #include <tuple>
 #include <utility>
 
-#include "LuaGlue/LuaGlueObject.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGlueBase.h"
 
@@ -50,8 +50,8 @@ class LuaGlueCtorMethod : public LuaGlueMethodBase
 			_Class *obj = applyTuple<_Class>(glueClass->luaGlue(), state, args);
 			lua_pop(state, (int)Arg_Count_);
 			
-			LuaGlueObject<ClassType> *udata = (LuaGlueObject<ClassType> *)lua_newuserdata(state, sizeof(LuaGlueObject<ClassType>));
-			new (udata) LuaGlueObject<ClassType>(obj, glueClass, true); // TODO: mark this as owned by LuaGlue? maybe have an option to do so?
+			LuaGlueTypeValue<ClassType> *udata = (LuaGlueTypeValue<ClassType> *)lua_newuserdata(state, sizeof(LuaGlueTypeValue<ClassType>));
+			new (udata) LuaGlueTypeValue<ClassType>(obj, glueClass, true); // TODO: mark this as owned by LuaGlue? maybe have an option to do so?
 			
 			//lua_getmetatable(state, 1);
 			luaL_getmetatable(state, glueClass->name().c_str());

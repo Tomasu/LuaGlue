@@ -11,24 +11,26 @@
 #include <typeinfo>
 #include <memory>
 
-//#include "LuaGlue/LuaGlueUtils.h"
 #include "LuaGlue/LuaGlueBase.h"
-#include "LuaGlue/LuaGlueTypeBase.h"
-#include "LuaGlue/LuaGlueFunction.h"
+#include "LuaGlue/LuaGlueStackTemplates.h"
+#include "LuaGlue/LuaGlueType.h"
+#include "LuaGlue/LuaGlueFunctionBase.h"
 #include "LuaGlue/LuaGlueSymTab.h"
 #include "LuaGlue/LuaGlueLuaFuncRef.h"
-#include "LuaGlue/LuaGlueStackTemplates.h"
 
 template<typename _Class>
 class LuaGlueClass;
 //class LuaGlueTypeBase;
+
+template<typename _Ret, typename... _Args>
+class LuaGlueFunction;
 
 class LuaGlue : public LuaGlueBase
 {
 	public:
 		
 		LuaGlue(lua_State *s = 0) : state_(s) { }
-		~LuaGlue() { if(state_) lua_close(state_); }
+		~LuaGlue() { LG_Debug("dtor"); if(state_) lua_close(state_); state_ = nullptr; }
 		
 		LuaGlue &open(lua_State *s) { state_ = s; return *this; }
 		LuaGlue &open()
@@ -38,9 +40,17 @@ class LuaGlue : public LuaGlueBase
 			return *this;
 		}
 		
-		void addType(LuaGlueTypeBase *type)
+		template<typename _Type, typename std::enable_if<std::is_convertible<_Type, LuaGlueTypeBase*>::value>::type* = nullptr>
+		void addType(_Type type)
 		{
+			typedef typename std::remove_pointer<_Type>::type SType;
+			LG_Debug("addType: %s %s", type->name().c_str(), CxxDemangle(SType));
 			auto sym = types.addSymbol(type->name().c_str(), type, type->typeId());
+			if(state_)
+			{
+				type->glue(this);
+				lua_pop(state_, 1);
+			}
 		}
 		
 		template<typename _Class>
@@ -112,13 +122,27 @@ class LuaGlue : public LuaGlueBase
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
+			LG_Debug("invoke: %s", name.c_str());
+			
 			lua_getglobal(state_, name.c_str());
 			LG_Debug("before applyTupleLuaFunc");
-			//lua_dump_stack(state_);
+			lua_dump_stack(state_);
 			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
-
+			lua_dump_stack(state_);
 			LG_Debug("before pcall");
-			//lua_dump_stack(state_);
+			
+			
+			//int metret = lua_getmetatable(state_, -1);
+			//if(metret == 0)
+			//{
+			//	LG_Debug("userdata is missing metatable??");
+			//}
+			//else
+			//{
+			//	LG_Debug("metret: %i", metret);
+			//	lua_dump_table(state_, -1);
+			//	lua_pop(state_, 1);
+			//}
 			int ret = lua_pcall(state_, Arg_Count_, 0, 0);
 			if(ret != LUA_OK)
 			{
@@ -127,6 +151,7 @@ class LuaGlue : public LuaGlueBase
 			}
 			
 			LG_Debug("after pcall");
+			//lua_dump_stack(state_);
 		}
 		
 		/*
@@ -176,6 +201,7 @@ class LuaGlue : public LuaGlueBase
 					return false;
 			}
 			
+			lua_settop(state_, 0);
 			return true;
 		}
 		
@@ -286,23 +312,6 @@ class LuaGlue : public LuaGlueBase
 		
 		const std::string &lastError() { return last_error; }
 		
-		template<class _Class>
-		bool glueFunction(const std::string &name, _Class *ctx, int (*fn)(lua_State *), int idx = -2)
-		{
-			lua_pushlightuserdata(this->state(), ctx);
-			lua_pushcclosure(this->state(), fn, 1);
-			lua_setfield(this->state(), idx, name.c_str());
-			return true;
-		}
-		
-		template<typename _Value>
-		bool setField(const std::string &name, _Value v, int idx = -2)
-		{
-			stack<_Value>::put(this, this->state(), v);
-			lua_setfield(this->state(), idx, name.c_str());
-			return true;
-		}
-		
 	private:
 		lua_State *state_;
 		LuaGlueSymTab<LuaGlueTypeBase *> types;
@@ -371,5 +380,16 @@ inline _Class LuaGlue::getGlobal(const char *name)
 #include "LuaGlue/LuaGlueIndexMethod.h"
 #include "LuaGlue/LuaGlueNewIndexMethod.h"
 #include "LuaGlue/LuaGlueProperty.h"
+
+#include "LuaGlue/StackTemplates/Array.h"
+#include "LuaGlue/StackTemplates/Boolean.h"
+#include "LuaGlue/StackTemplates/Integer.h"
+#include "LuaGlue/StackTemplates/Numeric.h"
+#include "LuaGlue/StackTemplates/Ptr.h"
+#include "LuaGlue/StackTemplates/SharedPtr.h"
+#include "LuaGlue/StackTemplates/StaticObj.h"
+#include "LuaGlue/StackTemplates/StdFunction.h"
+#include "LuaGlue/StackTemplates/String.h"
+#include "LuaGlue/StackTemplates/TypeValue.h"
 
 #endif /* LUAGLUE_H_GUARD */

@@ -6,7 +6,7 @@
 #include <tuple>
 #include <utility>
 
-#include "LuaGlue/LuaGlueObject.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaGlueApplyTuple.h"
 #include "LuaGlue/LuaGlueBase.h"
 
@@ -46,12 +46,12 @@ class LuaGlueDtorMethod : public LuaGlueMethodBase
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
 			{
-				auto obj = *CastLuaGlueObjectShared(ClassType, base);
+				auto obj = *CastLuaGlueTypeValueShared(ClassType, base);
 				ptr = obj.ptr();
 			}
 			else
 			{
-				auto obj = *CastLuaGlueObject(ClassType, base);
+				auto obj = *CastLuaGlueTypeValue(ClassType, base);
 				ptr = obj.ptr();
 			}
 			

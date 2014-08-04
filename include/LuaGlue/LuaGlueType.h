@@ -6,6 +6,7 @@
 #include "LuaGlue/LuaGlueBase.h"
 
 #include "LuaGlue/LuaGlueTypeBase.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaHelpers.h"
 
 template<typename _Type>
@@ -15,9 +16,9 @@ class LuaGlueType : public LuaGlueTypeBase
 		typedef _Type ValueType;
 		
 		LuaGlueType(LuaGlueBase *luaGlue, const std::string &name) : g(luaGlue), name_(name), typeid_(0), anonymous_type(false) { }
-		LuaGlueType(LuaGlueBase *luaGlue) : g(luaGlue), name_(""), typeid_(0), anonymous_type(true) { }
+		LuaGlueType(LuaGlueBase *luaGlue) : g(luaGlue), name_(typeid(this).name()), typeid_(0), anonymous_type(true) { }
 		
-		virtual ~LuaGlueType() { }
+		virtual ~LuaGlueType() { LG_Debug("dtor"); }
 		
 		const std::string &name() { return name_; }
 		LUA_UNSIGNED typeId() { return typeid_; }
@@ -27,15 +28,67 @@ class LuaGlueType : public LuaGlueTypeBase
 	// TODO: maybe do a series of toTYPE cast methodss for various metamethods to try and call
 	// if types don't match in metamethods (add, div, concat, etc)
 		
-		LuaGlueObject<ValueType> *pushInstance(lua_State *s, ValueType *d, bool owner = false)
+		// FIXME: might need a LuaGlueTypeValue class after all, at the very least
+		//  something is needed to buffer LuaGlueTypeValue from the stack templates... 
+		//  as the two are trying to include each other through other headers...
+		//  maybe a lower level interface class like LuaGlueTypeBase or smth.
+		LuaGlueTypeValue<ValueType> *pushInstance(ValueType *d)
+		{
+			return pushInstance(this->luaGlue()->state(), d);
+		}
+		
+		LuaGlueTypeValue<ValueType> *pushInstance(lua_State *s, ValueType *d, bool owner = false)
 		{
 			assert(d != nullptr);
 			
-			LG_Debug("%s pushInstance", CxxDemangle(ValueType));
-			LuaGlueObject<ValueType> *udata = (LuaGlueObject<ValueType> *)lua_newuserdata(s, sizeof(LuaGlueObject<ValueType>));
-			new (udata) LuaGlueObject<ValueType>(d, this, owner); // placement new
+			LG_Debug("%s %s pushInstance", name_.c_str(), CxxDemangle(ValueType));
+			LuaGlueTypeValue<ValueType> *udata = (LuaGlueTypeValue<ValueType> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<ValueType>));
+			new (udata) LuaGlueTypeValue<ValueType>(d, this, owner); // placement new
 			
 			luaL_getmetatable(s, name_.c_str());
+			lua_dump_stack(s);
+			lua_setmetatable(s, -2);
+			lua_dump_stack(s);
+			return udata;
+		}
+		
+		LuaGlueTypeValue<ValueType> *pushInstance(lua_State *s, const LuaGlueTypeValue<ValueType> &d)
+		{
+			LG_Debug("LuaGlueTypeValue<%s> pushInstance", CxxDemangle(ValueType));
+			
+			LuaGlueTypeValue<ValueType> *udata = (LuaGlueTypeValue<ValueType> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<ValueType>));
+			new (udata) LuaGlueTypeValue<ValueType>(d); // placement new to initialize object
+			
+			luaL_getmetatable(s, this->name().c_str());
+			lua_setmetatable(s, -2);
+			
+			return udata;
+		}
+		
+		LuaGlueTypeValue<std::shared_ptr<ValueType>> *pushInstance(lua_State *s, std::shared_ptr<ValueType> const &obj)
+		{
+			//assert(obj.get() != nullptr);
+		
+			LG_Debug("shared_ptr<%s> pushInstance", CxxDemangle(ValueType));
+			std::shared_ptr<ValueType> *ptr_ptr = new std::shared_ptr<ValueType>(obj);
+			LuaGlueTypeValue<std::shared_ptr<ValueType>> *udata = (LuaGlueTypeValue<std::shared_ptr<ValueType>> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<std::shared_ptr<ValueType>>));
+			new (udata) LuaGlueTypeValue<std::shared_ptr<ValueType>>(ptr_ptr, this, true); // placement new to initialize object
+			
+			luaL_getmetatable(s, this->name().c_str());
+			lua_setmetatable(s, -2);
+			
+			return udata;
+		}
+		
+		LuaGlueTypeValue<std::shared_ptr<ValueType>> *pushInstance(lua_State *s, const LuaGlueTypeValue<std::shared_ptr<ValueType>> &obj)
+		{
+			assert(obj.ptr() != nullptr);
+			
+			LG_Debug("LuaGlueTypeValue<std::shared_ptr<%s>> pushInstance", CxxDemangle(ValueType));
+			LuaGlueTypeValue<std::shared_ptr<ValueType>> *udata = (LuaGlueTypeValue<std::shared_ptr<ValueType>> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<std::shared_ptr<ValueType>>));
+			new (udata) LuaGlueTypeValue<std::shared_ptr<ValueType>>(obj); // placement new to initialize object
+			
+			luaL_getmetatable(s, this->name().c_str());
 			lua_setmetatable(s, -2);
 			
 			return udata;
@@ -45,10 +98,14 @@ class LuaGlueType : public LuaGlueTypeBase
 		virtual bool glue(LuaGlueBase *g) final
 		{
 			int meta_id;
+			int type_id;
 			int type_idx;
 			
 			lua_State *s = g->state();
 			lua_createtable(s, 0, 0);
+			type_id = lua_gettop(s);
+			
+			const char *metaname = !this->anonymous_type ? name_.c_str() : typeid(this).name();
 			
 			if(!this->glue_type_properties(g))
 				goto err_type;
@@ -56,18 +113,19 @@ class LuaGlueType : public LuaGlueTypeBase
 			if(!this->glue_type_methods(g))
 				goto err_type;
 			
-			lua_newtable(s);
+			lua_newtable(s); // metatable
 			
 			// if we are a named type, add to registry
-			if(!this->anonymous_type)
-			{
+			//if(!this->anonymous_type)
+			//{
 				lua_pushvalue(s, -1); // push ref to table on stack
-				lua_setfield(s, LUA_REGISTRYINDEX, name_.c_str()); // set registry entry for type.
-			}
+				LG_Debug("metatype: %s", metaname); 
+				lua_setfield(s, LUA_REGISTRYINDEX, metaname); // set registry entry for type.
+			//}
 			
 			meta_id = lua_gettop(s);
 			
-			type_idx = g->getSymTab().findSym(name_.c_str()).idx;
+			type_idx = g->getSymTab().findSym(metaname).idx;
 			LuaHelpers::setField(g, LuaGlueTypeBase::METATABLE_TYPEIDINT_FIELD, type_idx, meta_id);
 			
 			// FIXME: METATABLE_TYPENAMEINT_FIELD is broken, either fix, or completely remove
@@ -80,7 +138,8 @@ class LuaGlueType : public LuaGlueTypeBase
 			
 			// TODO: this is supposed to disable lua from changing the metatable.
 			// make sure it actually does.
-			lua_pushvalue(s, -2);
+			lua_pushvalue(s, -1);
+			//lua_newtable(s);
 			lua_setfield(s, meta_id, "__metatable");
 			
 			LuaHelpers::glueFunction(g, "__gc", this, &mm_gc_cb, meta_id);
@@ -142,16 +201,28 @@ class LuaGlueType : public LuaGlueTypeBase
 			return luaL_error(state, "newindex metamethod not defined for type %s", name_.c_str());
 		}
 		
-		// TODO: maybe move this to LuaGlueClass, and have it use a new LuaGlueValueType here?
-		// or change everything to LuaGlueValueType?
+		// TODO: maybe move this to LuaGlueClass, and have it use a new LuaGlueTypeValue here?
+		// or change everything to LuaGlueTypeValue?
 		virtual int mm_gc(lua_State *state)
 		{
+			LG_Debug("%s mm_gc!", lua_demangle_sym(name_.c_str()).c_str());
+			lua_dump_stack(state);
 			if(lua_isuserdata(state, -1))
 			{
-				LG_Debug("about to gc!");
-				LuaGlueObjectBase *obj = (LuaGlueObjectBase *)lua_touserdata(state, -1);
+				LG_Debug("about to put ref!");
+				LuaGlueTypeValueBase *obj = (LuaGlueTypeValueBase *)lua_touserdata(state, -1);
 				obj->put();
 			}
+			else
+			{
+				int type = lua_type(state, -1);
+				LG_Debug("not userdata? %s", lua_typename(state, type));
+				if(type == LUA_TTABLE)
+				{
+					lua_dump_table(state, -1);
+				}
+			}
+			LG_Debug("mm_gc end!");
 			return 0;
 		}
 		
@@ -186,6 +257,7 @@ class LuaGlueType : public LuaGlueTypeBase
 		static int mm_gc_cb(lua_State *state)
 		{
 			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			assert(cimp != nullptr);
 			return cimp->mm_gc(state);
 		}
 		
@@ -223,6 +295,11 @@ class LuaGlueType : public LuaGlueTypeBase
 		virtual void impl_dtor(_Type *)
 		{
 			LG_Debug("type impl dtor");
+		}
+		
+		void _impl_dtor(void *p) final
+		{
+			this->impl_dtor((_Type *)p);
 		}
 		
 	protected:

@@ -1,7 +1,7 @@
 #ifndef LUAGLUE_LUAFUNCREF_H_GUARD
 #define LUAGLUE_LUAFUNCREF_H_GUARD
 
-#warning "turn into LuaGlueType subclass..."
+//#warning "turn into LuaGlueType subclass..."
 
 #include <lua.hpp>
 #include <lauxlib.h>

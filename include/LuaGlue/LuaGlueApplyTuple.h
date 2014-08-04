@@ -13,7 +13,7 @@ class LuaGlueLuaFuncRef;
 template<int N, typename T>
 class LuaGlueStaticArray;
 
-#include "LuaGlueStackTemplates.h"
+#include "LuaGlue/LuaGlueStackTemplates.h"
 
 // original apply tuple code:
 // http://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments

@@ -23,6 +23,9 @@ class LuaGlueTypeBase
 	template<typename _T>
 	friend class LuaGlueType;
 	
+	template<typename _T>
+	friend class LuaGlueTypeValueImpl;
+	
 	public:
 		static const char METATABLE_TYPENAME_FIELD[];
 		static const char METATABLE_TYPENAMEINT_FIELD[];
@@ -58,6 +61,16 @@ class LuaGlueTypeBase
 		virtual int mm_gc(lua_State *state) = 0;
 		virtual int mm_concat(lua_State *state) = 0;
 		virtual int lg_typeid(lua_State *state) = 0;
+		
+		// FIXME: this smells... how else to hide LuaGlueType from places that only really
+		// need to see LuaGlueTypeBase???
+		virtual void _impl_dtor(void *p) = 0;
+		
+		template <typename _Type>
+		void impl_dtor(_Type *p)
+		{
+			this->_impl_dtor((void*)p);
+		}
 };
 
 const char LuaGlueTypeBase::METATABLE_TYPENAME_FIELD[] = "TypeName";

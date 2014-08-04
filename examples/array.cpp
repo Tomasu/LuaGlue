@@ -51,6 +51,8 @@ int main(int, char **)
 	g.func("pointerArrayTest", &pointerArrayTest);
 		
 	g.open().glue();
+	lua_dump_stack(g.state());
+	
 	//printf("array typename: %s\n", typeid(decltype(Foo::structArray[0])).name());
 	
 	Foo *foo = new Foo;

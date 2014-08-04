@@ -1,119 +1,100 @@
 #ifndef LUAGLUE_STACKTEMPLATES_STRING_H_GUARD
 #define LUAGLUE_STACKTEMPLATES_STRING_H_GUARD
 
-template<>
-struct stack<const char *&> {
-	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	const char *stack<const char *&>::get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checkstring(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	void stack<const char *&>::put(LuaGlueBase *, lua_State *s, const char *v)
 	{
 		lua_pushstring(s, v);
 	}
-};
 
-template<>
-struct stack<const char * const &> {
-	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	const char *stack<const char * const &>::get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checkstring(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	void stack<const char * const &>::put(LuaGlueBase *, lua_State *s, const char *v)
 	{
 		lua_pushstring(s, v);
 	}
-};
 
-template<>
-struct stack<const char *> {
-	static const char *get(LuaGlueBase *, lua_State *s, int idx)
+	const char *stack<const char *>::get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		return luaL_checkstring(s, idx);
+	}
+
+	void stack<const char *>::put(LuaGlueBase *, lua_State *s, const char *v)
+	{
+		lua_pushstring(s, v);
+	}
+
+	template<size_t N>
+	const char *stack<const char (&)[N]>::get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		return luaL_checkstring(s, idx);
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, const char *v)
+	template<size_t N>
+	void stack<const char (&)[N]>::put(LuaGlueBase *, lua_State *s, const char *v)
 	{
 		lua_pushstring(s, v);
 	}
-};
 
-template<size_t N>
-struct stack<const char (&)[N]> {
-	static const char *get(LuaGlueBase *, lua_State *s, int idx)
-	{
-		return luaL_checkstring(s, idx);
-	}
-	
-	static void put(LuaGlueBase *, lua_State *s, const char *v)
-	{
-		lua_pushstring(s, v);
-	}
-};
-
-template<>
-struct stack<std::string> {
-	static std::string get(LuaGlueBase *, lua_State *s, int idx)
+	std::string stack<std::string>::get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		const char *str = luaL_checkstring(s, idx);
 		LG_Debug("str: %s", str);
 		return str;
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, std::string v)
+	void stack<std::string>::put(LuaGlueBase *, lua_State *s, std::string v)
 	{
 		lua_pushstring(s, v.c_str());
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, std::string *v)
+	void stack<std::string>::put(LuaGlueBase *, lua_State *s, std::string *v)
 	{
 		LG_Debug("str: %s", v->c_str());
 		lua_pushstring(s, v->c_str());
 	}
-};
 
-template<>
-struct stack<std::string &> {
-	static std::string get(LuaGlueBase *, lua_State *s, int idx)
+	std::string stack<std::string &>::get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		const char *str = luaL_checkstring(s, idx);
+		LG_Debug("str: %s", str);
+		return str;
+	}
+
+	void stack<std::string &>::put(LuaGlueBase *, lua_State *s, std::string v)
+	{
+		lua_pushstring(s, v.c_str());
+	}
+	
+	void stack<std::string &>::put(LuaGlueBase *, lua_State *s, std::string *v)
+	{
+		LG_Debug("str: %s", v->c_str());
+		lua_pushstring(s, v->c_str());
+	}
+
+	std::string stack<const std::string&>::get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		const char *str = luaL_checkstring(s, idx);
 		LG_Debug("str: %s", str);
 		return str;
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, std::string v)
+	void stack<const std::string&>::put(LuaGlueBase *, lua_State *s, std::string v)
 	{
 		lua_pushstring(s, v.c_str());
 	}
 	
-	static void put(LuaGlueBase *, lua_State *s, std::string *v)
+	void stack<const std::string&>::put(LuaGlueBase *, lua_State *s, std::string *v)
 	{
 		LG_Debug("str: %s", v->c_str());
 		lua_pushstring(s, v->c_str());
 	}
-};
-
-template<>
-struct stack<const std::string&> {
-	static std::string get(LuaGlueBase *, lua_State *s, int idx)
-	{
-		const char *str = luaL_checkstring(s, idx);
-		LG_Debug("str: %s", str);
-		return str;
-	}
-	
-	static void put(LuaGlueBase *, lua_State *s, std::string v)
-	{
-		lua_pushstring(s, v.c_str());
-	}
-	
-	static void put(LuaGlueBase *, lua_State *s, std::string *v)
-	{
-		LG_Debug("str: %s", v->c_str());
-		lua_pushstring(s, v->c_str());
-	}
-};
 
 #endif /* LUAGLUE_STACKTEMPLATES_STRING_H_GUARD */

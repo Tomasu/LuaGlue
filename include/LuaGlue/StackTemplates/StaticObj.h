@@ -13,31 +13,26 @@ struct stack {
 		if(lua_islightuserdata(s, idx))
 		{
 			LG_Debug("stack::get<static %s>: lud", CxxDemangle(RRT));
-			LuaGlueObject<RRT> obj = *(LuaGlueObject<RRT> *)lua_touserdata(s, idx);
-			return *obj;
+			LuaGlueTypeValue<RRT> *obj = (LuaGlueTypeValue<RRT> *)lua_touserdata(s, idx);
+			return *obj->ptr();
 		}
 		
-#ifdef LUAGLUE_TYPECHECK
 		if(checkGlueType(g, s, idx))
 		{
-#else
-			(void)g;
-#endif
 			LG_Debug("stack::get<static %s>: mapped", CxxDemangle(RRT));
-			LuaGlueObject<RRT> *ptr = (LuaGlueObject<RRT> *)lua_touserdata(s, idx);
+			LuaGlueTypeValue<RRT> *ptr = (LuaGlueTypeValue<RRT> *)lua_touserdata(s, idx);
 			if(!ptr)
 				LG_Debug("no glue object found?");
-			LuaGlueObject<RRT> obj = *ptr;
-			return *obj;
-#ifdef LUAGLUE_TYPECHECK
-		}
-#endif
 
-		LG_Debug("stack::get<static %s>: failed to get a class instance for lua stack value at idx: %i", CxxDemangle(RRT), idx);
+			return *(ptr->ptr());
+		}
+
+		LG_Debug("stack::get<static %s>: failed to get a class instance for lua stack value at idx: %i", CxxDemangle(typename stack<T>::RRT), idx);
 		return RRT();
 	}
 	
 	// think this is borked.
+	
 	static void put(LuaGlueBase *g, lua_State *s, const RRT &v)
 	{
 		LuaGlueClass<RRT> *lgc = (LuaGlueClass<RRT> *)g->lookupType(typeid(LuaGlueClass<RRT>).name(), true);
@@ -52,7 +47,7 @@ struct stack {
 		//printf("stack::put<RRT>: lud!\n");
 		
 		LG_Debug("stack::put<static1 %s>: lud", CxxDemangle(RRT));
-		LuaGlueObject<RRT> *obj = new LuaGlueObject<RRT>(new RRT(v), 0, true);
+		LuaGlueTypeValue<RRT> *obj = new LuaGlueTypeValue<RRT>(new RRT(v), 0, true);
 		lua_pushlightuserdata(s, obj);
 	}
 	
@@ -80,7 +75,7 @@ struct stack {
 		// otherwise push onto stack as light user data
 		//printf("stack::put<RRT>: lud!\n");
 		LG_Debug("stack::put<static2 %s>: lud", CxxDemangle(RRT));
-		LuaGlueObject<RRT> *obj = new LuaGlueObject<RRT>(new RRT(*v), 0, true);
+		LuaGlueTypeValue<RRT> *obj = new LuaGlueTypeValue<RRT>(new RRT(*v), 0, true);
 		lua_pushlightuserdata(s, obj);
 	}
 };

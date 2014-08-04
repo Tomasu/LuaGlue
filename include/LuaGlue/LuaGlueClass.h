@@ -7,7 +7,7 @@
 #include <map>
 #include <new>
 
-#include "LuaGlue/LuaGlueObject.h"
+#include "LuaGlue/LuaGlueTypeValue.h"
 #include "LuaGlue/LuaGlueConstant.h"
 #include "LuaGlue/LuaGlueMethodBase.h"
 #include "LuaGlue/LuaGluePropertyBase.h"
@@ -48,12 +48,22 @@ class LuaGlueIndexMethod;
 template<typename _Value, typename _Class, typename _Key>
 class LuaGlueNewIndexMethod;
 
-#include "LuaGlue/LuaGlueProperty.h"
+template<typename _Type, typename _Class>
+class LuaGlueDirectProperty;
 
-template<class _Class>
-class LuaGlueObject;
+template<int _N, typename _Type, typename _Class>
+class LuaGlueDirectPropertyArray;
+
+template<typename _Type, typename _Class>
+class LuaGlueDirectProperty<std::shared_ptr<_Type>, _Class>;
+
+template<typename _Type, typename _Class>
+class LuaGlueProperty;
+
+//#include "LuaGlue/LuaGlueProperty.h"
 
 #include "LuaGlue/LuaGlueType.h"
+
 #include "LuaGlue/LuaGlueArray.h"
 
 template<typename _Class>
@@ -64,7 +74,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		
 		LuaGlueClass(LuaGlueBase *luaGlue, const std::string &name) : LuaGlueType<_Class>(luaGlue, name) { }
 		
-		virtual ~LuaGlueClass() { }
+		virtual ~LuaGlueClass() { LG_Debug("dtor"); }
 		
 		template<typename _Ret, typename... _Args>
 		_Ret invokeMethod(const std::string &name, _Class *obj, _Args... args)
@@ -74,9 +84,9 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			// note, there is no direct support for overridden methods. each method registered with LuaGlue
 			//  must have a different "name" when registered.
 			
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
-			pushInstance(g->state(), obj);
+			this->pushInstance(g->state(), obj);
 			//printf("attempting to get method %s::%s\n", name().c_str(), name.c_str());
 			lua_getfield(g->state(), -1, name.c_str());
 			//lua_dump_stack(g->state());
@@ -100,9 +110,9 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			// note, there is no direct support for overridden methods. each method registered with LuaGlue
 			//  must have a different "name" when registered.
 			
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
-			pushInstance(g->state(), obj);
+			this->pushInstance(g->state(), obj);
 			//printf("attempting to get method %s::%s\n", name().c_str(), n.c_str());
 			lua_getfield(g->state(), -1, n.c_str());
 			//lua_dump_stack(g->state());
@@ -121,9 +131,9 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		template<typename _Ret>
 		_Ret getProperty(const std::string &n, _Class *obj)
 		{
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
-			pushInstance(g->state(), obj);
+			this->pushInstance(g->state(), obj);
 			lua_getfield(g->state(), -1, n.c_str());
 			
 			_Ret ret = getPropertyImpl<_Ret>(std::is_class<typename std::remove_pointer<_Ret>::type>());
@@ -136,7 +146,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		template<typename _Ret>
 		_Ret getPropertyImpl(std::false_type)
 		{
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
 			_Ret ret = stack<_Ret>::get(g, g->state(), -1);
 			return ret;
@@ -154,7 +164,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		template<class _Ret>
 		_Ret getPropertyImplObject(std::true_type)
 		{
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
 			_Ret ptr = stack<_Ret>::get(g, g->state(), -1);
 			return ptr;
@@ -164,7 +174,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		template<class _Ret>
 		_Ret getPropertyImplObject(std::false_type)
 		{
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
 			_Ret obj = stack<_Ret>::get(g, g->state(), -1);
 			return obj;
@@ -173,42 +183,44 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		template<typename _Type>
 		void setProperty(const std::string &n, _Class *obj, _Type v)
 		{
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
-			pushInstance(g->state(), obj);
+			this->pushInstance(g->state(), obj);
 			stack<_Type>::put(g, g->state(), v);
 			lua_setfield(g->state(), -2, n.c_str());
 			lua_pop(g->state(), 1);
 		}
 		
-		LuaGlueClass<_Class> &pushInstance(_Class *obj)
+		/*LuaGlueClass<_Class> &pushInstance(_Class *obj)
 		{
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
 			return pushInstance(g->state(), obj);
-		}
+		}*/
 		
+		/*
 		LuaGlueClass<_Class> &pushInstance(lua_State *state, _Class *obj, bool owner = false)
 		{
 			assert(obj != nullptr);
 			
 			LG_Debug("%s pushInstance", CxxDemangle(_Class));
-			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
-			new (udata) LuaGlueObject<_Class>(obj, this, owner); // placement new to initialize object
+			LuaGlueTypeValue<_Class> *udata = (LuaGlueTypeValue<_Class> *)lua_newuserdata(state, sizeof(LuaGlueTypeValue<_Class>));
+			new (udata) LuaGlueTypeValue<_Class>(obj, this, owner); // placement new to initialize object
 			
 			luaL_getmetatable(state, this->name().c_str());
 			lua_setmetatable(state, -2);
 			
 			return *this;
-		}
+		}*/
 		
-		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueObject<_Class> &obj)
+		/*
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueTypeValue<_Class> &obj)
 		{
 			//assert(obj.ptr() != nullptr);
 			
-			LG_Debug("LuaGlueObject<%s> pushInstance", CxxDemangle(_Class));
-			LuaGlueObject<_Class> *udata = (LuaGlueObject<_Class> *)lua_newuserdata(state, sizeof(LuaGlueObject<_Class>));
-			new (udata) LuaGlueObject<_Class>(obj); // placement new to initialize object
+			LG_Debug("LuaGlueTypeValue<%s> pushInstance", CxxDemangle(_Class));
+			LuaGlueTypeValue<_Class> *udata = (LuaGlueTypeValue<_Class> *)lua_newuserdata(state, sizeof(LuaGlueTypeValue<_Class>));
+			new (udata) LuaGlueTypeValue<_Class>(obj); // placement new to initialize object
 			
 			luaL_getmetatable(state, this->name().c_str());
 			lua_setmetatable(state, -2);
@@ -222,8 +234,8 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		
 			LG_Debug("shared_ptr<%s> pushInstance", CxxDemangle(_Class));
 			std::shared_ptr<_Class> *ptr_ptr = new std::shared_ptr<_Class>(obj);
-			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
-			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
+			LuaGlueTypeValue<std::shared_ptr<_Class>> *udata = (LuaGlueTypeValue<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueTypeValue<std::shared_ptr<_Class>>));
+			new (udata) LuaGlueTypeValue<std::shared_ptr<_Class>>(ptr_ptr, this, true); // placement new to initialize object
 			
 			luaL_getmetatable(state, this->name().c_str());
 			lua_setmetatable(state, -2);
@@ -231,19 +243,19 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			return *this;
 		}
 		
-		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueObject<std::shared_ptr<_Class>> &obj)
+		LuaGlueClass<_Class> &pushInstance(lua_State *state, const LuaGlueTypeValue<std::shared_ptr<_Class>> &obj)
 		{
 			assert(obj.ptr() != nullptr);
 			
-			LG_Debug("LuaGlueObject<std::shared_ptr<%s>> pushInstance", CxxDemangle(_Class));
-			LuaGlueObject<std::shared_ptr<_Class>> *udata = (LuaGlueObject<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueObject<std::shared_ptr<_Class>>));
-			new (udata) LuaGlueObject<std::shared_ptr<_Class>>(obj); // placement new to initialize object
+			LG_Debug("LuaGlueTypeValue<std::shared_ptr<%s>> pushInstance", CxxDemangle(_Class));
+			LuaGlueTypeValue<std::shared_ptr<_Class>> *udata = (LuaGlueTypeValue<std::shared_ptr<_Class>> *)lua_newuserdata(state, sizeof(LuaGlueTypeValue<std::shared_ptr<_Class>>));
+			new (udata) LuaGlueTypeValue<std::shared_ptr<_Class>>(obj); // placement new to initialize object
 			
 			luaL_getmetatable(state, this->name().c_str());
 			lua_setmetatable(state, -2);
 			
 			return *this;
-		}
+		}*/
 		
 		template<typename... _Args>
 		LuaGlueClass<_Class> &ctor(const std::string &name)
@@ -310,25 +322,19 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			LG_Debug("prop array!\n");
 			auto impl = new LuaGlueDirectPropertyArray<_N, _Type, _Class>(this, name, prop);
 			
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
 			// check to see if the required LuaGlueArray specialization is registered
 			// if not, register it.
-			if(!g->typeExists(impl->LUAGLUE_CLASS_NAME))
+			if(!g->typeExists(typeid(LuaGlueStaticArrayType<_N, _Type>).name(), true))
 			{
 				// FIXME: calling glue() here ourselves works for now, but later
 				//  if/when namespaces are added, or more complex registration is done, this may break.
 				//  however, not calling it here would mean it may not ever get registered in some cases.
-				auto at = new LuaGlueStaticArrayType<_N, _Type>(g, impl->LUAGLUE_CLASS_NAME);
-				g->addType(at);
+				auto at = new LuaGlueStaticArrayType<_N, _Type>(g);
+				((LuaGlue*)g)->addType(at);
 				
 				LG_Debug("register %s", impl->LUAGLUE_CLASS_NAME);
-					
-				// if, and only if the state is set
-				if(g->state())
-				{
-					at->glue(g);
-				}
 			}
 			properties_.addSymbol(name.c_str(), impl);
 			
@@ -470,7 +476,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		
 		bool hasMethod(const std::string& methodName)
 		{
-			auto state = luaGlue()->state();
+			auto state = this->luaGlue()->state();
 
 			lua_getglobal(state, this->name().c_str());
 			if (!lua_istable(state, -1))
@@ -511,8 +517,8 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			return *this;
 		}
 		
-		LuaGlue &end() { return *(LuaGlue*)luaGlue(); }
-		LuaGlueBase *luaGlue() { return luaGlue(); }
+		LuaGlue &end() { return *(LuaGlue*)this->luaGlue(); }
+		//LuaGlueBase *luaGlue() { return luaGlue(); }
 		
 		virtual bool glue_type_methods(LuaGlueBase *g)
 		{
@@ -585,24 +591,24 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		{
 			std::string ret;
 			
-			LuaGlueBase *g = luaGlue();
+			LuaGlueBase *g = this->luaGlue();
 			
 			lua_State *state = g->state();
 			
 			int type = lua_type(state, 1);
 			if(type == LUA_TUSERDATA)
 			{
-				LuaGlueObjectBase *lg_obj = (LuaGlueObjectBase *)lua_touserdata(state, 1);
+				LuaGlueTypeValueBase *lg_obj = (LuaGlueTypeValueBase *)lua_touserdata(state, 1);
 				_Class *obj = nullptr;
 				
 				if(lg_obj->isSharedPtr())
 				{
-					auto o = CastLuaGlueObjectShared(_Class, lg_obj);
+					auto o = CastLuaGlueTypeValueShared(_Class, lg_obj);
 					obj = o->ptr();
 				}
 				else
 				{
-					auto o = CastLuaGlueObject(_Class, lg_obj);
+					auto o = CastLuaGlueTypeValue(_Class, lg_obj);
 					obj = o->ptr();
 				}
 				
@@ -631,7 +637,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			LG_Debug("class impl shared dtor!");
 		}
 		
-		// LuaGlueObjectImpl dtor?
+		// LuaGlueTypeValueImpl dtor?
 		void impl_dtor(_Class *)
 		{
 			// ???

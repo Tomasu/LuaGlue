@@ -2,7 +2,7 @@
 #define LUAGLUE_APPLYTUPLE_GLUEOBJSPTRFUNC_H_GUARD
 
 /**
- * LuaGlueObject<shared_ptr> Function Tuple Argument Unpacking
+ * LuaGlueTypeValue<shared_ptr> Function Tuple Argument Unpacking
  *
  * This recursive template unpacks the tuple parameters into
  * variadic template arguments until we reach the count of 0 where the function
@@ -16,7 +16,7 @@ template < int N >
 struct apply_glueobj_sptr_func
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<std::shared_ptr<T>> &pObj,
+  static R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueTypeValue<std::shared_ptr<T>> &pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &t,
                           Args&&... args )
@@ -32,7 +32,7 @@ struct apply_glueobj_sptr_func
 //-----------------------------------------------------------------------------
 
 /**
- * LuaGlueObject<shared_ptr> Function Tuple Argument Unpacking End Point
+ * LuaGlueTypeValue<shared_ptr> Function Tuple Argument Unpacking End Point
  *
  * This recursive template unpacks the tuple parameters into
  * variadic template arguments until we reach the count of 0 where the function
@@ -44,7 +44,7 @@ template <>
 struct apply_glueobj_sptr_func<0>
 {
   template < typename T, typename R, typename... ArgsF, typename... ArgsT, typename... Args >
-  static R applyTuple(LuaGlueBase *, lua_State *, LuaGlueObject<std::shared_ptr<T>> &pObj,
+  static R applyTuple(LuaGlueBase *, lua_State *, LuaGlueTypeValue<std::shared_ptr<T>> &pObj,
                           R (T::*f)( ArgsF... ),
                           const std::tuple<ArgsT...> &/* t */,
                           Args&&... args )
@@ -57,11 +57,11 @@ struct apply_glueobj_sptr_func<0>
 //-----------------------------------------------------------------------------
 
 /**
- * LuaGlueObject<shared_ptr> Function Call Forwarding Using Tuple Pack Parameters
+ * LuaGlueTypeValue<shared_ptr> Function Call Forwarding Using Tuple Pack Parameters
  */
 // Actual apply function
 template < typename T, typename R, typename... ArgsF, typename... ArgsT >
-R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueObject<std::shared_ptr<T>> pObj,
+R applyTuple(LuaGlueBase *g, lua_State *s, LuaGlueTypeValue<std::shared_ptr<T>> pObj,
                  R (T::*&f)( ArgsF... ),
                  const std::tuple<ArgsT...> &t )
 {
