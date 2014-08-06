@@ -97,13 +97,15 @@ class LuaGlueType : public LuaGlueTypeBase
 		// NO OVERRIDE. KEKEKE.
 		virtual bool glue(LuaGlueBase *g) final
 		{
-			int meta_id;
-			int type_id;
+			int metatable_id;
+			int typetable_id;
+
 			int type_idx;
 			
 			lua_State *s = g->state();
+			
 			lua_createtable(s, 0, 0);
-			type_id = lua_gettop(s);
+			typetable_id = lua_gettop(s);
 			
 			const char *metaname = !this->anonymous_type ? name_.c_str() : typeid(this).name();
 			
@@ -114,36 +116,31 @@ class LuaGlueType : public LuaGlueTypeBase
 				goto err_type;
 			
 			lua_newtable(s); // metatable
+			metatable_id = lua_gettop(s);
 			
-			// if we are a named type, add to registry
-			//if(!this->anonymous_type)
-			//{
-				lua_pushvalue(s, -1); // push ref to table on stack
-				LG_Debug("metatype: %s", metaname); 
-				lua_setfield(s, LUA_REGISTRYINDEX, metaname); // set registry entry for type.
-			//}
-			
-			meta_id = lua_gettop(s);
+			// add type to reigstry
+			lua_pushvalue(s, -1); // push ref to table on stack
+			//LG_Debug("metatype: %s", metaname); 
+			lua_setfield(s, LUA_REGISTRYINDEX, metaname); // set registry entry for type.
 			
 			type_idx = g->getSymTab().findSym(metaname).idx;
-			LuaHelpers::setField(g, LuaGlueTypeBase::METATABLE_TYPEIDINT_FIELD, type_idx, meta_id);
+			LuaHelpers::setField(g, LuaGlueTypeBase::METATABLE_TYPEIDINT_FIELD, type_idx, metatable_id);
 			
 			// FIXME: METATABLE_TYPENAMEINT_FIELD is broken, either fix, or completely remove
 			//LuaHelpers::setField(g, LuaGlueTypeBase::METATABLE_TYPENAMEINT_FIELD, typeid(_Class).name(), meta_id);
-			LuaHelpers::setField(g, LuaGlueTypeBase::METATABLE_TYPENAME_FIELD, name_, meta_id);
+			LuaHelpers::setField(g, LuaGlueTypeBase::METATABLE_TYPENAME_FIELD, name_, metatable_id);
 			
-			LuaHelpers::glueFunction(g, LuaGlueTypeBase::METATABLE_TYPEID_FIELD, this, &typeid_cb, meta_id);
-			LuaHelpers::glueFunction(g, "__index", this, &mm_index_cb, meta_id);
-			LuaHelpers::glueFunction(g, "__newindex", this, &mm_newindex_cb, meta_id);
+			LuaHelpers::glueFunction(g, LuaGlueTypeBase::METATABLE_TYPEID_FIELD, this, &typeid_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__index", this, &mm_index_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__newindex", this, &mm_newindex_cb, metatable_id);
 			
 			// TODO: this is supposed to disable lua from changing the metatable.
 			// make sure it actually does.
-			lua_pushvalue(s, -1);
-			//lua_newtable(s);
-			lua_setfield(s, meta_id, "__metatable");
+			lua_pushvalue(s, typetable_id);
+			lua_setfield(s, metatable_id, "__metatable");
 			
-			LuaHelpers::glueFunction(g, "__gc", this, &mm_gc_cb, meta_id);
-			LuaHelpers::glueFunction(g, "__concat", this, &mm_concat_cb, meta_id);
+			LuaHelpers::glueFunction(g, "__gc", this, &mm_gc_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__concat", this, &mm_concat_cb, metatable_id);
 			
 			// TODO: add more meta method handlers.
 			
@@ -206,7 +203,7 @@ class LuaGlueType : public LuaGlueTypeBase
 		virtual int mm_gc(lua_State *state)
 		{
 			LG_Debug("%s mm_gc!", lua_demangle_sym(name_.c_str()).c_str());
-			lua_dump_stack(state);
+			//lua_dump_stack(state);
 			if(lua_isuserdata(state, -1))
 			{
 				LG_Debug("about to put ref!");
@@ -216,10 +213,14 @@ class LuaGlueType : public LuaGlueTypeBase
 			else
 			{
 				int type = lua_type(state, -1);
-				LG_Debug("not userdata? %s", lua_typename(state, type));
 				if(type == LUA_TTABLE)
 				{
-					lua_dump_table(state, -1);
+					// FIXME: this is our class table, we get a gc on it
+					// it is safe to ignore. There might be a way to register
+					// the type with lua such that we don't get the __gc on the table
+					// but for now, its ok.
+					
+					//lua_dump_table(state, -1);
 				}
 			}
 			LG_Debug("mm_gc end!");

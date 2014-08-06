@@ -157,7 +157,7 @@ class LuaGlueDirectProperty : public LuaGluePropertyBase
 			if(nargs == 2)
 			{
 				// get
-				LG_Debug("type: %s/%s %p", typeid(decltype((ptr->*prop_))).name(), typeid(Type).name(), (ptr->*prop_));
+				LG_Debug("type: %s/%s %p", typeid(decltype((ptr->*prop_))).name(), typeid(Type).name(), &(ptr->*prop_));
 				//Type val = (ptr->*prop_);
 				stack<Type>::put(glueClass->luaGlue(), state, (ptr->*prop_));
 				return 1;

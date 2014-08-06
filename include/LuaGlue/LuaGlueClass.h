@@ -137,7 +137,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			lua_getfield(g->state(), -1, n.c_str());
 			
 			_Ret ret = getPropertyImpl<_Ret>(std::is_class<typename std::remove_pointer<_Ret>::type>());
-			lua_pop(g->state(), 1);
+			lua_pop(g->state(), 2);
 			
 			return ret;
 		}
