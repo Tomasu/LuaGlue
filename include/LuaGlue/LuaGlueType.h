@@ -107,6 +107,16 @@ class LuaGlueType : public LuaGlueTypeBase
 			lua_createtable(s, 0, 0);
 			typetable_id = lua_gettop(s);
 			
+			// Assign metatable above the other registrations.
+			
+			// From lua docs:
+			// Note that if you set a metatable without a __gc
+			// field and later create that field in the metatable,
+			// the object will not be marked for finalization. 
+			
+			lua_pushvalue(s, -1); // copy meta table
+			lua_setmetatable(s, -2); // pop meta table, and assign as type metatable
+			
 			const char *metaname = !this->anonymous_type ? name_.c_str() : typeid(this).name();
 			
 			if(!this->glue_type_properties(g))
@@ -162,9 +172,6 @@ class LuaGlueType : public LuaGlueTypeBase
 			if(!this->glue_meta_methods(g))
 				goto err_meta;
 			
-			// pop meta table, and assign as type metatable
-			lua_setmetatable(s, -2);
-			
 			// make copy of type table
 			lua_pushvalue(s, -1);
 			// create global so lua can access our type as type Name.
@@ -215,11 +222,17 @@ class LuaGlueType : public LuaGlueTypeBase
 				int type = lua_type(state, -1);
 				if(type == LUA_TTABLE)
 				{
-					// FIXME: this is our class table, we get a gc on it
-					// it is safe to ignore. There might be a way to register
-					// the type with lua such that we don't get the __gc on the table
-					// but for now, its ok.
+					// This should never happen, but in the off chance something changes,
+					// and we get a table here, it's the type table.
+					// it is safe to ignore. Current "fix" was to move the metatable
+					// set to before the __gc method is added to the metatable.
 					
+					// From lua docs:
+					// Note that if you set a metatable without a __gc
+					// field and later create that field in the metatable,
+					// the object will not be marked for finalization. 
+					//   so we can probably set the metatable of the type/class
+					//   table before we set the __gc field...
 					//lua_dump_table(state, -1);
 				}
 			}

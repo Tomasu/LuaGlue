@@ -51,8 +51,8 @@
 		if(lua_islightuserdata(s, idx))
 		{
 			LG_Debug("stack::get<LuaGlueTypeValue<std::shared_ptr<%s>>>: lud", CxxDemangle(T));
-			LuaGlueTypeValue<std::shared_ptr<T>> ptr = *(LuaGlueTypeValue<std::shared_ptr<T>> *)lua_touserdata(s, idx);
-			return *ptr;
+			LuaGlueTypeValue<std::shared_ptr<T>> *ptr = (LuaGlueTypeValue<std::shared_ptr<T>> *)lua_touserdata(s, idx);
+			return *ptr->ptr();
 		}
 		
 		//printf("stack<shared_ptr<T>>::get: name:%s\n", typeid(T).name());
@@ -60,8 +60,8 @@
 		if(checkGlueType(g, s, idx))
 		{
 			LG_Debug("stack::get<LuaGlueTypeValue<std::shared_ptr<%s>>>: mapped", CxxDemangle(T));
-			LuaGlueTypeValue<std::shared_ptr<T>> obj = *(LuaGlueTypeValue<std::shared_ptr<T>> *)lua_touserdata(s, idx);
-			return *obj;
+			LuaGlueTypeValue<std::shared_ptr<T>> *ptr = *(LuaGlueTypeValue<std::shared_ptr<T>> *)lua_touserdata(s, idx);
+			return *ptr->ptr();
 		}
 
 		LG_Debug("stack::get<LuaGlueTypeValue<std::shared_ptr<%s>>>: unk", CxxDemangle(T));
