@@ -51,3 +51,7 @@ target_link_libraries(arrays ${LUA_LIBRARIES})
 copy_to_build(stdfunc.lua)
 add_executable(stdfunc stdfunc.cpp stdfunc.lua)
 target_link_libraries(stdfunc ${LUA_LIBRARIES})
+
+copy_to_build(luavalue.lua)
+add_executable(luavalue luavalue.cpp luavalue.lua)
+target_link_libraries(luavalue ${LUA_LIBRARIES})

@@ -187,4 +187,16 @@
 		lua_pushlightuserdata(s, v);
 	}
 
+	void *stack<void *>::get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		LG_Debug("stack::get<void *>: lud");
+		return (void *)lua_touserdata(s, idx);
+	}
+	
+	void stack<void *>::put(LuaGlueBase *, lua_State *s, void *v)
+	{
+		LG_Debug("stack::put<void *>: lud");
+		lua_pushlightuserdata(s, v);
+	}
+
 #endif /* LUAGLUE_STACKTEMPLATES_PTR_H_GUARD */

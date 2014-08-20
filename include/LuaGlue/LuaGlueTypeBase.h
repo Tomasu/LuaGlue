@@ -60,6 +60,7 @@ class LuaGlueTypeBase
 		virtual int mm_newindex(lua_State *state) = 0;
 		virtual int mm_gc(lua_State *state) = 0;
 		virtual int mm_concat(lua_State *state) = 0;
+		virtual int mm_call(lua_State *state) = 0;
 		virtual int lg_typeid(lua_State *state) = 0;
 		
 		// FIXME: this smells... how else to hide LuaGlueType from places that only really

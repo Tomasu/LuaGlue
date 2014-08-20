@@ -196,6 +196,12 @@ struct stack<T *> {
 	static void put(LuaGlueBase *g, lua_State *s, T *v, std::false_type);
 };
 
+template<>
+struct stack<void *> {
+	static void *get(LuaGlueBase *, lua_State *s, int idx);
+	static void put(LuaGlueBase *, lua_State *s, void *v);
+};
+
 template<class T>
 struct stack<T *&> {
 	static T *get(LuaGlueBase *g, lua_State *s, int idx);
@@ -292,6 +298,20 @@ struct stack<const std::string &> {
 	static std::string get(LuaGlueBase *, lua_State *s, int idx);
 	static void put(LuaGlueBase *, lua_State *s, std::string v);
 	static void put(LuaGlueBase *, lua_State *s, std::string *v);
+};
+
+//#include "LuaGlue/LuaGlueLuaValue.h"
+class LuaGlueLuaValue;
+template<>
+struct stack<LuaGlueLuaValue> {
+	static LuaGlueLuaValue get(LuaGlueBase *b, lua_State *s, int idx);
+	static void put(LuaGlueBase *b, lua_State *s, LuaGlueLuaValue& v);
+};
+
+template<>
+struct stack<const LuaGlueLuaValue&> {
+	static const LuaGlueLuaValue get(LuaGlueBase *b, lua_State *s, int idx);
+	static void put(LuaGlueBase *b, lua_State *s, LuaGlueLuaValue& v);
 };
 
 #include "LuaGlue/LuaGlueUtils.h"

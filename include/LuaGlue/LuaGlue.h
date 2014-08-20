@@ -16,7 +16,6 @@
 #include "LuaGlue/LuaGlueType.h"
 #include "LuaGlue/LuaGlueFunctionBase.h"
 #include "LuaGlue/LuaGlueSymTab.h"
-#include "LuaGlue/LuaGlueLuaFuncRef.h"
 
 template<typename _Class>
 class LuaGlueClass;
@@ -405,5 +404,6 @@ inline _Class LuaGlue::getGlobal(const char *name)
 #include "LuaGlue/StackTemplates/StdFunction.h"
 #include "LuaGlue/StackTemplates/String.h"
 #include "LuaGlue/StackTemplates/TypeValue.h"
+#include "LuaGlue/StackTemplates/LuaValue.h"
 
 #endif /* LUAGLUE_H_GUARD */

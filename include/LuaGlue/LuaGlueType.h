@@ -46,9 +46,9 @@ class LuaGlueType : public LuaGlueTypeBase
 			new (udata) LuaGlueTypeValue<ValueType>(d, this, owner); // placement new
 			
 			luaL_getmetatable(s, name_.c_str());
-			lua_dump_stack(s);
+			//lua_dump_stack(s);
 			lua_setmetatable(s, -2);
-			lua_dump_stack(s);
+			//lua_dump_stack(s);
 			return udata;
 		}
 		
@@ -151,6 +151,7 @@ class LuaGlueType : public LuaGlueTypeBase
 			
 			LuaHelpers::glueFunction(g, "__gc", this, &mm_gc_cb, metatable_id);
 			LuaHelpers::glueFunction(g, "__concat", this, &mm_concat_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__call", this, &mm_call_cb, metatable_id);
 			
 			// TODO: add more meta method handlers.
 			
@@ -250,6 +251,11 @@ class LuaGlueType : public LuaGlueTypeBase
 			return 1;
 		}
 		
+		virtual int mm_call(lua_State *state)
+		{
+			return luaL_error(state, "type %s is not callable (metamethod not defined).", name_.c_str());
+		}
+		
 		virtual int lg_typeid(lua_State *state)
 		{
 			lua_pushunsigned(state, typeid_);
@@ -279,6 +285,12 @@ class LuaGlueType : public LuaGlueTypeBase
 		{
 			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
 			return cimp->mm_concat(state);
+		}
+		
+		static int mm_call_cb(lua_State *state)
+		{
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->mm_call(state);
 		}
 		
 		static int typeid_cb(lua_State *state)
