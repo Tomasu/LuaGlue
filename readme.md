@@ -56,6 +56,24 @@ int main(int, char **)
 }
 ```
 
+CHANGES
+=======
+
+Aug 20 2014
+-----------
+
+Large refactor finished. A large amount of internal structure and code changed.
+Repo forks may break or fail to merge.
+
+Passing Lua Values like tables, functions and basic types is supported through
+a new LuaGlueLuaValue type. For those times when you want a table or just don't
+care what type is passed to a C/C++ function from lua.
+
+FUTURE
+======
+
+- Pending name change, and large API break to add namespaces.
+
 LICENSE
 =======
 
