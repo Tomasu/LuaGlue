@@ -52,7 +52,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			LG_Debug("invoke: %s::%s", typeid(*glueClass).name(), name_.c_str());
+			LG_Debug("invoke: %s::%s", CxxDemangle(decltype(*glueClass)), name_.c_str());
 
 			ReturnType ret;
 			
