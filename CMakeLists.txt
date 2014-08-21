@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.6)
 
 project(LuaGlue CXX)
 
+# check for cxxabi.h header, so we can check for it in LuaGlueUtils.h
+include(CheckIncludeFileCXX)
+CHECK_INCLUDE_FILE_CXX(cxxabi.h HAVE_CXXABI_H)
+
 option(LUAGLUE_TYPECHECK "enable strict typechecking (slows things down quite a bit)" OFF)
 
 # tell CMake to search first in the cmake subdirectory for FIND_PACKAGE() or INCLUDE()

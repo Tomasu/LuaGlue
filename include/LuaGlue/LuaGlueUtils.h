@@ -1,7 +1,10 @@
 #ifndef LuaGlueUtils_H_GUARD
 #define LuaGlueUtils_H_GUARD
 
+#ifdef HAVE_CXXABI_H
 #include <cxxabi.h>
+#endif
+
 #include <string>
 #include <stdlib.h>
 
@@ -15,7 +18,13 @@ class CxxDemangle_
 	public:
 		CxxDemangle_()
 		{
+#ifdef HAVE_CXXABI_H
 			realname = abi::__cxa_demangle(typeid(T).name(), 0, 0, &status);
+#else
+			// some compilers don't have a way to demangle symbols :(
+			// just use the mangled name instead.
+			realname = strdup(typeid(T).name());
+#endif
 		}
 		
 		~CxxDemangle_() { free(realname); }
@@ -25,23 +34,18 @@ class CxxDemangle_
 		}
 };
 
-template<typename T>
-std::string lua_demangle()
-{
-	int status = 0;
-	char *realname = abi::__cxa_demangle(typeid(T).name(), 0, 0, &status);
-	std::string str = realname;
-	free(realname);
-	return str;
-}
-
 std::string lua_demangle_sym(const char *sym);
 inline std::string lua_demangle_sym(const char *sym)
 {
+#ifdef HAVE_CXXABI_H
 	int status = 0;
 	char *s = abi::__cxa_demangle(sym, 0, 0, &status);
 	std::string str = s ? s : sym;
 	free(s);
+#else
+	std::string str = sym;
+#endif
+	
 	return str;
 }
 
