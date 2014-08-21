@@ -6,6 +6,7 @@
 #include <memory.h>
 
 #include "LuaGlue/LuaGlueTypeBase.h"
+#include "LuaGlue/LuaGlueUtils.h"
 
 class LuaGlueBase;
 
@@ -33,7 +34,7 @@ inline bool checkGlueType(LuaGlueBase *g, lua_State *s, int idx)
 	return true;
 }
 
-template<typename T>
+template<typename T, class Enable = void>
 struct stack;
 
 template<class T>
@@ -78,12 +79,39 @@ struct stack<T[_N]> {
 	static LuaGlueStaticArray<_N, T> *getStaticArray(LuaGlueBase *g, lua_State *s, int idx);
 };
 
-template<>
-struct stack<bool> {
-	static bool get(LuaGlueBase *, lua_State *s, int idx);
-	static void put(LuaGlueBase *, lua_State *s, bool v);
+template<typename T>
+struct stack<T, typename std::enable_if<std::is_integral<T>::value>::type> {
+	static T get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		T v = luaL_checkinteger(s, idx);
+		LG_Debug("stack<%s>::get: %li", CxxDemangle(T), v);
+		return v;
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, T v)
+	{
+		LG_Debug("stack<%s>::put: %li", CxxDemangle(T), v);
+		lua_pushinteger(s, v);
+	}
 };
 
+template<typename T>
+struct stack<T&, typename std::enable_if<std::is_integral<T>::value>::type> {
+	static T get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		T v = luaL_checkinteger(s, idx);
+		LG_Debug("stack<%s>::get: %li", CxxDemangle(T), v);
+		return v;
+	}
+	
+	static void put(LuaGlueBase *, lua_State *s, T &v)
+	{
+		LG_Debug("stack<%s>::put: %li", CxxDemangle(T), v);
+		lua_pushinteger(s, v);
+	}
+};
+
+/*
 template<>
 struct stack<bool&> {
 	static bool get(LuaGlueBase *, lua_State *s, int idx);
@@ -149,6 +177,7 @@ struct stack<const char&> {
 	static char get(LuaGlueBase *, lua_State *s, int idx);
 	static void put(LuaGlueBase *, lua_State *s, const char &v);
 };
+*/
 
 template<>
 struct stack<float> {

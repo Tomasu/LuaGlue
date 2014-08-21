@@ -40,3 +40,5 @@ print("testb.TypeId: "..testb.TypeId());
 
 print("testa.TypeId: "..STestA.TypeId());
 print("testb.a.TypeId: "..testb.a.TypeId());
+
+intTest(123, 456, 789, 101112);

@@ -4,7 +4,7 @@
 // FIXME: static objects need fixed again.
 // FIXME: does it really?
 
-template<class T>
+template<class T, class Enable>
 struct stack {
 	typedef typename std::remove_reference<T>::type RRT;
 	

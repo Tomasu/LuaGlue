@@ -5,6 +5,11 @@ static void func()
 	printf("in func!\n");
 }
 
+static void intTest(int32_t i32, int64_t i64, wchar_t wc, ptrdiff_t pd)
+{
+	printf("intTest: %i, %li, %i, %li\n", i32, i64, wc, pd);
+}
+
 class Array
 {
 	public:
@@ -102,6 +107,7 @@ int main(int, char **)
 			prop("b", &STestB::b).
 		end().
 		func("func", &func).
+		func("intTest", &intTest).
 		open().glue();
 		
 	if(!state.doFile("foo.lua"))
