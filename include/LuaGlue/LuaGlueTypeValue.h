@@ -134,6 +134,7 @@ class LuaGlueTypeValue : public LuaGlueTypeValueBase
 			//LG_Debug("ctor()");
 		}
 		
+		// coverity[+alloc]
 		LuaGlueTypeValue(Type *optr, LuaGlueTypeBase *type = nullptr, bool owner = false) : LuaGlueTypeValueBase(false), p(new LuaGlueTypeValueImpl<Type>(optr, type, owner))
 		{
 			//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
@@ -161,7 +162,7 @@ class LuaGlueTypeValue : public LuaGlueTypeValueBase
 		~LuaGlueTypeValue()
 		{
 			LG_Debug("dtor");
-			abort();
+			//abort();
 			
 			if(!p)
 				LG_Debug("p == 0");
@@ -238,18 +239,24 @@ class LuaGlueTypeValue<std::shared_ptr<_Class>> : public LuaGlueTypeValueBase
 		
 		~LuaGlueTypeValue()
 		{
-			LG_Debug("dtor ref_cnt:%i", p ? p->ref_cnt() : -1);
-			if(!p)
-				LG_Debug("p == 0");
-			
-			if(p && !p->put())
+			if(p)
 			{
-				LG_Debug("dtor ref count hit 0, delete impl");
-				delete p;
-				p = nullptr;
+				LG_Debug("dtor ref_cnt:%i", p->ref_cnt());
+				LG_Debug("ptr: %p", p->vptr());
+				
+				if(!p->put())
+				{
+					LG_Debug("dtor ref count hit 0, delete impl");
+					delete p;
+					p = nullptr;
+				}
 			}
-			
-			LG_Debug("ptr: %p", p->vptr());
+			else
+			{
+				LG_Debug("dtor ref_cnt:-1");
+				LG_Debug("ptr: nullptr");
+			}
+	
 			p = nullptr;
 		}
 		

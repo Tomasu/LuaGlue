@@ -254,8 +254,14 @@ class LuaGlue : public LuaGlueBase
 			if(ret != LUA_OK) // run script // 1
 			{
 				const char *errstr = lua_tostring(state_, -1);
-				printf("failed to run script %s: err:%i %s\n", ns_name.c_str(), ret, errstr ? errstr : "unknown error");
+				if(!errstr)
+				{
+					errstr = "unknown error";
+				}
+				
+				printf("failed to run script %s: err:%i %s\n", ns_name.c_str(), ret, errstr);
 				last_error = std::string(errstr);
+					
 				return false;
 			}
 

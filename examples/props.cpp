@@ -24,6 +24,7 @@ class Foo
 		
 		~Foo()
 		{
+			delete obj_ptr_prop;
 			LG_Debug("Foo::~Foo()");
 		}
 		

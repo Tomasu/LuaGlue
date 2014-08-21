@@ -22,8 +22,11 @@ struct stack {
 			LG_Debug("stack::get<static %s>: mapped", CxxDemangle(RRT));
 			LuaGlueTypeValue<RRT> *ptr = (LuaGlueTypeValue<RRT> *)lua_touserdata(s, idx);
 			if(!ptr)
+			{
 				LG_Debug("no glue object found?");
-
+				return RRT();
+			}
+			
 			return *(ptr->ptr());
 		}
 

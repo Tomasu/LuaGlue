@@ -4,7 +4,7 @@
 class LuaGlueLuaTable
 {
 	public:
-		LuaGlueLuaTable() : _ref(LUA_NOREF) { }
+		LuaGlueLuaTable() : _ref(LUA_NOREF), _b(nullptr), _s(nullptr) { }
 		virtual ~LuaGlueLuaTable() { }
 		
 		void load(LuaGlueBase *b, lua_State *s, int idx);

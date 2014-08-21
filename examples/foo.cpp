@@ -36,7 +36,7 @@ class Array
 class Foo
 {
 	public:
-		Foo(int i) { printf("ctor! %i\n", i); }
+		Foo(int i) : testProp_(0) { printf("ctor! %i\n", i); }
 		~Foo() { };
 		
 		int abc(int a, int b, int c) { printf("%i:%i:%i\n", a,b,c); return 143; }

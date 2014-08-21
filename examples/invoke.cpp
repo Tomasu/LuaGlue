@@ -3,7 +3,7 @@
 class Invoke {
 	public:
 		int abc;
-		Invoke() { printf("%p ctor!\n", this); }
+		Invoke() : abc(0) { printf("%p ctor!\n", this); }
 		~Invoke() { printf("dtor!\n"); }
 		void invoke(int a, double b, const char *c)
 		{

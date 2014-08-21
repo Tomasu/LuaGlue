@@ -26,7 +26,15 @@ inline bool checkGlueType(LuaGlueBase *g, lua_State *s, int idx)
 		lua_pop(s, 1);
 		
 		auto c = (LuaGlueTypeBase *)g->lookupType((uint32_t)id);
-		LG_Debug("checkGlueType: METATABLE_TYPEIDINT_FIELD: %i name: %s", id, c->name().c_str());
+		if(!c)
+		{
+			LG_Debug("failed to find type by id %i", (uint32_t)id);
+		}
+		else
+		{
+			LG_Debug("METATABLE_TYPEIDINT_FIELD: %i name: %s", id, c->name().c_str());
+		}
+		
 		return c != nullptr;
 	}
 	

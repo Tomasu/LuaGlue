@@ -6,7 +6,7 @@ class LuaGlueTypeValueBase;
 class LuaGlueLuaUserData
 {
 	public:
-		LuaGlueLuaUserData() : _ref(LUA_NOREF) { }
+		LuaGlueLuaUserData() : _ref(LUA_NOREF), _b(nullptr), _s(nullptr), _ptr(nullptr) { }
 		virtual ~LuaGlueLuaUserData() { }
 		
 		void load(LuaGlueBase *b, lua_State *s, int idx);
