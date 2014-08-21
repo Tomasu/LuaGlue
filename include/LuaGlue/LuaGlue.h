@@ -395,8 +395,6 @@ inline _Class LuaGlue::getGlobal(const char *name)
 #include "LuaGlue/LuaGlueProperty.h"
 
 #include "LuaGlue/StackTemplates/Array.h"
-#include "LuaGlue/StackTemplates/Boolean.h"
-#include "LuaGlue/StackTemplates/Integer.h"
 #include "LuaGlue/StackTemplates/Numeric.h"
 #include "LuaGlue/StackTemplates/Ptr.h"
 #include "LuaGlue/StackTemplates/SharedPtr.h"

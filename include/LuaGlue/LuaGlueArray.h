@@ -6,13 +6,6 @@
 #include "LuaGlue/LuaHelpers.h"
 #include "LuaGlue/LuaGlueType.h"
 
-#include "LuaGlue/StackTemplates/SharedPtr.h"
-#include "LuaGlue/StackTemplates/Integer.h"
-#include "LuaGlue/StackTemplates/Numeric.h"
-#include "LuaGlue/StackTemplates/String.h"
-#include "LuaGlue/StackTemplates/Ptr.h"
-#include "LuaGlue/StackTemplates/StaticObj.h"
-
 template<int N, typename T>
 class LuaGlueStaticArray
 {
