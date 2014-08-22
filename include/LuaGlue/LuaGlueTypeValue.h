@@ -134,7 +134,6 @@ class LuaGlueTypeValue : public LuaGlueTypeValueBase
 			//LG_Debug("ctor()");
 		}
 		
-		// coverity[+alloc]
 		LuaGlueTypeValue(Type *optr, LuaGlueTypeBase *type = nullptr, bool owner = false) : LuaGlueTypeValueBase(false), p(new LuaGlueTypeValueImpl<Type>(optr, type, owner))
 		{
 			//LG_Debug("ctor(%p, %s, %i)", ptr, clss->name().c_str(), owner);
@@ -177,12 +176,13 @@ class LuaGlueTypeValue : public LuaGlueTypeValueBase
 		void put()
 		{
 			if(!p)
-				throw new std::runtime_error("blah");
+				throw std::runtime_error("blah");
 			
 			if(!p->put())
 			{
 				LG_Debug("put ref count hit 0, delete impl");
 				delete p;
+				p = nullptr;
 			}
 		}
 		
@@ -263,7 +263,7 @@ class LuaGlueTypeValue<std::shared_ptr<_Class>> : public LuaGlueTypeValueBase
 		void put()
 		{
 			if(!p)
-				throw new std::runtime_error("blah");
+				throw std::runtime_error("blah");
 			
 			if(!p->put())
 			{
