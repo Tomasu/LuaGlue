@@ -1,6 +1,8 @@
 LuaGlue
 =======
 
+![Coverity Status](https://scan.coverity.com/projects/2848/badge.svg)
+
 LuaGlue is a C++11 template based binding library.
 
 It is contained entirely in headers, with no code to link to.
