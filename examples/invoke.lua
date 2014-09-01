@@ -24,6 +24,12 @@ function from_c_args(a, b, c)
 	return 4;
 end
 
+function staticCallback(i)
+    io.write("in lua staticCallback! got: "..i.."\n");
+end
+
+Invoke.luaStaticCallback(callback);
+
 invoke = Invoke.new();
 invoke:invoke(1, 2.0, "three");
 invoke:invoke_lua(2, 3, "four");

@@ -72,7 +72,6 @@ class LuaGlueLuaFuncRef
 		{
 			LG_TypeCheck(g, "LuaGlueLuaFuncRef", LUA_TFUNCTION, -1);
 			lua_ref = luaL_ref(g->state(), LUA_REGISTRYINDEX);
-			LG_Debug("new ref: %i", lua_ref);
 		}
 		
 		_Ret invokeImpl(std::false_type, _Args... args)
@@ -150,6 +149,7 @@ class LuaGlueLuaFunctionType : public LuaGlueType< LuaGlueLuaFuncRef<_Ret, _Args
 		{
 			LG_Debug("call");
 			
+			lua_dump_stack(s);
 			LuaGlueTypeValue< ValueType > *obj = (LuaGlueTypeValue< ValueType > *)GetLuaUdata(s, 1, typeid(ValueType).name());
 			obj->invoke();
 			return 1;

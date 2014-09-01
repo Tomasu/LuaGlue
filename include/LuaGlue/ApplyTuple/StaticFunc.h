@@ -24,9 +24,9 @@ struct apply_func
 		//typedef typename std::remove_reference<decltype(std::get<N-1>(t))>::type ltype_const;
 		//typedef typename std::remove_const<ltype_const>::type ltype;
 		typedef typename std::remove_const<decltype(std::get<N-1>(t))>::type ltype;
-		int idx = -(argCount-N+1); //lua_absindex(s, -(argCount-N+1));
+		int idx = lua_absindex(s, -(argCount-N+1));
 		ltype v = stack<ltype>::get(g, s, idx);
-		LG_Debug("apply_func<%i>::applyTuple arg(%i,%i): %p %s %s", N, lua_gettop(s), idx, v, CxxDemangle(ltype), lua_typename(s, lua_type(s, idx)));
+		//LG_Debug("apply_func<%i>::applyTuple arg(%i,%i): %p %s %s", N, lua_gettop(s), idx, v, CxxDemangle(ltype), lua_typename(s, lua_type(s, idx)));
 		return apply_func<N-1>::applyTuple( g, s, f, std::forward<decltype(t)>(t), v, std::forward<Args>(args)... );
 	}
 	

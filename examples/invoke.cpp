@@ -14,6 +14,8 @@ class Invoke {
 		void fromlua() { printf("from lua!\n"); }
 		
 		void luaCallback(std::function<void(int)> f) { printf("calling std::func\n"); f(123); }
+		
+		static void luaStaticCallback(std::function<void(int)> f) { printf("calling std::func\n"); f(123); }
 };
 
 int main(int, char **)
@@ -26,7 +28,8 @@ int main(int, char **)
 		method("invokeObj", &Invoke::invokeObj).
 		method("objInvoke", &Invoke::objInvoke).
 		method("fromlua", &Invoke::fromlua).
-		method("luaCallback", &Invoke::luaCallback);
+		method("luaCallback", &Invoke::luaCallback).
+		method("luaStaticCallback", &Invoke::luaStaticCallback);
 		
 	state.open().glue();
 	
