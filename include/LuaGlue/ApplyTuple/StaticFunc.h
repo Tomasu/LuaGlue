@@ -66,7 +66,6 @@ struct apply_func<0>
 									const std::tuple<ArgsT...>& /* t */,
 									Args... args )
 	{
-		LG_Debug("eoat");
 		return f( std::forward<Args>(args)... );
 	}
 };

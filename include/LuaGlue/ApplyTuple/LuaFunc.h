@@ -65,6 +65,7 @@ template < typename... Args >
 void applyTupleLuaFunc( LuaGlueBase *g, lua_State *s, Args&&... args )
 {
 	LG_Debug("in LuaFunc applyTuple");
+
 	std::tuple<Args&&...> t(std::forward<Args>(args)...);
 	apply_lua_func<sizeof...(Args)>::applyTuple( g, s, std::forward<decltype(t)>(t) );
 }

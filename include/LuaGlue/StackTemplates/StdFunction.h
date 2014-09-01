@@ -82,6 +82,8 @@
 				lua_pop(s, 1); // remove upvalue value
 				return fw;
 			}
+			
+			lua_pop(s, 1); // remove upvalue value
 		}
 		
 		// got a lua function, create reference to it.
@@ -99,7 +101,7 @@
 	std::function<void(_Args...)> stack<const std::function<void(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
-		
+	
 		const char *funcname = lua_getupvalue(s, idx, 1);
 		if(funcname) { /* !funcname means no upvalues */
 			// lua_getupvalue pushes the upvalue value onto the stack
@@ -110,10 +112,13 @@
 				delete wrapper;
 				
 				lua_pop(s, 1); // remove upvalue value
+
 				return fw;
 			}
+			
+			lua_pop(s, 1); // remove upvalue value
 		}
-		
+
 		// got a lua function, create reference to it.
 		return LuaGlueLuaFuncRef<void, _Args...>(b, idx);
 	}

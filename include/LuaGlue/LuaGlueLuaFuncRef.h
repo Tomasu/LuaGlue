@@ -86,7 +86,9 @@ class LuaGlueLuaFuncRef
 		void invokeImpl(std::true_type, _Args... args)
 		{
 			lua_rawgeti(g->state(), LUA_REGISTRYINDEX, lua_ref);
+			
 			applyTupleLuaFunc(g, g->state(), args...);
+			
 			lua_call(g->state(), Arg_Count_, 0);
 		}
 		
@@ -147,9 +149,6 @@ class LuaGlueLuaFunctionType : public LuaGlueType< LuaGlueLuaFuncRef<_Ret, _Args
 	protected:
 		virtual int mm_call(lua_State *s)
 		{
-			LG_Debug("call");
-			
-			lua_dump_stack(s);
 			LuaGlueTypeValue< ValueType > *obj = (LuaGlueTypeValue< ValueType > *)GetLuaUdata(s, 1, typeid(ValueType).name());
 			obj->invoke();
 			return 1;

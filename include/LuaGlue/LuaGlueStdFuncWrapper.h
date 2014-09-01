@@ -120,7 +120,6 @@ class LuaGlueStdFuncWrapper<void, _Args...>
 		{
 			applyTuple<void, _Args...>(_g, s, _f, args);
 			if(Arg_Count_) lua_pop(s, (int)Arg_Count_);
-			
 			return 0;
 		}
 		
