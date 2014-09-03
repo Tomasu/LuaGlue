@@ -52,7 +52,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			LG_Debug("invoke: %s::%s", CxxDemangle(decltype(*glueClass)), name_.c_str());
+			LG_Debug("invoker: %s::%s", CxxDemangle(decltype(*glueClass)), name_.c_str());
 
 			ReturnType ret;
 			
@@ -69,6 +69,7 @@ class LuaGlueMethod : public LuaGlueMethodBase
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			lua_pop(state, 1);
 			
 			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
 			return 1;
@@ -117,7 +118,7 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			//printf("invokev: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+			printf("invokev: %s::%s\n", CxxDemangle(decltype(*glueClass)), name_.c_str());
 			
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
@@ -132,6 +133,8 @@ class LuaGlueMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			lua_pop(state, 1);
+			
 			return 0;
 		}
 		
@@ -179,7 +182,7 @@ class LuaGlueConstMethod : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			//printf("invoker: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+			printf("invoker: %s::%s\n", CxxDemangle(decltype(*glueClass)), name_.c_str());
 			
 			ReturnType ret;
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
@@ -195,6 +198,7 @@ class LuaGlueConstMethod : public LuaGlueMethodBase
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			lua_pop(state, 1);
 			
 			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
 			return 1;
@@ -243,7 +247,7 @@ class LuaGlueConstMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 	public:
 		int invoke(lua_State *state)
 		{
-			//printf("invokev: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+			printf("invokev: %s::%s\n", CxxDemangle(decltype(*glueClass)), name_.c_str());
 
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
@@ -258,6 +262,8 @@ class LuaGlueConstMethod<void, _Class, _Args...> : public LuaGlueMethodBase
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			lua_pop(state, 1);
+			
 			return 0;
 		}
 		
@@ -308,8 +314,8 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 	public:
 		int invoke(lua_State *state)
 		{
-			LG_Debug("invoke shared class method");
-			//printf("invoker: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+			//LG_Debug("invoke shared class method");
+			printf("invoker: %s::%s\n", CxxDemangle(decltype(*glueClass)), name_.c_str());
 
 			ReturnType ret;
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
@@ -325,6 +331,7 @@ class LuaGlueMethod<_Ret, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			lua_pop(state, 1);
 			
 			stack<ReturnType>::put(glueClass->luaGlue(), state, ret);
 			return 1;
@@ -374,7 +381,7 @@ class LuaGlueMethod<void, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 	public:
 		int invoke(lua_State *state)
 		{
-			//printf("invokev: %s::%s\n", typeid(*glueClass).name(), name_.c_str());
+			printf("invokev: %s::%s\n", CxxDemangle(decltype(*glueClass)), name_.c_str());
 
 			auto base = GetLuaUdata(state, 1, glueClass->name().c_str());
 			if(base->isSharedPtr())
@@ -389,6 +396,8 @@ class LuaGlueMethod<void, std::shared_ptr<_Class>, _Args...> : public LuaGlueMet
 			}
 			
 			if(Arg_Count_) lua_pop(state, (int)Arg_Count_);
+			lua_pop(state, 1);
+			
 			return 0;
 		}
 		

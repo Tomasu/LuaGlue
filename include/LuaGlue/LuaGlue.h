@@ -211,6 +211,7 @@ class LuaGlue : public LuaGlueBase
 			{
 				const char *err = luaL_checkstring(state_, -1);
 				last_error = std::string(err);
+				lua_pop(state_, 1);
 			}
 			else
 			{

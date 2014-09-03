@@ -98,8 +98,11 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			//Alias{ (returnValue(*g, g->state(), args), void(), '\0')... };
 			
 			lua_pcall(g->state(), Arg_Count_+1, 1, 0);
-			lua_remove(g->state(), -2);
-			return stack<_Ret>::get(g, g->state(), -1);
+
+			auto ret = stack<_Ret>::get(g, g->state(), -1);
+			lua_pop(g->state(), 2);
+			//lua_remove(g->state(), -2);
+			return ret;
 		}
 		
 		template<typename... _Args>
@@ -125,7 +128,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			//Alias{ (returnValue(*g, g->state(), args), void(), '\0')... };
 			
 			lua_pcall(g->state(), Arg_Count_+1, 0, 0);
-			//lua_pop(g->state(), 1);
+			lua_pop(g->state(), 1);
 		}
 		
 		template<typename _Ret>
