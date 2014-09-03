@@ -20,10 +20,6 @@ class LuaGlueTypeValueImpl : public virtual LuaGlueTypeValueImplBase
 		typedef _Class Type;
 		LuaGlueTypeValueImpl(Type *p, LuaGlueTypeBase *type, bool owner = false) : _ref_cnt(1), _type(type), _ptr(p), _owner(owner)
 		{
-			// NOTE: std::atomic_init does not compile in GCC
-			// something else will be needed for MSVC
-			// std::atomic_init(&_ref_cnt, 1);
-			
 			//LG_Debug("ctor");
 		}
 		
@@ -61,9 +57,9 @@ class LuaGlueTypeValueImpl : public virtual LuaGlueTypeValueImplBase
 		//Type &ref() { return *_ptr; }
 		void *vptr() { return _ptr; }
 		
-		int ref_cnt() { return _ref_cnt; }
+		int32_t ref_cnt() { return _ref_cnt; }
 	private:
-		std::atomic_int _ref_cnt;
+		std::atomic<int32_t> _ref_cnt;
 		LuaGlueTypeBase *_type;
 		Type *_ptr;
 		bool _owner;
@@ -77,10 +73,6 @@ class LuaGlueTypeValueImpl<std::shared_ptr<_Class>> : public virtual LuaGlueType
 		typedef _Class ClassType;
 		LuaGlueTypeValueImpl(Type *p, LuaGlueTypeBase *type, bool owner = false) : _ref_cnt(1), _type(type), _ptr(p), _owner(owner)
 		{
-         // NOTE: std::atomic_init does not compile in GCC
-			// something else will be needed for MSVC
-			// std::atomic_init(&_ref_cnt, 1);
-			
 			LG_Debug("ctor");
 		}
 		
@@ -115,9 +107,9 @@ class LuaGlueTypeValueImpl<std::shared_ptr<_Class>> : public virtual LuaGlueType
 		//Type &ref() { return *_ptr; }
 		void *vptr() { return _ptr; }
 		
-		int ref_cnt() { return _ref_cnt; }
+		int32_t ref_cnt() { return _ref_cnt; }
 	private:
-		std::atomic_int _ref_cnt;
+		std::atomic<int32_t> _ref_cnt;
 		LuaGlueTypeBase *_type;
 		Type *_ptr;
 		bool _owner;
