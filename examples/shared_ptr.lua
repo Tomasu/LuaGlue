@@ -8,8 +8,12 @@ end
 
 -- shared_ptr.lua
 function test_ptr(ptr)
-	print("test_ptr")
-	print(ptr:getValue())
+	if ptr == nil then
+		print("test_ptr is nil")
+	else
+		print("test_ptr")
+		print(ptr:getValue())
+	end
 end
 
 --for i=0,10000 do

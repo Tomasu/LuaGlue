@@ -50,6 +50,10 @@ int main(int, char **)
 	state.invokeVoidFunction("test_ptr", ptr);
 	printf("sptr(shared) == %p\n", ptr.get());
 	
+	std::shared_ptr<Shared> nilptr;
+	state.invokeVoidFunction("test_ptr", nilptr);
+	printf("sptr(shared) == %p\n", nilptr.get());
+	
 	printf("done!\n");
 	
 	//lua_gc(state.state(), LUA_GCCOLLECT, 0);

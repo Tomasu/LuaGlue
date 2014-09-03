@@ -39,9 +39,14 @@ class LuaGlueType : public LuaGlueTypeBase
 		
 		LuaGlueTypeValue<ValueType> *pushInstance(lua_State *s, ValueType *d, bool owner = false)
 		{
-			assert(d != nullptr);
-			
 			LG_Debug("%s %s pushInstance", name_.c_str(), CxxDemangle(ValueType));
+			
+			if(d == nullptr)
+			{
+				lua_pushnil(s);
+				return nullptr;
+			}
+			
 			LuaGlueTypeValue<ValueType> *udata = (LuaGlueTypeValue<ValueType> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<ValueType>));
 			new (udata) LuaGlueTypeValue<ValueType>(d, this, owner); // placement new
 			
@@ -55,6 +60,12 @@ class LuaGlueType : public LuaGlueTypeBase
 		LuaGlueTypeValue<ValueType> *pushInstance(lua_State *s, const LuaGlueTypeValue<ValueType> &d)
 		{
 			LG_Debug("LuaGlueTypeValue<%s> pushInstance", CxxDemangle(ValueType));
+			
+			if(d.ptr() == nullptr)
+			{
+				lua_pushnil(s);
+				return nullptr;
+			}
 			
 			LuaGlueTypeValue<ValueType> *udata = (LuaGlueTypeValue<ValueType> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<ValueType>));
 			new (udata) LuaGlueTypeValue<ValueType>(d); // placement new to initialize object
@@ -70,6 +81,13 @@ class LuaGlueType : public LuaGlueTypeBase
 			//assert(obj.get() != nullptr);
 		
 			LG_Debug("shared_ptr<%s> pushInstance", CxxDemangle(ValueType));
+			
+			if(obj.get() == nullptr)
+			{
+				lua_pushnil(s);
+				return nullptr;
+			}
+			
 			std::shared_ptr<ValueType> *ptr_ptr = new std::shared_ptr<ValueType>(obj);
 			LuaGlueTypeValue<std::shared_ptr<ValueType>> *udata = (LuaGlueTypeValue<std::shared_ptr<ValueType>> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<std::shared_ptr<ValueType>>));
 			new (udata) LuaGlueTypeValue<std::shared_ptr<ValueType>>(ptr_ptr, this, true); // placement new to initialize object
@@ -82,9 +100,14 @@ class LuaGlueType : public LuaGlueTypeBase
 		
 		LuaGlueTypeValue<std::shared_ptr<ValueType>> *pushInstance(lua_State *s, const LuaGlueTypeValue<std::shared_ptr<ValueType>> &obj)
 		{
-			assert(obj.ptr() != nullptr);
-			
 			LG_Debug("LuaGlueTypeValue<std::shared_ptr<%s>> pushInstance", CxxDemangle(ValueType));
+			
+			if(obj.ptr().get() == nullptr)
+			{
+				lua_pushnil(s);
+				return nullptr;
+			}
+			
 			LuaGlueTypeValue<std::shared_ptr<ValueType>> *udata = (LuaGlueTypeValue<std::shared_ptr<ValueType>> *)lua_newuserdata(s, sizeof(LuaGlueTypeValue<std::shared_ptr<ValueType>>));
 			new (udata) LuaGlueTypeValue<std::shared_ptr<ValueType>>(obj); // placement new to initialize object
 			
@@ -143,6 +166,9 @@ class LuaGlueType : public LuaGlueTypeBase
 			LuaHelpers::glueFunction(g, LuaGlueTypeBase::METATABLE_TYPEID_FIELD, this, &typeid_cb, metatable_id);
 			LuaHelpers::glueFunction(g, "__index", this, &mm_index_cb, metatable_id);
 			LuaHelpers::glueFunction(g, "__newindex", this, &mm_newindex_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__concat", this, &mm_concat_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__call", this, &mm_call_cb, metatable_id);
+			LuaHelpers::glueFunction(g, "__eq", this, &mm_eq_cb, metatable_id);
 			
 			// TODO: this is supposed to disable lua from changing the metatable.
 			// make sure it actually does.
@@ -150,8 +176,6 @@ class LuaGlueType : public LuaGlueTypeBase
 			lua_setfield(s, metatable_id, "__metatable");
 			
 			LuaHelpers::glueFunction(g, "__gc", this, &mm_gc_cb, metatable_id);
-			LuaHelpers::glueFunction(g, "__concat", this, &mm_concat_cb, metatable_id);
-			LuaHelpers::glueFunction(g, "__call", this, &mm_call_cb, metatable_id);
 			
 			// TODO: add more meta method handlers.
 			
@@ -256,6 +280,17 @@ class LuaGlueType : public LuaGlueTypeBase
 			return luaL_error(state, "type %s is not callable (metamethod not defined).", name_.c_str());
 		}
 		
+		// default implementation is pointer identity.
+		virtual int mm_eq(lua_State *state)
+		{
+			LuaGlueTypeValueBase *obj1 = (LuaGlueTypeValueBase *)lua_touserdata(state, -2);
+			LuaGlueTypeValueBase *obj2 = (LuaGlueTypeValueBase *)lua_touserdata(state, -1);
+			
+			LG_Debug("%p eq %p", obj1->ptr<ValueType>(), obj2->ptr<ValueType>());
+			
+			return obj1->ptr<ValueType>() == obj2->ptr<ValueType>();
+		}
+		
 		virtual int lg_typeid(lua_State *state)
 		{
 			lua_pushunsigned(state, typeid_);
@@ -291,6 +326,12 @@ class LuaGlueType : public LuaGlueTypeBase
 		{
 			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
 			return cimp->mm_call(state);
+		}
+		
+		static int mm_eq_cb(lua_State *state)
+		{
+			auto cimp = (LuaGlueTypeBase *)lua_touserdata(state, lua_upvalueindex(1));
+			return cimp->mm_eq(state);
 		}
 		
 		static int typeid_cb(lua_State *state)

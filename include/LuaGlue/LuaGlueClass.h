@@ -334,7 +334,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 				auto at = new LuaGlueStaticArrayType<_N, _Type>(g);
 				((LuaGlue*)g)->addType(at);
 				
-				LG_Debug("register %s", impl->LUAGLUE_CLASS_NAME);
+				LG_Debug("register %s", lua_demangle_sym(impl->LUAGLUE_CLASS_NAME).c_str());
 			}
 			properties_.addSymbol(name.c_str(), impl);
 			

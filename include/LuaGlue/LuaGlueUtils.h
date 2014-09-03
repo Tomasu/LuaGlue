@@ -111,7 +111,7 @@ inline void lua_dump_userdata(lua_State *L, int idx)
 	const char *name luaL_checkstring(L, -1);
 	lua_pop(L, 1);
 	
-	printf("udata(%s)", name);
+	printf("udata(%s)", lua_demangle_sym(name).c_str());
 }
 
 inline void lua_dump_table(lua_State *L, int index)
