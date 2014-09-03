@@ -262,14 +262,14 @@ inline void LuaGlueLuaValue::load_table(LuaGlueBase* b, lua_State* s, int idx)
 
 #include "LuaGlue/LuaGlueLuaUserData.h"
 
-std::string LuaGlueLuaValue::userdata_tostring()
+inline std::string LuaGlueLuaValue::userdata_tostring()
 {
 	LuaGlueLuaUserData *udata = getLuaUdata();
 	return udata->toString();
 }
 
 template<class _T>
-_T *LuaGlueLuaValue::getUserData()
+inline _T *LuaGlueLuaValue::getUserData()
 {
 	LuaGlueLuaUserData *d = getLuaUdata();
 	return d->ptr()->ptr<_T>();

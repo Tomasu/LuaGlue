@@ -27,10 +27,10 @@ class LuaGlueTypeBase
 	friend class LuaGlueTypeValueImpl;
 	
 	public:
-		static const char METATABLE_TYPENAME_FIELD[];
-		static const char METATABLE_TYPENAMEINT_FIELD[];
-		static const char METATABLE_TYPEIDINT_FIELD[];
-		static const char METATABLE_TYPEID_FIELD[];
+		constexpr static const char *METATABLE_TYPENAME_FIELD = "TypeName";
+		constexpr static const char *METATABLE_TYPENAMEINT_FIELD = "InternalTypeName";
+		constexpr static const char *METATABLE_TYPEIDINT_FIELD = "InternalTypeId";
+		constexpr static const char *METATABLE_TYPEID_FIELD = "TypeId";
 		
 		LuaGlueTypeBase() { }
 		
@@ -74,10 +74,5 @@ class LuaGlueTypeBase
 			this->_impl_dtor((void*)p);
 		}
 };
-
-const char LuaGlueTypeBase::METATABLE_TYPENAME_FIELD[] = "TypeName";
-const char LuaGlueTypeBase::METATABLE_TYPENAMEINT_FIELD[] = "InternalTypeName";
-const char LuaGlueTypeBase::METATABLE_TYPEIDINT_FIELD[] = "InternalTypeId";
-const char LuaGlueTypeBase::METATABLE_TYPEID_FIELD[] = "TypeId";
 
 #endif /* LUAGLUE_TYPE_BASE_H */

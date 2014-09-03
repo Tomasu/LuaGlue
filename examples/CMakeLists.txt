@@ -55,3 +55,6 @@ target_link_libraries(stdfunc ${LUA_LIBRARIES})
 copy_to_build(luavalue.lua)
 add_executable(luavalue luavalue.cpp luavalue.lua)
 target_link_libraries(luavalue ${LUA_LIBRARIES})
+
+add_executable(mfile mfile1.cpp mfile2.cpp mfilemain.cpp)
+target_link_libraries(mfile ${LUA_LIBRARIES})

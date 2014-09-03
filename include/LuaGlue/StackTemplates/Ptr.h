@@ -2,13 +2,13 @@
 #define LUAGLUE_STACKTEMPLATES_PTR_H_GUARD
 
 	template<class T>
-	T *stack<T *>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline T *stack<T *>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		return get(g, s, idx, std::is_arithmetic<T>());
 	}
 	
 	template<class T>
-	T *stack<T *>::get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
+	inline T *stack<T *>::get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
 	{
 		T *p = (T *)lua_touserdata(s, idx);
 		LG_Debug("stack::get<%s *>: lud %p", CxxDemangle(T), p);
@@ -16,7 +16,7 @@
 	}
 	
 	template<class T>
-	T *stack<T *>::get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
+	inline T *stack<T *>::get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -39,20 +39,20 @@
 	}
 	
 	template<class T>
-	void stack<T *>::put(LuaGlueBase *g, lua_State *s, T *v)
+	inline void stack<T *>::put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		put(g, s, v, std::is_arithmetic<T>());
 	}
 	
 	template<class T>
-	void stack<T *>::put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
+	inline void stack<T *>::put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
 	{
 		LG_Debug("stack::put<%s *>: lud %p", CxxDemangle(T), v);
 		lua_pushlightuserdata(s, v);
 	}
 	
 	template<class T>
-	void stack<T *>::put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
+	inline void stack<T *>::put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
 	{
 		// first look for a class we support
 
@@ -73,13 +73,13 @@
 	}
 
 	template<class T>
-	T *stack<T *&>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline T *stack<T *&>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		return get(g, s, idx, std::is_arithmetic<T>());
 	}
 	
 	template<class T>
-	T *stack<T *&>::get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
+	inline T *stack<T *&>::get(LuaGlueBase *, lua_State *s, int idx, std::true_type)
 	{
 		T *p = (T *)lua_touserdata(s, idx);
 		LG_Debug("stack::get<%s *&>: lud %p", CxxDemangle(T), p);
@@ -87,7 +87,7 @@
 	}
 	
 	template<class T>
-	T *stack<T *&>::get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
+	inline T *stack<T *&>::get(LuaGlueBase *g, lua_State *s, int idx, std::false_type)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -108,20 +108,20 @@
 	}
 	
 	template<class T>
-	void stack<T *&>::put(LuaGlueBase *g, lua_State *s, T *v)
+	inline void stack<T *&>::put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		put(g, s, v, std::is_arithmetic<T>());
 	}
 	
 	template<class T>
-	void stack<T *&>::put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
+	inline void stack<T *&>::put(LuaGlueBase *, lua_State *s, T *v, std::true_type)
 	{
 		LG_Debug("stack::put<%s *&>: lud %p", CxxDemangle(T), v);
 		lua_pushlightuserdata(s, v);
 	}
 	
 	template<class T>
-	void stack<T *&>::put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
+	inline void stack<T *&>::put(LuaGlueBase *g, lua_State *s, T *v, std::false_type)
 	{
 		// first look for a class we support
 
@@ -143,7 +143,7 @@
 	
 
 	template<class T>
-	T *stack<T *const&>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline T *stack<T *const&>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -167,7 +167,7 @@
 	}
 	
 	template<class T>
-	void stack<T *const&>::put(LuaGlueBase *g, lua_State *s, T *v)
+	inline void stack<T *const&>::put(LuaGlueBase *g, lua_State *s, T *v)
 	{
 		// first look for a class we support
 
@@ -187,13 +187,13 @@
 		lua_pushlightuserdata(s, v);
 	}
 
-	void *stack<void *>::get(LuaGlueBase *, lua_State *s, int idx)
+	inline void *stack<void *>::get(LuaGlueBase *, lua_State *s, int idx)
 	{
 		LG_Debug("stack::get<void *>: lud");
 		return (void *)lua_touserdata(s, idx);
 	}
 	
-	void stack<void *>::put(LuaGlueBase *, lua_State *s, void *v)
+	inline void stack<void *>::put(LuaGlueBase *, lua_State *s, void *v)
 	{
 		LG_Debug("stack::put<void *>: lud");
 		lua_pushlightuserdata(s, v);

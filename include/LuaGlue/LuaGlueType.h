@@ -15,7 +15,7 @@ class LuaGlueType : public LuaGlueTypeBase
 	public:
 		typedef _Type ValueType;
 		
-		LuaGlueType(LuaGlueBase *luaGlue, const std::string &name) : g(luaGlue), name_(name), typeid_(0), anonymous_type(false) { }
+		LuaGlueType(LuaGlueBase *luaGlue, const std::string &name) : g(luaGlue), name_(name), typeid_(0), anonymous_type(false) { typeid_ = next_typeid(); }
 		LuaGlueType(LuaGlueBase *luaGlue) : g(luaGlue), name_(typeid(this).name()), typeid_(0), anonymous_type(true) { }
 		
 		virtual ~LuaGlueType() { LG_Debug("dtor"); }
@@ -293,6 +293,7 @@ class LuaGlueType : public LuaGlueTypeBase
 		
 		virtual int lg_typeid(lua_State *state)
 		{
+			LG_Debug("typeid_: %i", typeid_);
 			lua_pushunsigned(state, typeid_);
 			return 1;
 		}

@@ -13,7 +13,7 @@ template<int N, typename T>
 class LuaGlueStaticArrayType;
 
 	template<size_t _N, typename T>
-	void stack<T(&)[_N]>::getInPlace(LuaGlueBase *g, lua_State *s, int idx, T (&dest)[_N])
+	inline void stack<T(&)[_N]>::getInPlace(LuaGlueBase *g, lua_State *s, int idx, T (&dest)[_N])
 	{
 		LuaGlueStaticArray<_N, T> *sa = getStaticArray(g, s, idx);
 		if(sa)
@@ -23,7 +23,7 @@ class LuaGlueStaticArrayType;
 	}
 	
 	template<size_t _N, typename T>
-	T *stack<T(&)[_N]>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline T *stack<T(&)[_N]>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		LuaGlueStaticArray<_N, T> *sa = getStaticArray(g, s, idx);
 		if(sa)
@@ -33,7 +33,7 @@ class LuaGlueStaticArrayType;
 	}
 	
 	template<size_t _N, typename T>
-	void stack<T(&)[_N]>::put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
+	inline void stack<T(&)[_N]>::put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
 	{
 		typedef LuaGlueStaticArray<_N, T> ArrayType;
 		
@@ -52,7 +52,7 @@ class LuaGlueStaticArrayType;
 	}
 	
 	template<size_t _N, typename T>
-	LuaGlueStaticArray<_N, T> *stack<T(&)[_N]>::getStaticArray(LuaGlueBase *g, lua_State *s, int idx)
+	inline LuaGlueStaticArray<_N, T> *stack<T(&)[_N]>::getStaticArray(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		typedef LuaGlueStaticArray<_N, T> ArrayType;
 		
@@ -71,7 +71,7 @@ class LuaGlueStaticArrayType;
 
 	
 	template<size_t _N, typename T>
-	void stack<T[_N]>::getInPlace(LuaGlueBase *g, lua_State *s, int idx, T (&dest)[_N])
+	inline void stack<T[_N]>::getInPlace(LuaGlueBase *g, lua_State *s, int idx, T (&dest)[_N])
 	{
 		LuaGlueStaticArray<_N, T> *sa = getStaticArray(g, s, idx);
 		if(sa)
@@ -81,7 +81,7 @@ class LuaGlueStaticArrayType;
 	}
 	
 	template<size_t _N, typename T>
-	T *stack<T[_N]>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline T *stack<T[_N]>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		LuaGlueStaticArray<_N, T> *sa = getStaticArray(g, s, idx);
 		if(sa)
@@ -91,7 +91,7 @@ class LuaGlueStaticArrayType;
 	}
 	
 	template<size_t _N, typename T>
-	void stack<T[_N]>::put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
+	inline void stack<T[_N]>::put(LuaGlueBase *g, lua_State *s, T (&v)[_N])
 	{
 		typedef LuaGlueStaticArray<_N, T> ArrayType;
 		
@@ -109,7 +109,7 @@ class LuaGlueStaticArrayType;
 	}
 	
 	template<size_t _N, typename T>
-	LuaGlueStaticArray<_N, T> *stack<T[_N]>::getStaticArray(LuaGlueBase *g, lua_State *s, int idx)
+	inline LuaGlueStaticArray<_N, T> *stack<T[_N]>::getStaticArray(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		typedef LuaGlueStaticArray<_N, T> ArrayType;
 		

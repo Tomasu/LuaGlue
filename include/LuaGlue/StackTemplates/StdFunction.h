@@ -6,7 +6,7 @@
 #include "LuaGlue/LuaGlueStdFuncWrapper.h"
 
 	template<typename _Ret, typename... _Args>
-	std::function<_Ret(_Args...)> stack<std::function<_Ret(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
+	inline std::function<_Ret(_Args...)> stack<std::function<_Ret(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
@@ -29,14 +29,14 @@
 	}
 	
 	template<typename _Ret, typename... _Args>
-	void stack<std::function<_Ret(_Args...)>&>::put(LuaGlueBase *b, lua_State *, std::function<_Ret(_Args...)> _f)
+	inline void stack<std::function<_Ret(_Args...)>&>::put(LuaGlueBase *b, lua_State *, std::function<_Ret(_Args...)> _f)
 	{
 		auto func = new LuaGlueStdFuncWrapper<_Ret, _Args...>(b, _f);
 		func->glue(b);
 	}
 
 	template<typename _Ret, typename... _Args>
-	std::function<_Ret(_Args...)> stack<const std::function<_Ret(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
+	inline std::function<_Ret(_Args...)> stack<const std::function<_Ret(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
@@ -59,14 +59,14 @@
 	}
 	
 	template<typename _Ret, typename... _Args>
-	void stack<const std::function<_Ret(_Args...)>&>::put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
+	inline void stack<const std::function<_Ret(_Args...)>&>::put(LuaGlueBase *b, lua_State *s, std::function<_Ret(_Args...)> _f)
 	{
 		auto func = new LuaGlueStdFuncWrapper<_Ret, _Args...>(b, _f);
 		func.glue(b);
 	}
 
 	template<typename... _Args>
-	std::function<void(_Args...)> stack<std::function<void(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
+	inline std::function<void(_Args...)> stack<std::function<void(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 		
@@ -91,14 +91,14 @@
 	}
 	
 	template<typename... _Args>
-	void stack<std::function<void(_Args...)>&>::put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
+	inline void stack<std::function<void(_Args...)>&>::put(LuaGlueBase *b, lua_State *s, std::function<void(_Args...)> _f)
 	{
 		auto func = new LuaGlueStdFuncWrapper<void, _Args...>(b, _f);
 		func.glue(b);
 	}
 
 	template<typename... _Args>
-	std::function<void(_Args...)> stack<const std::function<void(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
+	inline std::function<void(_Args...)> stack<const std::function<void(_Args...)>&>::get(LuaGlueBase *b, lua_State *s, int idx)
 	{
 		luaL_checktype(s, idx, LUA_TFUNCTION); // must be a function
 	
@@ -124,7 +124,7 @@
 	}
 	
 	template<typename... _Args>
-	void stack<const std::function<void(_Args...)>&>::put(LuaGlueBase *b, lua_State *s, const std::function<void(_Args...)> &_f)
+	inline void stack<const std::function<void(_Args...)>&>::put(LuaGlueBase *b, lua_State *s, const std::function<void(_Args...)> &_f)
 	{
 		auto func = new LuaGlueStdFuncWrapper<void, _Args...>(b, _f);
 		func.glue(b);

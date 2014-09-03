@@ -5,7 +5,7 @@ template<typename _Class>
 class LuaGlueClass;
 
 	template<typename T>
-	T stack<LuaGlueTypeValue<T>&>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline T stack<LuaGlueTypeValue<T>&>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -26,7 +26,7 @@ class LuaGlueClass;
 	}
 	
 	template<typename T>
-	void stack<LuaGlueTypeValue<T>&>::put(LuaGlueBase *g, lua_State *s, const LuaGlueTypeValue<T> &v)
+	inline void stack<LuaGlueTypeValue<T>&>::put(LuaGlueBase *g, lua_State *s, const LuaGlueTypeValue<T> &v)
 	{
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupType(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)

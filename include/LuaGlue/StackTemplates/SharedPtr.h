@@ -5,7 +5,7 @@
 #include "LuaGlue/LuaGlueClass.h"
 	
 	template<class T>
-	std::shared_ptr<T> stack<std::shared_ptr<T>>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline std::shared_ptr<T> stack<std::shared_ptr<T>>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{ 
@@ -28,7 +28,7 @@
 	}
 
 	template<typename T>
-	void stack<std::shared_ptr<T>>::put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
+	inline void stack<std::shared_ptr<T>>::put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
 	{
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupType(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
@@ -46,7 +46,7 @@
 	}
 	
 	template<class T>
-	std::shared_ptr<T> stack<std::shared_ptr<T>&>::get(LuaGlueBase *g, lua_State *s, int idx)
+	inline std::shared_ptr<T> stack<std::shared_ptr<T>&>::get(LuaGlueBase *g, lua_State *s, int idx)
 	{
 		if(lua_islightuserdata(s, idx))
 		{
@@ -69,7 +69,7 @@
 	}
 	
 	template<class T>
-	void stack<std::shared_ptr<T>&>::put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
+	inline void stack<std::shared_ptr<T>&>::put(LuaGlueBase *g, lua_State *s, std::shared_ptr<T> v)
 	{
 		LuaGlueClass<T> *lgc = (LuaGlueClass<T> *)g->lookupType(typeid(LuaGlueClass<T>).name(), true);
 		if(lgc)
