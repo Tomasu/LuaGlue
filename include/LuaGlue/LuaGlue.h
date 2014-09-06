@@ -93,7 +93,14 @@ class LuaGlue : public LuaGlueBase
 			
 			lua_getglobal(state_, name.c_str());
 			applyTupleLuaFunc(this, state_, std::forward<_Args>(args)...);
-			lua_pcall(state_, Arg_Count_, 1, 0);
+			int ret = lua_pcall(state_, Arg_Count_, 1, 0);
+			if(ret != LUA_OK)
+			{
+				const char *err = luaL_checkstring(state_, -1);
+				last_error = std::string(err);
+				lua_pop(state_, 1);
+				printf("error: %s\n", err);
+			}
 			return stack<_Ret>::get(this, state_, -1);
 		}
 		
@@ -146,6 +153,8 @@ class LuaGlue : public LuaGlueBase
 			if(ret != LUA_OK)
 			{
 				const char *err = luaL_checkstring(state_, -1);
+				last_error = std::string(err);
+				lua_pop(state_, 1);
 				printf("error: %s\n", err);
 			}
 			
@@ -172,6 +181,14 @@ class LuaGlue : public LuaGlueBase
 				printf("error: %s\n", err);
 			}
 		}*/
+		
+		bool globalExists(const char *name)
+		{
+			lua_getglobal(state_, name);
+			int type = lua_type(state_, -1);
+			lua_pop(state_, 1);
+			return type != LUA_TNIL;
+		}
 		
 		template<typename _Type>
 		void setGlobal(const char *name, _Type v)
@@ -233,6 +250,7 @@ class LuaGlue : public LuaGlueBase
 				const char *errstr = ret != 7 ? luaL_checklstring(state_, -1, 0) : "file not found?";
 				printf("failed to load %s: err:%i %s\n", ns_name.c_str(), ret, errstr);
 				last_error = std::string(errstr);
+				lua_pop(state_, 1);
 				return false;
 			}
 			
@@ -262,7 +280,7 @@ class LuaGlue : public LuaGlueBase
 				
 				printf("failed to run script %s: err:%i %s\n", ns_name.c_str(), ret, errstr);
 				last_error = std::string(errstr);
-					
+				lua_pop(state_, 1);
 				return false;
 			}
 
@@ -278,6 +296,7 @@ class LuaGlue : public LuaGlueBase
 			{
 				const char *err = luaL_checkstring(state_, -1);
 				last_error = std::string(err);
+				lua_pop(state_, 1);
 			}
 			else
 			{

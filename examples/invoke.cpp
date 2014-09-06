@@ -63,5 +63,23 @@ int main(int, char **)
 	int ret2 = state.invokeFunction<int>("from_c_args", 1, 2.0, "three");
 	printf("from_c_args ret: %i\n", ret2);
 	
+	if(state.globalExists("from_c_ret"))
+	{
+		printf("from_c_ret exists!\n");
+	}
+	else
+	{
+		printf("from_c_ret does not exist\n");
+	}
+	
+	if(!state.globalExists("somerandomnamethatshouldntexist"))
+	{
+		printf("somerandomnamethatshouldntexist doesn't exist!\n");
+	}
+	else
+	{
+		printf("somerandomnamethatshouldntexist exists??? wat!\n");
+	}
+	
 	return 0;
 }
