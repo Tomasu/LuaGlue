@@ -17,6 +17,7 @@ class LuaGlueBase
 		virtual LuaGlueTypeBase *lookupType(const char *name, bool internal_name = false) = 0;
 		virtual LuaGlueTypeBase *lookupType(uint32_t idx) = 0;
 		virtual LuaGlueSymTab<LuaGlueTypeBase *> &getSymTab() = 0;
+		virtual void setLastError(const std::string &err) = 0;
 };
 
 #endif /* LUAGLUE_BASE_H_GUARD */

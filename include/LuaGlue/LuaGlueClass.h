@@ -77,7 +77,7 @@ class LuaGlueClass : public LuaGlueType<_Class>
 		virtual ~LuaGlueClass() { LG_Debug("dtor"); }
 		
 		template<typename _Ret, typename... _Args>
-		_Ret invokeMethod(const std::string &name, _Class *obj, _Args... args)
+		_Ret invokeMethod(const std::string &n, _Class *obj, _Args... args)
 		{
 			const unsigned int Arg_Count_ = sizeof...(_Args);
 			
@@ -87,9 +87,10 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			LuaGlueBase *g = this->luaGlue();
 			
 			this->pushInstance(g->state(), obj);
-			//printf("attempting to get method %s::%s\n", name().c_str(), name.c_str());
-			lua_getfield(g->state(), -1, name.c_str());
-			//lua_dump_stack(g->state());
+			printf("attempting to get method %s::%s\n", this->name().c_str(), n.c_str());
+			lua_getfield(g->state(), -1, n.c_str());
+			
+			lua_dump_stack(g->state());
 		
 			lua_pushvalue(g->state(), -2);
 			applyTupleLuaFunc(g, g->state(), args...);
@@ -97,8 +98,23 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			//using Alias=char[];
 			//Alias{ (returnValue(*g, g->state(), args), void(), '\0')... };
 			
-			lua_pcall(g->state(), Arg_Count_+1, 1, 0);
-
+			int pcall_ret = lua_pcall(g->state(), Arg_Count_+1, 1, 0);
+			if(pcall_ret != LUA_OK)
+			{
+				const char *errstr = luaL_checkstring(g->state(), -1);
+				if(!errstr)
+					g->setLastError("unknown error");
+				else
+				{
+					g->setLastError(errstr);
+					lua_pop(g->state(), 1);
+				}
+				
+				LG_Debug("pcall failed: %s", errstr);
+				lua_pop(g->state(), 1);
+				return _Ret();
+			}
+			
 			auto ret = stack<_Ret>::get(g, g->state(), -1);
 			lua_pop(g->state(), 2);
 			//lua_remove(g->state(), -2);
@@ -116,9 +132,10 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			LuaGlueBase *g = this->luaGlue();
 			
 			this->pushInstance(g->state(), obj);
-			//printf("attempting to get method %s::%s\n", name().c_str(), n.c_str());
+			printf("attempting to get method %s::%s\n", this->name().c_str(), n.c_str());
 			lua_getfield(g->state(), -1, n.c_str());
-			//lua_dump_stack(g->state());
+			
+			lua_dump_stack(g->state());
 		
 			lua_pushvalue(g->state(), -2);
 			
@@ -127,7 +144,23 @@ class LuaGlueClass : public LuaGlueType<_Class>
 			//using Alias=char[];
 			//Alias{ (returnValue(*g, g->state(), args), void(), '\0')... };
 			
-			lua_pcall(g->state(), Arg_Count_+1, 0, 0);
+			int pcall_ret = lua_pcall(g->state(), Arg_Count_+1, 0, 0);
+			if(pcall_ret != LUA_OK)
+			{
+				const char *errstr = luaL_checkstring(g->state(), -1);
+				if(!errstr)
+					g->setLastError("unknown error");
+				else
+				{
+					g->setLastError(errstr);
+					lua_pop(g->state(), 1);
+				}
+				
+				LG_Debug("pcall failed: %s", errstr);
+				lua_pop(g->state(), 1);
+				return;
+			}
+			
 			lua_pop(g->state(), 1);
 		}
 		

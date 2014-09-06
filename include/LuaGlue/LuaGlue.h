@@ -100,8 +100,11 @@ class LuaGlue : public LuaGlueBase
 				last_error = std::string(err);
 				lua_pop(state_, 1);
 				printf("error: %s\n", err);
+				return _Ret();
 			}
-			return stack<_Ret>::get(this, state_, -1);
+			_Ret r = stack<_Ret>::get(this, state_, -1);
+			lua_pop(state_, 1);
+			return r;
 		}
 		
 		/*
@@ -137,18 +140,6 @@ class LuaGlue : public LuaGlueBase
 			lua_dump_stack(state_);
 			LG_Debug("before pcall");
 			
-			
-			//int metret = lua_getmetatable(state_, -1);
-			//if(metret == 0)
-			//{
-			//	LG_Debug("userdata is missing metatable??");
-			//}
-			//else
-			//{
-			//	LG_Debug("metret: %i", metret);
-			//	lua_dump_table(state_, -1);
-			//	lua_pop(state_, 1);
-			//}
 			int ret = lua_pcall(state_, Arg_Count_, 0, 0);
 			if(ret != LUA_OK)
 			{
@@ -156,6 +147,8 @@ class LuaGlue : public LuaGlueBase
 				last_error = std::string(err);
 				lua_pop(state_, 1);
 				printf("error: %s\n", err);
+				LG_Debug("after pcall");
+				return;
 			}
 			
 			LG_Debug("after pcall");
@@ -336,6 +329,9 @@ class LuaGlue : public LuaGlueBase
 		LuaGlueSymTab<LuaGlueTypeBase *> &getSymTab() { return types; }
 		
 		const std::string &lastError() { return last_error; }
+		
+		// actually a private method. no touch
+		void setLastError(const std::string &err) { last_error = err; }
 		
 	private:
 		lua_State *state_;

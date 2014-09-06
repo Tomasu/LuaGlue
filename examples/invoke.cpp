@@ -81,5 +81,17 @@ int main(int, char **)
 		printf("somerandomnamethatshouldntexist exists??? wat!\n");
 	}
 	
+	printf("The following invoke's should fail\n");
+	
+	Class.invokeVoidMethod("methodThatShouldNotExist", test_obj, 123, 456);
+	
+	int int_meth_nexist_ret = Class.invokeMethod<int>("methodThatShouldNotExist", test_obj, 123, 456);
+	printf("invokeMethod nexist ret: %i\n", int_meth_nexist_ret);
+	
+	state.invokeVoidFunction("functionThatShouldNotExist", 123, 456);
+	
+	int int_func_nexist_ret = state.invokeFunction<int>("functionThatShouldNotExist", 123, 456);
+	printf("invokeFunction nexist ret: %i\n", int_func_nexist_ret);
+	
 	return 0;
 }
