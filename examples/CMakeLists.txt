@@ -58,3 +58,34 @@ target_link_libraries(luavalue ${LUA_LIBRARIES})
 
 add_executable(mfile mfile1.cpp mfile2.cpp mfilemain.cpp)
 target_link_libraries(mfile ${LUA_LIBRARIES})
+
+if(LUAGLUE_WANT_HOOF STREQUAL ON)
+	message(STATUS "checking for pkg-config")
+	include(FindPkgConfig)
+
+	if(PKG_CONFIG_FOUND)
+		message(STATUS "checking for allegro")
+		pkg_check_modules(ALLEGRO REQUIRED allegro-5)
+		pkg_check_modules(ALLEGRO_MAIN REQUIRED allegro_main-5)
+		pkg_check_modules(ALLEGRO_IMAGE REQUIRED allegro_image-5)
+		pkg_check_modules(ALLEGRO_PRIM REQUIRED allegro_primitives-5)
+		
+		if(ALLEGRO_FOUND)
+			message(STATUS "Allegro ${ALLEGRO_VERSION} was found, enable allegro demo.")
+			add_definitions(${ALLEGRO_CFLAGS})
+			add_executable(allegdemo allegdemo.cpp ${examples_BINARY_DIR}/lua_allegro.cpp)
+			target_link_libraries(allegdemo ${LUA_LIBRARIES} ${ALLEGRO_LIBRARIES})
+			
+			#GET_TARGET_PROPERTY(HOOF_EXE Hoof LOCATION)
+			add_custom_command(OUTPUT ${examples_BINARY_DIR}/lua_allegro.cpp
+				COMMAND hoof -I${ALLEGRO_INCLUDEDIR} ${ALLEGRO_INCLUDEDIR}/allegro5/allegro.h > ${examples_BINARY_DIR}/lua_allegro.cpp
+			)
+			
+			
+		else()
+			message(STATUS "Allegro library not found, disabling allegro demo")
+		endif()
+	else()
+		message(STATUS "pkg-config not found, disabling allegro demo")
+	endif()
+endif()
