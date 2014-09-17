@@ -60,5 +60,38 @@
 	{
 		lua_pushnumber(s, v);
 	}
+	
+	inline bool stack<bool>::get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		luaL_checktype (s, idx, LUA_TBOOLEAN);
+		return lua_toboolean (s, idx);
+	}
+
+	inline void stack<bool>::put(LuaGlueBase *, lua_State *s, bool v)
+	{
+		lua_pushboolean(s, v);
+	}
+
+	inline bool stack<bool&>::get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		luaL_checktype (s, idx, LUA_TBOOLEAN);
+		return lua_toboolean (s, idx);
+	}
+
+	inline void stack<bool&>::put(LuaGlueBase *, lua_State *s, bool &v)
+	{
+		lua_pushboolean(s, v);
+	}
+
+	inline bool stack<const bool&>::get(LuaGlueBase *, lua_State *s, int idx)
+	{
+		luaL_checktype (s, idx, LUA_TBOOLEAN);
+		return lua_toboolean (s, idx);
+	}
+
+	inline void stack<const bool&>::put(LuaGlueBase *, lua_State *s, const bool &v)
+	{
+		lua_pushboolean(s, v);
+	}
 
 #endif /* LUAGLUE_STACKTEMPLATES_NUMERIC_H_GUARD */
