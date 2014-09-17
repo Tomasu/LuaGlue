@@ -223,6 +223,24 @@ struct stack<const double&> {
 	static void put(LuaGlueBase *, lua_State *s, const double &v);
 };
 
+template<>
+struct stack<bool> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx);
+	static void put(LuaGlueBase *, lua_State *s, bool v);
+};
+
+template<>
+struct stack<bool&> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx);
+	static void put(LuaGlueBase *, lua_State *s, bool &v);
+};
+
+template<>
+struct stack<const bool&> {
+	static bool get(LuaGlueBase *, lua_State *s, int idx);
+	static void put(LuaGlueBase *, lua_State *s, const bool &v);
+};
+
 template<class T>
 struct stack<T *> {
 	static T *get(LuaGlueBase *g, lua_State *s, int idx);
