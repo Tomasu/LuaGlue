@@ -1,12 +1,61 @@
 #ifndef HOOF_DEBUG_H_GUARD
 #define HOOF_DEBUG_H_GUARD
 
-#ifdef LG_DEBUG
+#include <cstring>
+#include <vector>
+#include <cstdio>
+#include <cstdarg>
+#include <iostream>
+#include <llvm/Support/raw_ostream.h>
 
-#include <stdarg.h>
+#ifndef HF_DEBUG
+#	define HF_DEBUG 0
+#endif
 
-static inline void HF_Debug_(const char *FILE, const char *FUNCTION, int LINE, const char *t, const char *format, ...)
+enum {
+	HF_LOG_NONE = 0,
+	HF_LOG_TRACE,
+	HF_LOG_DEBUG,
+	HF_LOG_WARN,
+	HF_LOG_ERROR
+};
+
+#include "clang/AST/Decl.h"
+
+class HF_LogOut
 {
+	public:
+		HF_LogOut(FILE *_fh) : fh(_fh), los(fileno(_fh), false, false)
+		{
+		
+		}
+		
+		static HF_LogOut *getInstance()
+		{
+			if(!inst)
+				inst = new HF_LogOut(stderr);
+			
+			return inst;
+		}
+		
+		void log(const char *FILE, const char *FUNCTION, int LINE, int mode, const char *format, ...);
+		void dumpDecl(clang::Decl *decl)
+		{
+			decl->dump(los);
+		}
+		
+	private:
+		static HF_LogOut *inst;
+		FILE *fh;
+		llvm::raw_fd_ostream los;
+};
+
+inline void HF_LogOut::log(const char *FILE, const char *FUNCTION, int LINE, int mode, const char *format, ...)
+{
+	static const char *mode_str[] = {
+		"N", "T", "D", "W", "E", 0
+	};
+	
 	va_list ap;
 	va_start(ap, format);
 	int msg_len = vsnprintf(0, 0, format, ap);
@@ -22,34 +71,34 @@ static inline void HF_Debug_(const char *FILE, const char *FUNCTION, int LINE, c
 	vsnprintf(msg, (size_t)msg_len+1, format, ap);
 	va_end(ap);
 	
-	const char *fptr = strrchr(FILE, '/');
-	if(!fptr)
-		fptr = strrchr(FILE, '\\');
+	if(HF_DEBUG)
+	{
+		// log everything, with file/line/function details, in debug mode
+		const char *fptr = strrchr(FILE, '/');
+		if(!fptr)
+			fptr = strrchr(FILE, '\\');
+		
+		if(!fptr)
+			fptr = FILE;
+		else
+			fptr++;
 	
-	if(!fptr)
-		fptr = FILE;
-	else
-		fptr++;
-	
-	//char *buff = (char*)calloc(1, strlen(FUNCTION)+1);
-	//LG_Debug_subst_symbol(FUNCTION, buff);
-	fprintf(stderr, "%s:%s:%i: %s: %s\n", fptr, FUNCTION, LINE, t, msg);
-	//(void)FUNCTION;
-	//printf("%s:%i: %s: %s\n", fptr, LINE, t, msg);
+		fprintf(fh, "%s:%s:%i: %s: %s\n", fptr, FUNCTION, LINE, mode_str[mode], msg);
+	}
+	else if(mode > HF_LOG_DEBUG)
+	{
+		// only log warnings and errors in release mode.
+		fprintf(fh, "%s: %s\n", mode_str[mode], msg);
+	}
 	
 	delete[] msg;
 }
 
-#define HF_Debug(a, ...) HF_Debug_(__FILE__, __FUNCTION__, __LINE__, "D", a, ##__VA_ARGS__)
-#define HF_Warn(a, ...) HF_Debug_(__FILE__, __FUNCTION__, __LINE__, "W", a, ##__VA_ARGS__)
-#define HF_Error(a, ...) HF_Debug_(__FILE__, __FUNCTION__, __LINE__, "E", a, ##__VA_ARGS__)
+#define HF_Debug(a, ...) HF_LogOut::getInstance()->log(__FILE__, __FUNCTION__, __LINE__, HF_LOG_DEBUG, a, ##__VA_ARGS__)
+#define HF_Trace(a, ...) HF_LogOut::getInstance()->log(__FILE__, __FUNCTION__, __LINE__, HF_LOG_TRACE, a, ##__VA_ARGS__)
+#define HF_Warn(a, ...) HF_LogOut::getInstance()->log(__FILE__, __FUNCTION__, __LINE__, HF_LOG_WARN, a, ##__VA_ARGS__)
+#define HF_Error(a, ...) HF_LogOut::getInstance()->log(__FILE__, __FUNCTION__, __LINE__, HF_LOG_ERROR, a, ##__VA_ARGS__)
 
-#else
-
-#define HF_Debug(a, ...) ((void)a)
-#define HF_Warn(a, ...) ((void)a)
-#define HF_Error(a, ...) ((void)a)
-
-#endif /* !defined LG_DEBUG */
+#define HF_DumpDecl(d) HF_LogOut::getInstance()->dumpDecl(d)
 
 #endif /* HOOF_DEBUG_H_GUARD */

@@ -1,4 +1,5 @@
 #include "Hoof.h"
+#include "HoofDebug.h"
 #include "ASTConsumer.h"
 
 #include <sys/types.h>
@@ -202,7 +203,7 @@ bool Hoof::processDirectory(const std::string &p, const std::string &base)
 		if(path_len > PATH_MAX)
 		{
 			// length of combined path is too long, skip
-			fprintf(stderr, "WARN: can not scan %s in %s: path too long.", dent->d_name, p.c_str());
+			HF_Warn("can not scan %s in %s: path too long.", dent->d_name, p.c_str());
 			continue;
 		}
 		
@@ -220,7 +221,7 @@ bool Hoof::processDirectory(const std::string &p, const std::string &base)
 		struct stat stat_buf;
 		if(stat(path_buff, &stat_buf) != 0)
 		{
-			fprintf(stderr, "WARN: can not stat %s: %s\n", path_buff, strerror(errno));
+			HF_Warn("WARN: can not stat %s: %s", path_buff, strerror(errno));
 			continue;
 		}
 		
@@ -312,13 +313,13 @@ bool Hoof::processSingleFile(const std::string &p, const std::string &base)
 	initCompilerInstance();
 	applyHeaderSearchOptions();
 	
-	printf("file: %s\n", p.c_str());
+	HF_Trace("file: %s", p.c_str());
 	
 	auto &fileManager = ci->getFileManager();
 	const FileEntry *pFile = fileManager.getFile(p);
 	if(!pFile)
 	{
-		printf("Failed to get file??\n");
+		HF_Error("Failed to get file: %s", p.c_str());
 		return false;
 	}
 	
@@ -338,9 +339,13 @@ bool Hoof::processSingleFile(const std::string &p, const std::string &base)
 			*slashPath = 0;
 		}
 		else
-			basePath = "."; // should probably be getcwd()
-			
+		{
+			free(basePath);
+			basePath = strdup("."); // should probably be getcwd()
+		}
+		
 		astConsumer->setBasePath(basePath);
+		//free(basePath);
 	}
 	else
 	{

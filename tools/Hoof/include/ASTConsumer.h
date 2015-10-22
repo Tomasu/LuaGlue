@@ -28,6 +28,8 @@ class ASTConsumer : public clang::ASTConsumer {
 		ASTConsumer(clang::SourceManager *sm);
 		virtual ~ASTConsumer();
 		
+		void Initialize(clang::ASTContext &ctx) override { this->ctx = &ctx; }
+		
 		void HandleTranslationUnit (clang::ASTContext &ctx);
 
 		
@@ -37,6 +39,7 @@ class ASTConsumer : public clang::ASTConsumer {
 		void setBasePath(const char *bp) { basePath = bp; }
 		
 	private:
+		clang::ASTContext *ctx;
 		ASTVisitor *rv;
 		clang::SourceManager *sourceManager;
 		const char *basePath;
@@ -117,10 +120,10 @@ class ASTConsumer : public clang::ASTConsumer {
 		}
 		
 		//std::map<std::string, clang::Decl
-		void visitSingle(clang::Decl *d);
+		void visitSingle(clang::Decl *d, bool isInDecl = false);
 		void visitGroup(clang::DeclGroup &d);
 		
-		void visitTagDecl(clang::TagDecl *td, std::string typedefName = std::string());
+		void visitTagDecl(clang::TagDecl *td, std::string typedefName = std::string(), bool isInnerDecl = false, bool force = false, std::string nameOverride = std::string());
 		void visitField(clang::FieldDecl *fd);
 		void visitLinkageSpec(clang::LinkageSpecDecl *lsd);
 		void visitTypedefDecl(clang::TypedefNameDecl *typedefDecl);
@@ -132,7 +135,7 @@ class ASTConsumer : public clang::ASTConsumer {
 		
 		//void visitEnumField(clang::EnumConstantDecl *ecd);
 		
-		void printTag(clang::TagDecl *tag, std::string typedefName = std::string());
+		void printTag(clang::TagDecl *tag, std::string typedefName = std::string(), std::string nameOverride = std::string());
 		void printTagEnd(clang::TagDecl *tag);
 		void printEnumStart(clang::EnumDecl *ed);
 		void printEnumEnd(clang::EnumDecl *ed);

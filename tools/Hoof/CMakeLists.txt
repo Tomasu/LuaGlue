@@ -11,6 +11,12 @@ foreach(ITEM ${WARNINGS_TO_REMOVE})
 	string(REPLACE "${ITEM}" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endforeach(ITEM)
 
+if (CMAKE_BUILD_TYPE STREQUAL Debug OR CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+	add_definitions(-DHF_DEBUG=1)
+else()
+	add_definitions(-DNDEBUG)
+endif()
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	LLVM_CONFIG(LLVM_HOST_TARGET host-target)
 	
@@ -81,13 +87,14 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_CFLAGS} ${WARNINGS_TO_ADD}")
 
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LLVM_LDFLAGS}")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 SET(SRC 
 	src/main.cpp
 	src/ASTConsumer.cpp
 	src/ASTVisitor.cpp
 	src/Hoof.cpp
+	src/HoofDebug.cpp
 )
 
 add_executable(hoof ${SRC})

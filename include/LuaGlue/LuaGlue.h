@@ -11,6 +11,14 @@
 #include <typeinfo>
 #include <memory>
 
+#ifndef LUAGLUE_TYPECHECK
+#	define LUAGLUE_TYPECHECK 0
+#endif
+
+#ifndef LG_DEBUG
+#	define LG_DEBUG 0
+#endif
+
 #include "LuaGlue/LuaGlueBase.h"
 #include "LuaGlue/LuaGlueStackTemplates.h"
 #include "LuaGlue/LuaGlueType.h"

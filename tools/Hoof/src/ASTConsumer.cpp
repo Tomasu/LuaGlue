@@ -1,5 +1,6 @@
 #include "ASTConsumer.h"
 #include "ASTVisitor.h"
+#include "HoofDebug.h"
 
 #include <sstream>
 using clang::Decl;
@@ -31,6 +32,8 @@ using clang::CXXConstructorDecl;
 using clang::RecordType;
 using clang::TagType;
 using clang::BuiltinType;
+using clang::TemplateSpecializationType;
+using clang::ClassTemplateSpecializationDecl;
 
 using llvm::StringRef;
 
@@ -51,11 +54,12 @@ ASTConsumer::~ASTConsumer()
 
 void ASTConsumer::HandleTranslationUnit (ASTContext &)
 {
-	printf("end of TranslationUnit\n");
+	HF_Debug("end of TranslationUnit");
 }
 
 bool ASTConsumer::HandleTopLevelDecl(DeclGroupRef d)
 {
+	//HF_Trace("begin");
 	//printf("new DeclGroupRef\n");
 	if(d.isSingleDecl())
 	{
@@ -67,7 +71,13 @@ bool ASTConsumer::HandleTopLevelDecl(DeclGroupRef d)
 		auto buffer = sourceManager->getBufferName(loc);
 		
 		if(strstr(buffer, basePath))
+		{
 			visitSingle(decl);
+		}
+		else
+		{
+			//HF_Trace("decl's buffer (%s) is not in basePath (%s)", buffer, basePath);
+		}
 	}
 	else
 		visitGroup(d.getDeclGroup());
@@ -111,7 +121,7 @@ void ASTConsumer::HandleTagDeclDefinition(TagDecl *d)
 		else if(d->isEnum())
 			tag_type = "enum";
 		
-		printf("tag decl: %s %s\n", tag_type, declName.isEmpty() ? "anonymous" : declName.getAsString().c_str());
+		HF_Debug("tag decl: %s %s", tag_type, declName.isEmpty() ? "anonymous" : declName.getAsString().c_str());
 		
 		/*for(auto ii = d->decls_begin(); ii != d->decls_end(); ii++)
 		{
@@ -138,7 +148,7 @@ void ASTConsumer::HandleTagDeclDefinition(TagDecl *d)
 	}*/
 }
 
-void ASTConsumer::visitSingle(Decl *d)
+void ASTConsumer::visitSingle(Decl *d, bool isInDecl)
 {
 	auto loc = d->getLocation();
 	loc = sourceManager->getExpansionLoc(loc);
@@ -146,27 +156,40 @@ void ASTConsumer::visitSingle(Decl *d)
 	auto buffer = sourceManager->getBufferName(loc);
 		
 	if(!strstr(buffer, basePath))
+	{
+		//HF_Trace("skip decl, not in basePath");
 		return;
+	}
 	
 	if(d->getAccess() == clang::AS_private || d->getAccess() == clang::AS_protected)
 		return;
 	
-	//printf("single: %s\n", d->getDeclKindName());
+	//HF_Trace("single: %s", d->getDeclKindName());
 	
 	auto namedDecl = llvm::dyn_cast<NamedDecl>(d);
 	if(namedDecl)
 	{
-		//printf("single: %s %s\n", namedDecl->getDeclKindName(), namedDecl->getName().data());
+		// skip reserved symbols
+		auto n = namedDecl->getDeclName().getAsString();
+		if(n[0] == '_')
+		{
+			//HF_Debug("skip reserved symbol %s", n.c_str());
+			return;
+		}
+		
+		//HF_Debug("single: %s %s", namedDecl->getDeclKindName(), namedDecl->getName().data());
 		//if(namedDecl->getDeclName().getAsString()[0] == '_')
 		//	return;
 	}
 	
+	// FIXME: need to check for anonymous unions
 	switch(d->getKind())
 	{
 		case Decl::Kind::ClassTemplate: {
 			auto templatedecl = llvm::dyn_cast<ClassTemplateDecl>(d);
 			if(templatedecl)
 			{
+				HF_Debug("got ClassTemplateDecl");
 				TagDecl *tagDecl = templatedecl->getTemplatedDecl();
 				visitTagDecl(tagDecl);
 			}
@@ -176,7 +199,7 @@ void ASTConsumer::visitSingle(Decl *d)
 		case Decl::Kind::CXXRecord:
 		{
 			auto tagDecl = llvm::dyn_cast<TagDecl>(d);
-			visitTagDecl(tagDecl);
+			visitTagDecl(tagDecl, std::string(), isInDecl);
 		} break;
 		
 		case Decl::Kind::Var: {
@@ -192,6 +215,7 @@ void ASTConsumer::visitSingle(Decl *d)
 		} break;
 		
 		case Decl::Kind::Function: {
+			//HF_Debug("function!");
 			auto funcDecl = llvm::dyn_cast<FunctionDecl>(d);
 			visitFunction(funcDecl);
 		} break;
@@ -230,8 +254,18 @@ void ASTConsumer::visitSingle(Decl *d)
 		} break;
 		
 		default:
-			printf("UNHANDLED Decl::Kind: %s\n", d->getDeclKindName());
+		{
+			auto namedDecl = llvm::dyn_cast<NamedDecl>(d);
+			if(namedDecl && !namedDecl->getDeclName().isEmpty())
+			{
+				printf("// UNHANDLED %s named %s\n", d->getDeclKindName(), namedDecl->getDeclName().getAsString().c_str());
+			}
+			else
+			{
+				HF_Debug("// UNHANDLED ANON %s", d->getDeclKindName());
+			}
 			break;
+		}
 	}
 }
 
@@ -248,7 +282,7 @@ void ASTConsumer::visitEnumDecl(EnumDecl *enumDecl)
 	
 	if(enumDecl->isScoped())
 	{
-		printf("UNHANDLED scoped enum\n");
+		HF_Debug("UNHANDLED scoped enum");
 	}
 	else
 	{
@@ -264,7 +298,7 @@ void ASTConsumer::visitEnumDecl(EnumDecl *enumDecl)
 			}
 			else
 			{
-				printf("unscoped enum contains non constant field?\n");
+				HF_Debug("unscoped enum contains non constant field?");
 			}
 		}
 	}
@@ -327,7 +361,8 @@ void ASTConsumer::visitCXXMethod(CXXMethodDecl *meth)
 {
 	if(meth->isDeleted())
 		return;
-		
+
+	// FIXME: handle operator overloads: ie: operator[]
 	printCXXMethod(meth);
 }
 
@@ -369,104 +404,95 @@ void ASTConsumer::visitGroup(DeclGroup &d)
 	}
 }
 
-void ASTConsumer::visitTagDecl(TagDecl *tagDecl, std::string typedefName)
+void ASTConsumer::visitTagDecl(TagDecl *tagDecl, std::string typedefName, bool isInnerDecl, bool force, std::string nameOverride)
 {
+	HF_Debug("tagDecl: %p", tagDecl);
 	auto declName = tagDecl->getDeclName();
 	
-	if(!tagDecl->isThisDeclarationADefinition())
+	auto type = tagDecl->getTypeForDecl();
+	if(type)
 	{
-		// TODO: try seeing what happens if we either get the actual decl here,
-		//  or even try using the HandleTagDeclDefinition function for decls instead?
-		
-		//printf("skip tag %s??\n", declName.getAsString().c_str());
+		//auto tn = QualType::getAsString(param->getType().split())
+	}
+	
+	if(isInnerDecl && !tagDecl->isThisDeclarationADefinition())
+	{
+		//HF_Debug("we're an inner decl, and not a deffinition, skip");
 		return;
 	}
 	
-	//tagDecl = tagDecl->getCanonicalDecl();
-	
-	typemap[declName.getAsString().c_str()] = true;
-	
-	const char *tag_type = "unknown";
-	if(tagDecl->isStruct())
-		tag_type = "struct";
-	else if(tagDecl->isUnion())
-		tag_type = "union";
-	else if(tagDecl->isClass())
-		tag_type = "class";
-	else if(tagDecl->isEnum())
-		tag_type = "enum";
-	
-	// skip reserved symbols
-	//if(tagDecl->getName().startswith("_"))
-	//	return;
-	
-	//printf("sdecl tag: %s %s\n", tag_type, declName.isEmpty() ? "anonymous" : declName.getAsString().c_str());
-	
-	/*Decl *nextDecl = tagDecl->getNextDeclInContext();
-	if(nextDecl)
+	if(!tagDecl->getDefinition() && !force)
 	{
-		auto next_named = llvm::dyn_cast<NamedDecl>(nextDecl);
-		if(next_named)
-		{
-			auto nextDeclName = next_named->getDeclName();
-			printf("next: %s\n", nextDeclName.isEmpty() ? "anonymous" : nextDeclName.getAsString().c_str());
-		}
-	}*/
+		HF_Debug("tag %s is not defined", declName.getAsString().c_str());
+		// TODO: try seeing what happens if we either get the actual decl here,
+		//  or even try using the HandleTagDeclDefinition function for decls instead?
+		
+		//HF_Debug("declare but not define: %s??", declName.getAsString().c_str());
+		return;
+	}
 	
-	//if(curTag)
-	//	tagStack.push_back(curTag);
+	auto typeName = typedefName.length() ? typedefName : tagDecl->getQualifiedNameAsString();
+	//declName.getAsString();
+	if(typemap[typeName])
+	{
+		HF_Debug("type already handled: %s", typeName.c_str());
+		return;
+	}
+		
+	typemap[typeName] = true;
 	
-	//curTag = tagDecl;
-	printTag(tagDecl, typedefName);
+	if(tagDecl->getDefinition())
+		tagDecl = tagDecl->getDefinition();
+	
+	printTag(tagDecl, typedefName, nameOverride);
 	
 	for(auto ii = tagDecl->decls_begin(); ii != tagDecl->decls_end(); ii++)
 	{
-		visitSingle(*ii);
+		visitSingle(*ii, true);
 	}
 	
 	printTagEnd(tagDecl);
-
-	//curTag = tagStack.back();
-	//tagStack.pop_back();
-	
-	//printf("sdecl tag end\n");
 }
 
 void ASTConsumer::visitTypedefDecl(TypedefNameDecl *tnd)
 {
 	//printf("UNHANDLED typedef\n");
 	QualType qtype = tnd->getTypeSourceInfo()->getType();
-	std::string typeName = tnd->getDeclName().getAsString();
+	std::string typeName = tnd->getQualifiedNameAsString();// getDeclName().getAsString();
+	std::string typeNameOverride;
 	
 	// we don't care about non record (enum/union/struct/class) types
 	if(!qtype->isRecordType())
 	{
-		printf("typedef %s is not a record type\n", typeName.c_str());
+		//HF_Debug("typedef %s is not a record type", typeName.c_str());
 		return;
 	}
 	else
 	{
-		printf("typedef %s!\n", typeName.c_str());
+		HF_Debug("typedef %s!", typeName.c_str());
 	}
 	
-	auto recordType = qtype->getAs<RecordType>();
-	auto recordTypeDecl = recordType->getDecl();
-	auto recordTypeDeclName = recordTypeDecl->getDeclName().getAsString();
-	
-	if(tnd->getDeclContext()->getParent())
+	if(typemap[typeName])
 	{
-		printf("got a decl context!\n");
+		HF_Debug("type already handled: %s", typeName.c_str());
+		return;
 	}
 	
 	auto uqtype = tnd->getUnderlyingType();
+	HF_Debug("uqtype: %s", uqtype.getAsString().c_str());
+	
+	auto cttype = uqtype->getAs<TemplateSpecializationType>();
+	if(cttype)
+	{
+		typeNameOverride = uqtype.getAsString().c_str();
+	}
+	
 	auto utype = uqtype->getAs<RecordType>();
 	if(utype)
 	{
 		auto udecl = utype->getDecl();
-		auto udeclName = udecl->getDeclName().getAsString();
-		printf("udeclName: %s\n", udeclName.c_str());
-		
-		visitTagDecl(udecl, typeName);
+
+		visitTagDecl(udecl, typeName, false, true, typeNameOverride);
 		return;
 	}
 	
@@ -474,18 +500,23 @@ void ASTConsumer::visitTypedefDecl(TypedefNameDecl *tnd)
 	
 	if(nextDecl)
 	{
-		printf("got a next decl... %s\n", nextDecl->getDeclKindName());
+		HF_Debug("got a next decl... %s", nextDecl->getDeclKindName());
 		
+		auto recordType = qtype->getAs<RecordType>();
+		auto recordTypeDecl = recordType->getDecl();
+		auto recordTypeDeclName = recordTypeDecl->getQualifiedNameAsString();//getDeclName().getAsString();
+	
+	
 		auto nextTagDecl = llvm::dyn_cast<TagDecl>(nextDecl);
 		if(nextTagDecl)
 		{
 			auto nextName = nextTagDecl->getDeclName().getAsString();
 			
-			printf("next decl %s is a tag!\n", nextName.c_str());
+			HF_Debug("next decl %s is a tag!", nextName.c_str());
 			
 			if(nextTagDecl->isThisDeclarationADefinition())
 			{
-				printf("next decl %s is a deffinition\n", nextName.c_str());
+				HF_Debug("next decl %s is a deffinition", nextName.c_str());
 				if(nextName.length() == 0)
 				{
 					//printf("next tag is anon, we're typedefing it :o\n");
@@ -497,18 +528,18 @@ void ASTConsumer::visitTypedefDecl(TypedefNameDecl *tnd)
 					// FIXME: I think we want to check canonical type or underlying type here
 					// instead of this bull crap..
 					
-					printf("skip typedef: %s == next decl\n", nextName.c_str());
+					HF_Debug("skip typedef: %s == next decl", nextName.c_str());
 					return;
 				}
 			}
 		}
 	}
 	
-	if(typemap[recordTypeDeclName])
-	{
-		//printf("type already handled: %s\n", recordTypeDeclName);
-		return;
-	}
+	//if(typemap[recordTypeDeclName])
+	//{
+	//	HF_Debug("type already handled: %s\n", recordTypeDeclName.c_str());
+	//	return;
+	//}
 	
 	//typeName = recordTypeDeclName;
 	
@@ -593,6 +624,7 @@ void ASTConsumer::printCXXConstructor(CXXConstructorDecl *ctorDecl)
 		auto paramDeclName = paramDecl->getDeclName();
 		std::string paramName = paramDeclName.getAsString().c_str();
 		std::string paramTypeName = "unk";
+		bool doParamUpper = true;
 		
 		auto paramType = paramDecl->getType();
 		//if(paramType)
@@ -612,7 +644,13 @@ void ASTConsumer::printCXXConstructor(CXXConstructorDecl *ctorDecl)
 			else if(paramType->isBuiltinType())
 			{
 				//auto builtinType = paramType->getAs<BuiltinType>();
+				doParamUpper = false;
 				paramTypeName = paramType.getAsString().c_str();
+			}
+			else
+			{
+				paramTypeName = paramType.getSingleStepDesugaredType(*ctx).getAsString().c_str();// getAsString().c_str();
+				doParamUpper = false;
 			}
 		}
 		
@@ -628,7 +666,8 @@ void ASTConsumer::printCXXConstructor(CXXConstructorDecl *ctorDecl)
 				sstr << "With";
 			
 			paramName[0] = toupper(paramName[0]);
-			paramTypeName[0] = toupper(paramTypeName[0]);
+			//if(doParamUpper)
+			//	paramTypeName[0] = toupper(paramTypeName[0]);
 			sstr << paramName;
 		}
 		
@@ -696,10 +735,10 @@ void ASTConsumer::printEnumField(EnumConstantDecl *field)
 	}
 }
 
-void ASTConsumer::printTag(TagDecl *tag, std::string typedefName)
+void ASTConsumer::printTag(TagDecl *tag, std::string typedefName, std::string nameOverride)
 {
 	auto declName = tag->getDeclName();
-	std::string typeName = declName.getAsString();
+	std::string typeName = nameOverride.length() ? nameOverride : declName.getAsString();
 	
 	if(declName.isEmpty() && !typedefName.length())
 	{
@@ -722,10 +761,9 @@ void ASTConsumer::printTag(TagDecl *tag, std::string typedefName)
 		}
 	}
 	
-	if(typedefName.length())
-		typeName = typedefName;
+	auto simName = typedefName.length() ? typedefName : typeName;
 	
-	printf("{\nauto type = g.Class<%s>(\"%s\");\n", typeName.c_str(), typeName.c_str());
+	printf("{\nauto type = g.Class<%s>(\"%s\");\n", typeName.c_str(), simName.c_str());
 }
 
 void ASTConsumer::printTagEnd(TagDecl *tag)

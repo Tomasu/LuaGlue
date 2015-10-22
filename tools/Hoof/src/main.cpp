@@ -4,6 +4,7 @@
 #include "llvm/Support/CommandLine.h"
 
 #include "Hoof.h"
+#include "HoofDebug.h"
 
 // these are generated
 #include "builtin_macros.h"
@@ -59,7 +60,7 @@ int main(int argc, char **argv)
 	Hoof *hoof = new Hoof;
 	if(!hoof->initCompilerInstance())
 	{
-		printf("Hoof initCompilerInstance failed :(\n");
+		HF_Error("Hoof initCompilerInstance failed :(\n");
 		exit(-1);
 	}
 	
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
 	
 	for(auto bp = BasePaths.begin(); bp != BasePaths.end(); bp++)
 	{
-		printf("process base path: %s\n", bp->c_str());
+		HF_Debug("process base path: %s\n", bp->c_str());
 		hoof->processDirectory(*bp);
 	}
 	
